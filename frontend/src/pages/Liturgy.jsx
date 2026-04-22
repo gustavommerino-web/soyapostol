@@ -50,7 +50,7 @@ export default function Liturgy() {
             {data && (
                 <article className="reading-prose" data-testid="liturgy-content">
                     <div className="flex items-center justify-between border-b border-sand-300 pb-2 mb-6">
-                        <p className="label-eyebrow m-0">{t("common.source")}: iBreviary</p>
+                        <p className="label-eyebrow m-0">{t("common.source")}: {data.source || "iBreviary"}</p>
                         <FavoriteButton section="liturgy" title={data.title} content={data.content_text}
                             source_url={data.source_url} metadata={{ hour }} testId="fav-liturgy" />
                     </div>
