@@ -1,10 +1,12 @@
 """Catholic Bible - proxy to bolls.life (free Bible API).
-DRA (Douay-Rheims American 1899) for English Catholic Bible with deuterocanonicals.
+NABRE (New American Bible Revised Edition) for English Catholic Bible (73 books).
 NVI / RV1909 for Spanish.
 Includes retry + stale-cache fallback when the upstream is rate-limited or unavailable.
+Strips inline footnote markers (<sup>[1]</sup>, <sup>[AA]</sup>) from verse text.
 """
 from typing import Optional
 import asyncio
+import re
 import httpx
 from fastapi import APIRouter, Request, Query, HTTPException
 from datetime import datetime, timezone, timedelta
@@ -18,9 +20,28 @@ HEADERS = {
 }
 
 DEFAULT_TRANSLATIONS = {
-    "en": "NABRE",  # New American Bible Revised Edition — 73 books (US Catholic)
-    "es": "NVI",    # Nueva Versión Internacional
+    "en": "NABRE",
+    "es": "NVI",
 }
+
+# Strip bolls.life footnote markers and redundant <br>
+_FOOTNOTE_RE = re.compile(r"\s*<sup>\[[^\]]+\]</sup>\s*", re.IGNORECASE)
+_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+
+
+def _clean_verse(text: str) -> str:
+    if not text:
+        return text
+    t = _FOOTNOTE_RE.sub(" ", text)
+    t = _BR_RE.sub("\n", t)
+    # Collapse whitespace, trim
+    t = re.sub(r"[ \t]+", " ", t).strip()
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    return t
+
+
+def _clean_verses(verses):
+    return [{**v, "text": _clean_verse(v.get("text", ""))} for v in (verses or [])]
 
 
 async def _bolls_get(url: str, retries: int = 4, timeout: int = 20):
@@ -59,7 +80,7 @@ async def translations():
 
 @router.get("/books")
 async def books(request: Request, lang: str = Query("es"), translation: Optional[str] = None):
-    code = translation or DEFAULT_TRANSLATIONS.get(lang, "DRA")
+    code = translation or DEFAULT_TRANSLATIONS.get(lang, "NABRE")
     db = request.app.state.db
     cache_key = f"bible_books_{code}"
     cached = await db.bible_cache.find_one({"_id": cache_key})
@@ -90,25 +111,26 @@ async def chapter(request: Request,
                   chapter: int = Query(...),
                   lang: str = Query("es"),
                   translation: Optional[str] = None):
-    code = translation or DEFAULT_TRANSLATIONS.get(lang, "DRA")
+    code = translation or DEFAULT_TRANSLATIONS.get(lang, "NABRE")
     db = request.app.state.db
     cache_key = f"bible_ch_{code}_{book}_{chapter}"
     cached = await db.bible_cache.find_one({"_id": cache_key})
     if cached:
-        return {"translation": code, "book": book, "chapter": chapter, "verses": cached["verses"]}
+        return {"translation": code, "book": book, "chapter": chapter,
+                "verses": _clean_verses(cached["verses"])}
     try:
         r = await _bolls_get(f"{BOLLS_BASE}/get-text/{code}/{book}/{chapter}/")
         verses = r.json()
         doc = {"_id": cache_key, "translation": code, "book": book, "chapter": chapter,
                "verses": verses, "fetched_at": datetime.now(timezone.utc).isoformat()}
         await db.bible_cache.replace_one({"_id": cache_key}, doc, upsert=True)
-        return {"translation": code, "book": book, "chapter": chapter, "verses": verses}
+        return {"translation": code, "book": book, "chapter": chapter,
+                "verses": _clean_verses(verses)}
     except HTTPException:
-        # Last-ditch: look for same book/chapter across translations in cache
         alt = await db.bible_cache.find_one(
             {"book": book, "chapter": chapter, "translation": code}
         )
         if alt:
             return {"translation": code, "book": book, "chapter": chapter,
-                    "verses": alt["verses"], "stale": True}
+                    "verses": _clean_verses(alt["verses"]), "stale": True}
         raise
