@@ -1,0 +1,33 @@
+{
+  "summary": "Comprehensive backend pytest suite for Apostol API executed against public preview URL. 26/26 tests passed covering auth (register/login/me/logout, cookie-based), readings ES (ACI Prensa) and EN (Universalis), liturgy hours + lauds, prayers categories (>=10) + individual prayer fetch by slug, news ES (Vatican+ACI) and EN (>=2 sources from Vatican/CNA/NCRegister), bible translations/books/chapter, catechism structure (4 parts) and paragraphs endpoint (no 500), examen admin-only upload/list/download/delete with non-admin 403 check, and user-scoped favorites CRUD with cross-user isolation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth.py set_auth_cookies uses secure=False which works for testing but should be secure=True in production (cookies only over HTTPS). Recommend reading from env (e.g., COOKIE_SECURE) so prod deploys are secure.",
+    "auth.py login lockout uses identifier = ip:email. If the IP comes from behind a proxy, request.client.host will be the proxy IP and can lock out many users at once. Consider X-Forwarded-For handling or email-only keyed lockout with exponential backoff.",
+    "examen.py stores files as base64 in MongoDB (10MB limit). Fine for MVP but will bloat DB quickly; long-term move to object storage (S3/GridFS).",
+    "CORS allow_origins defaults to '*' but allow_credentials=True. Browsers reject credentialed requests with '*' origin. Current frontend uses explicit REACT_APP_BACKEND_URL and this passed live, but for safety pin CORS_ORIGINS to the actual frontend domain(s) in .env.",
+    "favorites.py create_index is not declared for favorites composite (only done in auth.ensure_indexes). Fine but keeping index creation centralized is OK; just note it."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested (backend-only per request)"},
+  "test_credentials": "Admin admin@apostol.app / Apostol2026! - verified working. Test users created via /api/auth/register during tests (prefixed test_* and reg_* / lo_*).",
+  "seed_data_creation": "Tests create ephemeral users and one TEST_examen doc which is deleted at end of test. Favorites created with TEST_ prefix and cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 26 backend tests in /app/backend/tests/backend_test.py pass against public URL in ~6s. External scrapers (ACI Prensa, Universalis, Vatican News, CNA, NCRegister, ibreviary, bolls.life, scborromeo) were all reachable at test time; if any fail intermittently re-run once. Examen upload test uses text/plain which is in ALLOWED_TYPES. Prayers test dynamically picks a slug from the index so it's resilient to content changes."
+}
