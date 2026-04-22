@@ -1,0 +1,108 @@
+{
+  "project_name": "Apostol",
+  "archetype": "Archetype 1 (Organic & Earthy)",
+  "theme": "Light",
+  "emotional_tone": "Reverent, peaceful, ancient-yet-modern, authoritative but accessible, contemplative",
+  "typography": {
+    "fonts": {
+      "headings": "Cormorant Garamond, serif",
+      "reading_body": "Lora, serif",
+      "ui_body": "Outfit, sans-serif"
+    },
+    "scale": {
+      "h1": "text-5xl sm:text-6xl tracking-tight leading-none",
+      "h2": "text-3xl sm:text-4xl tracking-tight leading-snug",
+      "h3": "text-xl sm:text-2xl leading-snug",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body_reading": "text-lg sm:text-xl leading-loose",
+      "body_ui": "text-base leading-relaxed",
+      "labels": "text-xs sm:text-sm uppercase tracking-[0.2em] font-medium"
+    },
+    "rules": [
+      "No generic sans-serif (Inter, Roboto) for headings.",
+      "Headlines > 32px must use tracking-tight.",
+      "Use Cormorant Garamond for all section titles and sacred text titles.",
+      "Use Lora exclusively for long-form reading (Bible, Catechism, Daily Readings).",
+      "Use Outfit for app navigation, buttons, dates, and metadata."
+    ]
+  },
+  "colors": {
+    "background": {
+      "base": "#FBF9F6",
+      "surface": "#F2EFE9",
+      "surface_hover": "#EAE5DC"
+    },
+    "text": {
+      "primary": "#1C1917",
+      "secondary": "#57534E",
+      "tertiary": "#78716C",
+      "inverse": "#FBF9F6"
+    },
+    "brand": {
+      "primary": "#8B2635",
+      "primary_hover": "#701D2A",
+      "accent": "#D4AF37",
+      "border": "#E7E5E4",
+      "border_focus": "#8B2635"
+    },
+    "rules": [
+      "Never use pure black or pure white. Always tint toward warm stone/sand.",
+      "Wine Red (#8B2635) is the primary interactive color (CTAs, active tabs, Favorites icon).",
+      "Gold (#D4AF37) is used sparingly for accents, like active reading indicators or subtle dividers."
+    ]
+  },
+  "spacing_and_layout": {
+    "philosophy": "Generous Spacing Philosophy. Treat UI like an ancient manuscript with wide margins.",
+    "grid_system": "Bento Grid (Control Room mode) for the Dashboard, but with warm, tactile surfaces instead of technical ones.",
+    "reading_view": "All reading interfaces (Bible, Readings, Prayers) MUST be restricted to max-w-2xl or max-w-3xl, centered, with massive vertical padding (py-16 to py-24).",
+    "alignment": "Optical alignment. Left-align text for high readability.",
+    "containers": "Use p-6 to p-12 inside cards. Never cram text to the borders."
+  },
+  "surfaces": {
+    "style": "Neumorphism (Tactile Clay & Crisp) mixed with Flat Editorial.",
+    "cards": "Flat background (Pale Sand #F2EFE9), 1px subtle border (#E7E5E4), NO heavy shadows. On hover, slight lift and border darkens.",
+    "headers": "Solid background (#FBF9F6) with a hard bottom border (#E7E5E4). No glassmorphism as it feels too 'clinical/tech' for a spiritual app.",
+    "border_radius": "Subtle roundness: rounded-md or rounded-none for a print/book aesthetic."
+  },
+  "components": {
+    "buttons": "Outfit font. Solid Wine Red for primary, Ghost/Outline with Wine Red text for secondary.",
+    "navigation": "Top or left-side nav using pure HTML/Tailwind. Highlight active state with a Wine Red text color and left border.",
+    "tabs": "Use Shadcn tabs but strip the Vercel look. Make them look like editorial section dividers (underline style).",
+    "icons": "Use Phosphor Icons (Duotone weight) for a high-end, elegant look."
+  },
+  "media": [
+    {
+      "category": "Hero / Auth Background",
+      "url": "https://images.pexels.com/photos/33527869/pexels-photo-33527869.jpeg",
+      "description": "Stained glass church interior for the authentication or landing page hero section."
+    },
+    {
+      "category": "Parchment Texture",
+      "url": "https://images.pexels.com/photos/235985/pexels-photo-235985.jpeg",
+      "description": "High-resolution vintage parchment texture to be used at low opacity (10-20%) over the base background for added tactile feel."
+    },
+    {
+      "category": "Bible / Reading Section Header",
+      "url": "https://images.pexels.com/photos/8276064/pexels-photo-8276064.jpeg",
+      "description": "Close-up of an open Bible for the Bible or Daily Readings header banner."
+    }
+  ],
+  "accessibility": {
+    "contrast": "Ensure APCA contrast ratio is met. Stone 900 on Pale Sand passes easily.",
+    "motion": "Respect prefers-reduced-motion. Animations should be subtle fades (opacity) and slight transforms, no bouncing."
+  },
+  "testing": {
+    "requirements": "All interactive elements (Favorites toggle, language switch, nav links, reading selectors) MUST have data-testid attributes (e.g., 'favorite-button', 'lang-toggle-en')."
+  },
+  "instructions_to_main_agent": [
+    "Install Phosphor Icons: yarn add @phosphor-icons/react",
+    "Configure Tailwind with the exact colors from this JSON (base, surface, primary, etc.).",
+    "Import Cormorant Garamond, Lora, and Outfit from Google Fonts.",
+    "Build a bilingual toggle (ES/EN) in the header. The default should be ES since the sources are Spanish.",
+    "The Dashboard must feature a Bento Grid linking to: Today's Readings, Liturgy of the Hours, Prayers, Examen, News, Bible, Catechism, and Favorites.",
+    "For the 'Examen of conscience' section, build an upload UI or placeholder reader since the PDFs will be provided later.",
+    "Use the provided image URLs strictly. Apply a Wine Red or Stone 900 overlay (bg-stone-900/40) over images if text sits on top.",
+    "Do NOT use standard Shadcn Cards with heavy shadows. Override them to have bg-[#F2EFE9] and border-[#E7E5E4] with no shadow.",
+    "All text reading views must be optimized for long sessions: max-w-3xl, text-lg or text-xl Lora font, leading-loose, text-[#1C1917]."
+  ]
+}
