@@ -7,6 +7,7 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 export default function Bible() {
     const { t, lang } = useLang();
     const [books, setBooks] = React.useState([]);
+    const [translation, setTranslation] = React.useState("");
     const [book, setBook] = React.useState(null);
     const [chapter, setChapter] = React.useState(1);
     const [verses, setVerses] = React.useState([]);
@@ -17,6 +18,7 @@ export default function Bible() {
         api.get(`/bible/books?lang=${lang}`)
             .then((r) => {
                 setBooks(r.data.books || []);
+                setTranslation(r.data.translation || "");
                 if (!book && r.data.books?.length) setBook(r.data.books[0]);
             })
             .finally(() => setLoading(false));
@@ -33,10 +35,20 @@ export default function Bible() {
     const chapterContent = verses.map((v) => `${v.verse}. ${v.text}`).join("\n");
     const totalChapters = book?.chapters || 1;
 
+    const translationLabel = {
+        NABRE: "New American Bible Revised Edition · USCCB",
+        BIA:   "Biblia de la Iglesia en América · Vaticano",
+    }[translation] || translation;
+
     return (
         <div className="max-w-6xl mx-auto" data-testid="bible-page">
             <p className="label-eyebrow mb-3">{t("nav.bible")}</p>
-            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-10">{t("nav.bible")}</h1>
+            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2">{t("nav.bible")}</h1>
+            {translationLabel && (
+                <p className="text-sm text-stoneMuted italic mb-10" data-testid="bible-translation-label">
+                    {translationLabel}
+                </p>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
                 {/* Book list */}
