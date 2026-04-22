@@ -1,6 +1,6 @@
 """Liturgy of the Hours scraper from ibreviary.com"""
 from datetime import datetime, timezone
-from typing import Optional
+import asyncio
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, Request, Query, HTTPException
@@ -19,18 +19,32 @@ HOURS = {
 }
 
 BASE = "https://www.ibreviary.com/m2"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+}
 
 
 async def _fetch_liturgy(hour: str, lang: str) -> dict:
     hour_code = HOURS.get(hour, "lodi")
     url = f"{BASE}/breviario.php?s={hour_code}&lang={lang}"
-    async with httpx.AsyncClient(timeout=20, follow_redirects=True,
-                                 headers={"User-Agent": "Mozilla/5.0 (ApostolApp)"}) as client:
-        r = await client.get(url)
-        if r.status_code >= 400:
-            raise HTTPException(status_code=502, detail=f"Liturgy source error: {r.status_code}")
+    last_exc = None
+    # Retry up to 3 times with exponential backoff for slow/flaky source
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=30, follow_redirects=True, headers=HEADERS) as client:
+                r = await client.get(url)
+            if r.status_code < 400:
+                break
+            last_exc = HTTPException(status_code=502, detail=f"Liturgy source error: {r.status_code}")
+        except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.ConnectError, httpx.RemoteProtocolError) as e:
+            last_exc = e
+        await asyncio.sleep(1 + attempt)
+    else:
+        # exhausted retries
+        raise HTTPException(status_code=503, detail="Liturgy source temporarily unavailable. Please try again in a moment.") from last_exc
+
     soup = BeautifulSoup(r.text, "lxml")
-    # main content lives inside #contenuto
     container = soup.select_one("#contenuto") or soup.select_one(".contenuto") or soup.select_one("#content") or soup.select_one("main") or soup.select_one("body")
     if not container:
         container = soup
@@ -92,7 +106,21 @@ async def get_liturgy(request: Request,
         if cached:
             cached.pop("_id", None)
             return cached
-    data = await _fetch_liturgy(hour, lang)
+
+    try:
+        data = await _fetch_liturgy(hour, lang)
+    except HTTPException:
+        # On failure, serve any stale cache we have for this hour/lang
+        stale = await db.liturgy_cache.find_one(
+            {"hour": hour, "lang": lang},
+            sort=[("fetched_at", -1)],
+        )
+        if stale:
+            stale.pop("_id", None)
+            stale["stale"] = True
+            return stale
+        raise
+
     doc = {"_id": cache_key, **data}
     await db.liturgy_cache.replace_one({"_id": cache_key}, doc, upsert=True)
     doc.pop("_id", None)
