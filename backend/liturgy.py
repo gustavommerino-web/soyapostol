@@ -1,8 +1,8 @@
 """Liturgy of the Hours.
-- EN (primary): divineoffice.org RSS feed — full HTML text for all 7 hours, updated daily.
-- ES/IT: ibreviary.com (retained for Spanish/Italian support).
-Caches results per (date, lang, hour) in MongoDB and serves stale cache if the source
-is temporarily unavailable.
+- EN (primary): divineoffice.org RSS feed.
+- ES (primary): liturgiadelashoras.github.io (GitHub Pages, fast/reliable).
+- Fallback for all: ibreviary.com (ES/EN/IT).
+Caches per (date, lang, hour); serves stale cache if source is unavailable.
 """
 from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs
@@ -14,7 +14,7 @@ from fastapi import APIRouter, Request, Query, HTTPException
 
 router = APIRouter(prefix="/liturgy", tags=["liturgy"])
 
-# Internal hour code → iBreviary id (ES/IT)
+# Internal hour code → iBreviary id
 IBREVIARY_CODES = {
     "office_of_readings": "ufficio_delle_letture",
     "lauds": "lodi",
@@ -25,7 +25,7 @@ IBREVIARY_CODES = {
     "compline": "compieta",
 }
 
-# Internal hour code → divineoffice.org prayer code (EN RSS)
+# Internal hour code → divineoffice.org RSS prayer code
 DIVINE_OFFICE_CODES = {
     "office_of_readings": "OfficeOfReadings",
     "lauds": "MorningPrayer",
@@ -36,9 +36,23 @@ DIVINE_OFFICE_CODES = {
     "compline": "NightPrayer",
 }
 
+# Internal hour code → liturgiadelashoras.github.io filename
+LDLH_CODES = {
+    "office_of_readings": "oficio.htm",
+    "lauds": "laudes.htm",
+    "midmorning": "tercia.htm",
+    "midday": "sexta.htm",
+    "midafternoon": "nona.htm",
+    "vespers": "visperas.htm",
+    "compline": "completas.htm",
+}
+
+LDLH_MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
 HOURS = list(IBREVIARY_CODES.keys())
 IBREVIARY_BASE = "https://www.ibreviary.com/m2"
 DIVINE_OFFICE_FEED = "https://divineoffice.org/feed/"
+LDLH_BASE = "https://liturgiadelashoras.github.io/sync"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
@@ -60,7 +74,7 @@ async def _fetch_with_retry(url: str, retries: int = 3, timeout: int = 30) -> ht
     raise HTTPException(status_code=503, detail="Liturgy source temporarily unavailable.") from last_exc
 
 
-# ----- Divine Office (English) -----
+# ---------- Divine Office (EN) ----------
 
 async def _fetch_divine_office(hour: str) -> dict:
     prayer_code = DIVINE_OFFICE_CODES.get(hour)
@@ -70,8 +84,6 @@ async def _fetch_divine_office(hour: str) -> dict:
     r = await _fetch_with_retry(DIVINE_OFFICE_FEED)
     feed = feedparser.parse(r.content)
 
-    # Find the entry for today matching the prayer code; fall back to most recent entry
-    # with that prayer code if today's entry is not yet published.
     matching = []
     for entry in feed.entries:
         link = entry.get("link", "")
@@ -80,10 +92,8 @@ async def _fetch_divine_office(hour: str) -> dict:
             continue
         entry_date = q.get("date", [""])[0]
         matching.append((entry_date, entry))
-
     if not matching:
-        raise HTTPException(status_code=502, detail="Could not find entry in Divine Office feed")
-    # Prefer today's; else the latest available
+        raise HTTPException(status_code=502, detail="Divine Office feed missing entry")
     matching.sort(key=lambda x: x[0], reverse=True)
     chosen_date, entry = None, None
     for d, e in matching:
@@ -98,18 +108,15 @@ async def _fetch_divine_office(hour: str) -> dict:
         content_html = entry["content"][0].get("value", "")
     if not content_html:
         content_html = entry.get("summary", "")
-    # Strip divineoffice audio embeds / podcast blocks
     soup = BeautifulSoup(content_html, "lxml")
     for s in soup.select("audio, iframe, script, .powerpress_player, .podcast_links, .sharedaddy, .jp-audio"):
         s.decompose()
     cleaned_html = str(soup)
     text = soup.get_text("\n", strip=True)
-    title = entry.get("title", hour.replace("_", " ").title())
-
     return {
         "hour": hour,
         "lang": "en",
-        "title": title,
+        "title": entry.get("title", hour.replace("_", " ").title()),
         "content_html": cleaned_html,
         "content_text": text,
         "source_url": entry.get("link", ""),
@@ -119,7 +126,50 @@ async def _fetch_divine_office(hour: str) -> dict:
     }
 
 
-# ----- iBreviary (Spanish / Italian) -----
+# ---------- Liturgia de las Horas (ES - primary) ----------
+
+async def _fetch_ldlh(hour: str) -> dict:
+    fname = LDLH_CODES.get(hour)
+    if not fname:
+        raise HTTPException(status_code=400, detail="Unsupported hour")
+    d = datetime.now(timezone.utc).date()
+    month_abbr = LDLH_MONTHS[d.month - 1]
+    url = f"{LDLH_BASE}/{d.year}/{month_abbr}/{d.day:02d}/{fname}"
+    r = await _fetch_with_retry(url)
+    # Pages are declared as iso-8859-1
+    r.encoding = "iso-8859-1"
+    soup = BeautifulSoup(r.text, "lxml")
+    for s in soup.select("script, style"):
+        s.decompose()
+    # The body text lives inside #cuerpo; the A/A/A font-size switcher sits in a div[align=right]
+    for switcher in soup.select("div[align='right'], div[align=right]"):
+        switcher.decompose()
+    cuerpo = soup.select_one("#cuerpo") or soup.body or soup
+    # Hour title is the first <STRONG> inside cuerpo (e.g., LAUDES, VÍSPERAS)
+    strong = cuerpo.find("strong")
+    spanish_titles = {
+        "office_of_readings": "Oficio de Lecturas",
+        "lauds": "Laudes",
+        "midmorning": "Tercia",
+        "midday": "Sexta",
+        "midafternoon": "Nona",
+        "vespers": "Vísperas",
+        "compline": "Completas",
+    }
+    title = (strong.get_text(" ", strip=True).title() if strong else None) or spanish_titles.get(hour, hour.title())
+    return {
+        "hour": hour,
+        "lang": "es",
+        "title": title,
+        "content_html": str(cuerpo),
+        "content_text": cuerpo.get_text("\n", strip=True),
+        "source_url": url,
+        "source": "Liturgia de las Horas",
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------- iBreviary (fallback) ----------
 
 async def _fetch_ibreviary(hour: str, lang: str) -> dict:
     hour_code = IBREVIARY_CODES[hour]
@@ -133,14 +183,12 @@ async def _fetch_ibreviary(hour: str, lang: str) -> dict:
         s.decompose()
     title_el = container.select_one("h1, h2, h3")
     title = title_el.get_text(" ", strip=True) if title_el else hour.replace("_", " ").title()
-    content_html = str(container)
-    text = container.get_text("\n", strip=True)
     return {
         "hour": hour,
         "lang": lang,
         "title": title,
-        "content_html": content_html,
-        "content_text": text,
+        "content_html": str(container),
+        "content_text": container.get_text("\n", strip=True),
         "source_url": url,
         "source": "iBreviary",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -148,12 +196,22 @@ async def _fetch_ibreviary(hour: str, lang: str) -> dict:
 
 
 async def _fetch_liturgy(hour: str, lang: str) -> dict:
+    """Try primary source, fall back to iBreviary if it fails."""
     if lang == "en":
-        return await _fetch_divine_office(hour)
+        try:
+            return await _fetch_divine_office(hour)
+        except HTTPException:
+            return await _fetch_ibreviary(hour, "en")
+    if lang == "es":
+        try:
+            return await _fetch_ldlh(hour)
+        except HTTPException:
+            return await _fetch_ibreviary(hour, "es")
+    # IT or other
     return await _fetch_ibreviary(hour, lang)
 
 
-# ----- API -----
+# ---------- API ----------
 
 @router.get("/hours")
 async def list_hours(lang: str = Query("es")):
