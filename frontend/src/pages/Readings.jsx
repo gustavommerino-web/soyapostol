@@ -33,7 +33,7 @@ export default function Readings() {
                     <a href={data.source_url} target="_blank" rel="noreferrer"
                         className="text-sm text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
                         data-testid="readings-source-link">
-                        {lang === "es" ? "ACI Prensa" : "Universalis"} <ArrowSquareOut size={14} />
+                        {lang === "es" ? "USCCB" : "USCCB"} <ArrowSquareOut size={14} />
                     </a>
                 )}
             </div>
