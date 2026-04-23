@@ -29,7 +29,7 @@ export default function Catechism() {
         const end = Math.min(s.end, start + 39);
         setLoading(true);
         try {
-            const r = await api.get(`/catechism/paragraphs?start=${start}&end=${end}&lang=${lang === "es" ? "en" : "en"}`);
+            const r = await api.get(`/catechism/paragraphs?start=${start}&end=${end}&lang=${lang}`);
             setParagraphs(r.data.paragraphs || []);
             setChunkStart(start);
         } finally { setLoading(false); }
@@ -46,10 +46,7 @@ export default function Catechism() {
                     <CaretLeft size={14} weight="bold" /> {t("nav.catechism")}
                 </button>
                 <p className="label-eyebrow mb-2">CCC §{section.start}–{section.end}</p>
-                <h1 className="heading-serif text-4xl tracking-tight leading-tight mb-2">{section.title}</h1>
-                <p className="text-sm text-stoneFaint italic mb-8">
-                    {lang === "es" ? "Versión en inglés (St Charles Borromeo). Traducción ES en preparación." : "English text via St Charles Borromeo Catechism."}
-                </p>
+                <h1 className="heading-serif text-4xl tracking-tight leading-tight mb-8">{section.title}</h1>
 
                 {loading && <p className="text-stoneMuted" data-testid="catechism-loading">{t("common.loading")}</p>}
 

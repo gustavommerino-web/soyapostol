@@ -1,21 +1,43 @@
-"""Catechism of the Catholic Church (CCC) - reader via vatican.va scraping + curated index.
-The full CCC is organized in 4 parts, many chapters.
-We use a static index of part URLs and fetch section content on demand with cache.
+"""Catechism of the Catholic Church (CCC) - official Vatican source.
+- ES: https://www.vatican.va/archive/catechism_sp/*_sp.html   (iso-8859-1)
+- EN: https://www.vatican.va/archive/ENG0015/__P*.HTM         (iso-8859-1)
+Each language has a precomputed manifest mapping Vatican pages to paragraph
+ranges (see /app/backend/data/ccc_*_manifest.json). Paragraph text is scraped
+from the HTML on first request and cached in MongoDB per-page.
 """
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
+import asyncio
+import html
+import json
+import re
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, Request, Query, HTTPException
 
 router = APIRouter(prefix="/catechism", tags=["catechism"])
 
-# Index of CCC: 4 parts, each with chapters and sections
-# Paragraph numbers 1-2865. We expose a paragraph-range fetcher using scborromeo.org
-# which hosts the full CCC in clean HTML in both English and Spanish.
-BASE_EN = "https://www.scborromeo.org/ccc.htm"
-BASE_ES = "https://www.vatican.va/archive/catechism_sp/index_sp.html"
+DATA_DIR = Path(__file__).parent / "data"
+VATICAN_BASE = {
+    "es": "https://www.vatican.va/archive/catechism_sp/",
+    "en": "https://www.vatican.va/archive/ENG0015/",
+}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+}
 
-# Structural index (concise navigation)
+_MANIFEST_CACHE: dict[str, list[dict]] = {}
+
+
+def _manifest(lang: str) -> list[dict]:
+    if lang not in _MANIFEST_CACHE:
+        path = DATA_DIR / f"ccc_{lang}_manifest.json"
+        _MANIFEST_CACHE[lang] = json.loads(path.read_text(encoding="utf-8"))
+    return _MANIFEST_CACHE[lang]
+
+
+# Structural navigation for the UI (same as before, now paragraph ranges cover the whole CCC)
 STRUCTURE = [
     {"part": 1, "title_es": "La profesión de la fe", "title_en": "The Profession of Faith",
      "sections": [
@@ -64,71 +86,82 @@ async def structure(lang: str = Query("es")):
     return result
 
 
-async def _fetch_paragraphs(start: int, end: int, lang: str) -> list[dict]:
-    """Fetch CCC paragraphs from scborromeo.org (EN) or Vatican archive (ES).
-    Returns list of {number, text}.
-    """
-    url = f"https://www.scborromeo.org/ccc/para/{start}.htm"  # per-paragraph pages exist
-    # scborromeo also has a consolidated page. We'll fetch paragraph by paragraph for reliability.
-    async with httpx.AsyncClient(timeout=15, follow_redirects=True,
-                                 headers={"User-Agent": "Mozilla/5.0 (ApostolApp)"}) as client:
-        paragraphs = []
-        # Cap range to max 60 paragraphs per request
-        max_n = min(end, start + 59)
-        for n in range(start, max_n + 1):
-            if lang == "en":
-                u = f"https://www.scborromeo.org/ccc/para/{n}.htm"
-            else:
-                # Vatican.va ES catechism doesn't expose per-paragraph; fallback to English
-                u = f"https://www.scborromeo.org/ccc/para/{n}.htm"
-            try:
-                r = await client.get(u)
-                if r.status_code >= 400:
-                    continue
-                soup = BeautifulSoup(r.text, "lxml")
-                body = soup.select_one("body")
-                if not body:
-                    continue
-                # Extract the main paragraph block
-                text = body.get_text("\n", strip=True)
-                paragraphs.append({"number": n, "text": text})
-            except Exception:
-                continue
-    return paragraphs
+_NUMBERED_PARA_RE = re.compile(r"^\s*(\d{1,4})\s+(.+)$", re.DOTALL)
 
 
-async def _fetch_section_vatican_es(start: int, end: int) -> list[dict]:
-    """Fetch Spanish CCC paragraphs from vatican.va archive (a single long page per section).
-    This is a simpler approach: fetch the full CCC index_sp.html paragraphs cache.
-    """
-    # Use the Vatican compact catechism pages. They're organized in chunks.
-    # Simplified: fetch the section index and extract requested paragraph numbers.
-    url = "https://www.vatican.va/archive/catechism_sp/index_sp.html"
-    async with httpx.AsyncClient(timeout=20, follow_redirects=True,
-                                 headers={"User-Agent": "Mozilla/5.0 (ApostolApp)"}) as client:
+async def _fetch_page_paragraphs(lang: str, page: str, db) -> list[dict]:
+    """Fetch a single Vatican CCC HTML page, extract its paragraphs, and cache."""
+    cache_key = f"ccc_page_{lang}_{page}"
+    cached = await db.catechism_cache.find_one({"_id": cache_key})
+    if cached:
+        return cached["paragraphs"]
+
+    url = VATICAN_BASE[lang] + page
+    async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers=HEADERS) as client:
         r = await client.get(url)
-    return [{"number": start, "text": "Para la versión completa en español, consulte vatican.va. (Contenido completo vendrá pronto.)"}]
+    if r.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Vatican CCC returned {r.status_code}")
+    r.encoding = "iso-8859-1"
+    soup = BeautifulSoup(r.text, "lxml")
+    for s in soup.select("script, style, table[border='0'][align='right']"):
+        s.decompose()
+
+    paragraphs = []
+    for p in soup.select("p"):
+        text = p.get_text(" ", strip=True)
+        if not text:
+            continue
+        text = html.unescape(text)
+        m = _NUMBERED_PARA_RE.match(text)
+        if not m:
+            continue
+        n = int(m.group(1))
+        if not (1 <= n <= 2865):
+            continue
+        body = re.sub(r"\s+", " ", m.group(2)).strip()
+        if body:
+            paragraphs.append({"number": n, "text": body})
+    await db.catechism_cache.replace_one(
+        {"_id": cache_key},
+        {"_id": cache_key, "lang": lang, "page": page,
+         "paragraphs": paragraphs,
+         "fetched_at": datetime.now(timezone.utc).isoformat()},
+        upsert=True,
+    )
+    return paragraphs
 
 
 @router.get("/paragraphs")
 async def paragraphs(request: Request,
                       start: int = Query(...),
                       end: int = Query(...),
-                      lang: str = Query("en")):
+                      lang: str = Query("es")):
+    if lang not in ("es", "en"):
+        lang = "es"
     if start < 1 or end < start or (end - start) > 120:
         raise HTTPException(status_code=400, detail="Invalid range (max 120 paragraphs)")
+
+    manifest = _manifest(lang)
+    # Find pages whose range overlaps [start, end]
+    relevant = [m for m in manifest if m["end"] >= start and m["start"] <= end]
+    if not relevant:
+        return {"lang": lang, "start": start, "end": end, "paragraphs": []}
+
     db = request.app.state.db
-    cache_key = f"ccc_{lang}_{start}_{end}"
-    cached = await db.catechism_cache.find_one({"_id": cache_key})
-    if cached:
+    out: list[dict] = []
+    fetched_any = False
+    for entry in relevant:
         try:
-            if datetime.now(timezone.utc) - datetime.fromisoformat(cached["fetched_at"]) < timedelta(days=30):
-                return {"lang": lang, "start": start, "end": end, "paragraphs": cached["paragraphs"]}
+            paras = await _fetch_page_paragraphs(lang, entry["page"], db)
+            fetched_any = True
+            for p in paras:
+                if start <= p["number"] <= end:
+                    out.append(p)
         except Exception:
-            pass
-    paragraphs_data = await _fetch_paragraphs(start, end, lang)
-    doc = {"_id": cache_key, "lang": lang, "start": start, "end": end,
-           "paragraphs": paragraphs_data,
-           "fetched_at": datetime.now(timezone.utc).isoformat()}
-    await db.catechism_cache.replace_one({"_id": cache_key}, doc, upsert=True)
-    return {"lang": lang, "start": start, "end": end, "paragraphs": paragraphs_data}
+            continue
+    out.sort(key=lambda p: p["number"])
+
+    if not out and not fetched_any:
+        raise HTTPException(status_code=503, detail="Catechism source temporarily unavailable")
+
+    return {"lang": lang, "start": start, "end": end, "paragraphs": out}
