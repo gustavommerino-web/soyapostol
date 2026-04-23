@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLang } from "@/contexts/LangContext";
-import { Cross } from "@phosphor-icons/react";
 
 const HERO_IMG = "https://images.pexels.com/photos/33527869/pexels-photo-33527869.jpeg";
 
@@ -32,8 +31,8 @@ export default function Register() {
                 <img src={HERO_IMG} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-stone900/55" />
                 <div className="relative z-10 h-full flex flex-col justify-end p-16 text-sand-50">
-                    <Cross size={48} weight="duotone" className="text-gold mb-6" />
-                    <h2 className="heading-serif text-5xl leading-none mb-3">Apostol</h2>
+                    <img src="/logo.png" alt="soyapostol" className="h-14 w-14 object-contain mb-6" />
+                    <h2 className="heading-serif text-5xl leading-none mb-3">soyapostol</h2>
                     <p className="reading-serif italic text-xl text-sand-100/90 max-w-md">"Venid a mí, todos los que estáis cansados."</p>
                     <p className="ui-sans text-sm text-sand-100/70 mt-1">Mateo 11, 28</p>
                 </div>
@@ -41,8 +40,8 @@ export default function Register() {
             <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
                 <div className="w-full max-w-sm">
                     <div className="lg:hidden flex items-center gap-3 mb-10">
-                        <Cross size={32} weight="duotone" className="text-sangre" />
-                        <span className="heading-serif text-3xl font-semibold">Apostol</span>
+                        <img src="/logo.png" alt="soyapostol" className="h-9 w-9 object-contain" />
+                        <span className="heading-serif text-3xl font-semibold">soyapostol</span>
                     </div>
                     <p className="label-eyebrow mb-3">{t("common.join_apostol")}</p>
                     <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-10">{t("common.create_account")}</h1>

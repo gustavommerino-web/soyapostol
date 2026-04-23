@@ -2,7 +2,7 @@ import React from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLang } from "@/contexts/LangContext";
-import { Cross, BookOpen, Heart, SignOut, Translate, List } from "@phosphor-icons/react";
+import { SignOut, Translate, List } from "@phosphor-icons/react";
 import { Toaster } from "sonner";
 
 const NAV_ITEMS = [
@@ -31,10 +31,9 @@ export default function Layout() {
             <header className="border-b border-sand-300 bg-sand-50 sticky top-0 z-30 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-4">
                     <Link to="/" className="flex items-center gap-3" data-testid="header-logo">
-                        <Cross size={28} weight="duotone" className="text-sangre" />
+                        <img src="/logo.png" alt="soyapostol" className="h-9 w-9 object-contain" />
                         <div className="leading-none">
                             <div className="heading-serif text-2xl font-semibold tracking-tight">{t("app_name")}</div>
-                            <div className="label-eyebrow text-[10px] mt-0.5 hidden sm:block">{t("tagline")}</div>
                         </div>
                     </Link>
 
@@ -101,7 +100,7 @@ export default function Layout() {
 
             {/* Footer */}
             <footer className="border-t border-sand-300 py-6 px-6 lg:px-10 text-center">
-                <p className="label-eyebrow">Apostol &middot; Ad maiorem Dei gloriam</p>
+                <p className="label-eyebrow">soyapostol &middot; Ad maiorem Dei gloriam</p>
             </footer>
 
             <Toaster position="bottom-right" richColors closeButton />

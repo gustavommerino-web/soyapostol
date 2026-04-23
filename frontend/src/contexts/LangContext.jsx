@@ -2,8 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 const STRINGS = {
     es: {
-        app_name: "Apostol",
-        tagline: "Tu compañero católico diario",
+        app_name: "soyapostol",
+        tagline: "",
         nav: {
             dashboard: "Inicio",
             readings: "Lecturas",
@@ -54,8 +54,8 @@ const STRINGS = {
         examen: { upload: "Subir documento", title: "Título", description: "Descripción", file: "Archivo", admin_only: "Solo el administrador puede subir documentos." },
     },
     en: {
-        app_name: "Apostol",
-        tagline: "Your daily Catholic companion",
+        app_name: "soyapostol",
+        tagline: "",
         nav: {
             dashboard: "Home",
             readings: "Readings",

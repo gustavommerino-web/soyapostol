@@ -35,14 +35,6 @@ export default function Dashboard() {
         <div data-testid="dashboard-page">
             <section className="mb-14">
                 <p className="label-eyebrow mb-4">{today}</p>
-                <h1 className="heading-serif text-5xl sm:text-6xl lg:text-7xl tracking-tight leading-none mb-6 max-w-3xl">
-                    {lang === "es" ? "Pax tibi." : "Peace be with you."}
-                </h1>
-                <p className="reading-serif text-xl text-stoneMuted max-w-2xl">
-                    {lang === "es"
-                        ? "Reza, lee y reflexiona. Apostol reúne tus lecturas, oraciones y la sabiduría de la Iglesia en un solo lugar."
-                        : "Pray, read, reflect. Apostol gathers your readings, prayers, and the wisdom of the Church in one place."}
-                </p>
                 {!user && (
                     <div className="mt-8 flex gap-3">
                         <Link to="/register" className="btn-primary inline-flex items-center gap-2" data-testid="dashboard-cta-register">
