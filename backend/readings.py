@@ -1,10 +1,10 @@
 """Daily Mass Readings from USCCB (via Playwright, to bypass their WAF).
 - ES  → https://bible.usccb.org/es/lectura-diaria-biblia
 - EN  → https://bible.usccb.org/daily-bible-reading
-Caches today's readings per lang in MongoDB and serves stale cache if the source
-is unavailable. A single headless Chromium instance is shared across requests.
+USCCB publishes readings on US Eastern time, so the cache key uses that timezone
+(not UTC) to avoid serving yesterday's content during late-night UTC hours.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 import asyncio
 from fastapi import APIRouter, Request, HTTPException, Query
@@ -14,6 +14,14 @@ router = APIRouter(prefix="/readings", tags=["readings"])
 
 USCCB_ES = "https://bible.usccb.org/es/lectura-diaria-biblia"
 USCCB_EN = "https://bible.usccb.org/daily-bible-reading"
+
+# US Eastern time (EST/EDT, no DST handling needed for our caching purposes – worst case
+# is a 1-hour delay around DST transitions, which is acceptable for a daily-cached page).
+US_EASTERN_OFFSET = timedelta(hours=-4)  # EDT (April–November)
+
+
+def _today_us_eastern() -> str:
+    return (datetime.now(timezone.utc) + US_EASTERN_OFFSET).date().isoformat()
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
@@ -36,11 +44,21 @@ async def _get_browser() -> Browser:
 
 
 # Extraction script used on the USCCB daily readings page.
-# Returns: { title, day, source_url, sections:[{label,citation,content}] }
+# Returns: { pageTitle, day, dateText, sections:[{label,citation,content}] }
 _EXTRACT_JS = """
 () => {
   const h1 = document.querySelector('h1.page-title') || document.querySelector('h1');
   const pageTitle = h1 ? h1.innerText.trim() : document.title;
+
+  // Try to extract a printed date from the page title or any obvious date field.
+  // USCCB titles look like "Lecturas de Hoy - April 22, 2026 | USCCB".
+  let dateText = '';
+  const docTitleMatch = (document.title || '').match(/[-–]\\s*([A-Z][a-záéíóú]+\\s+\\d{1,2},\\s*\\d{4})/i);
+  if (docTitleMatch) dateText = docTitleMatch[1];
+  if (!dateText) {
+      const titleMatch = pageTitle.match(/[-–]\\s*([A-Z][a-záéíóú]+\\s+\\d{1,2},\\s*\\d{4})/i);
+      if (titleMatch) dateText = titleMatch[1];
+  }
 
   // Liturgical day heading – pick h2 inside the main content area, excluding nav/aside.
   let day = '';
@@ -49,7 +67,6 @@ _EXTRACT_JS = """
         const txt = (h.innerText || '').trim();
         if (!txt || txt.length > 160) return false;
         const low = txt.toLowerCase();
-        // Exclude common navigation / sidebar / menu headings
         if (low.startsWith('menu') || low.includes('navigation') || low.includes('newsletter')
             || low.includes('lista de correo') || low.includes('suscr') || low.includes('dive into')
             || low.includes('sign up') || low.includes('footer')) return false;
@@ -67,7 +84,7 @@ _EXTRACT_JS = """
     return { label, citation, content };
   }).filter(s => s.content && s.label);
 
-  return { pageTitle, day, sections };
+  return { pageTitle, day, dateText, sections };
 }
 """
 
@@ -102,6 +119,7 @@ async def _scrape(url: str, lang: str) -> dict:
         "lang": lang,
         "source_url": url,
         "title": page_title,
+        "date_text": data.get("dateText", ""),
         "sections": sections,
     }
 
@@ -115,7 +133,7 @@ async def get_readings(request: Request,
         lang = "es"
 
     db = request.app.state.db
-    today = datetime.now(timezone.utc).date().isoformat()
+    today = _today_us_eastern()
     cache_key = f"{today}_{lang}"
 
     if not refresh:

@@ -22,18 +22,37 @@ export default function Readings() {
 
     React.useEffect(() => { load(); }, [load]);
 
+    // Format the cache date (YYYY-MM-DD) into a localized long date.
+    const formattedDate = React.useMemo(() => {
+        if (!data) return "";
+        if (data.date) {
+            try {
+                // Parse as local-noon to avoid TZ off-by-one
+                const d = new Date(`${data.date}T12:00:00`);
+                return new Intl.DateTimeFormat(lang === "es" ? "es-ES" : "en-US",
+                    { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(d);
+            } catch { /* fall through */ }
+        }
+        return data.date_text || "";
+    }, [data, lang]);
+
     return (
         <div className="max-w-3xl mx-auto" data-testid="readings-page">
             <p className="label-eyebrow mb-3">{t("nav.readings")}</p>
-            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2">
+            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2"
+                data-testid="readings-title">
                 {data?.title || t("common.today")}
             </h1>
+            {formattedDate && (
+                <p className="reading-serif italic text-lg text-stoneMuted mt-2"
+                   data-testid="readings-date">{formattedDate}</p>
+            )}
             <div className="flex items-center gap-4 mb-10 mt-4">
                 {data?.source_url && (
                     <a href={data.source_url} target="_blank" rel="noreferrer"
                         className="text-sm text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
                         data-testid="readings-source-link">
-                        {lang === "es" ? "USCCB" : "USCCB"} <ArrowSquareOut size={14} />
+                        USCCB <ArrowSquareOut size={14} />
                     </a>
                 )}
             </div>
