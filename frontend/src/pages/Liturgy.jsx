@@ -1,4 +1,5 @@
 import React from "react";
+import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
 import api from "@/lib/api";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -67,7 +68,7 @@ export default function Liturgy() {
                         <FavoriteButton section="liturgy" title={data.title} content={data.content_text}
                             source_url={data.source_url} metadata={{ hour }} testId="fav-liturgy" />
                     </div>
-                    <div dangerouslySetInnerHTML={{ __html: data.content_html }} />
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.content_html, { USE_PROFILES: { html: true }, FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"], FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"] }) }} />
                 </article>
             )}
         </div>

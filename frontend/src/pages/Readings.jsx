@@ -65,7 +65,7 @@ export default function Readings() {
             )}
 
             {data?.sections?.map((sec, idx) => (
-                <article key={idx} className="mb-14 reading-prose" data-testid={`reading-section-${idx}`}>
+                <article key={`${sec.label}-${sec.citation || idx}`} className="mb-14 reading-prose" data-testid={`reading-section-${idx}`}>
                     <div className="flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
                         <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">{sec.title}</h2>
                         <FavoriteButton section="readings" title={sec.title} content={sec.content}

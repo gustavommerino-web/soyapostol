@@ -16,7 +16,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (ApostolApp)"}
 
 
 def _slug(url: str) -> str:
-    return hashlib.md5(url.encode("utf-8")).hexdigest()[:10]
+    return hashlib.sha256(url.encode("utf-8")).hexdigest()[:10]
 
 
 async def _fetch_index_es() -> list[dict]:
