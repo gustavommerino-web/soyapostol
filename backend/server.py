@@ -47,10 +47,13 @@ api_router.include_router(favorites_router)
 
 app.include_router(api_router)
 
+_cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '*').split(',') if o.strip()]
+_allow_credentials = "*" not in _cors_origins  # browsers forbid credentials + wildcard
+
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=_allow_credentials,
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

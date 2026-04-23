@@ -1,0 +1,29 @@
+# Frontend Dockerfile — CRA build + serve static with `serve`
+# REACT_APP_BACKEND_URL is baked into the bundle at build time, so it MUST be
+# provided as a build-arg (Railway "Build Variables").
+
+# ---- Build stage ----
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY frontend/package.json frontend/yarn.lock* /app/
+RUN yarn install --frozen-lockfile || yarn install
+
+COPY frontend /app
+
+ARG REACT_APP_BACKEND_URL
+ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
+RUN yarn build
+
+# ---- Runtime stage ----
+FROM node:20-alpine AS runtime
+WORKDIR /app
+RUN yarn global add serve@14
+
+COPY --from=build /app/build /app/build
+
+ENV PORT=3000
+EXPOSE 3000
+
+# -s = SPA fallback to index.html for client-side routing
+CMD ["sh", "-c", "serve -s build -l ${PORT:-3000}"]

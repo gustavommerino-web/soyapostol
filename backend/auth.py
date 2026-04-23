@@ -38,9 +38,20 @@ def create_refresh_token(user_id: str) -> str:
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 
+def _cookie_flags() -> dict:
+    """Cookie flags suitable for the current environment.
+    Production (COOKIE_SECURE=true) uses SameSite=None + Secure, which is required
+    when the frontend and backend live on different domains (e.g., Railway).
+    """
+    secure = os.environ.get("COOKIE_SECURE", "false").lower() in ("true", "1", "yes")
+    samesite = os.environ.get("COOKIE_SAMESITE", "none" if secure else "lax").lower()
+    return {"httponly": True, "secure": secure, "samesite": samesite, "path": "/"}
+
+
 def set_auth_cookies(response: Response, access: str, refresh: str):
-    response.set_cookie("access_token", access, httponly=True, secure=False, samesite="lax", max_age=3600, path="/")
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    flags = _cookie_flags()
+    response.set_cookie("access_token", access, max_age=3600, **flags)
+    response.set_cookie("refresh_token", refresh, max_age=604800, **flags)
 
 
 class RegisterIn(BaseModel):
@@ -167,7 +178,7 @@ async def refresh_token_endpoint(request: Request, response: Response):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         access = create_access_token(str(user["_id"]), user["email"])
-        response.set_cookie("access_token", access, httponly=True, secure=False, samesite="lax", max_age=3600, path="/")
+        response.set_cookie("access_token", access, max_age=3600, **_cookie_flags())
         return {"ok": True}
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")

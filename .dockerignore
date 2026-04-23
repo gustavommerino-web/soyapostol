@@ -1,0 +1,16 @@
+node_modules
+frontend/node_modules
+frontend/build
+.git
+.gitignore
+**/__pycache__
+**/*.pyc
+.env
+*.env
+!.env.example
+**/.env
+.DS_Store
+tests
+test_reports
+.emergent
+/pw-browsers
