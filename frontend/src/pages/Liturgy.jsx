@@ -27,12 +27,25 @@ export default function Liturgy() {
 
     React.useEffect(() => { load(); }, [load]);
 
+    const formattedDate = React.useMemo(() => {
+        if (!data?.entry_date) return "";
+        try {
+            const d = new Date(`${data.entry_date}T12:00:00`);
+            return new Intl.DateTimeFormat(lang === "es" ? "es-ES" : "en-US",
+                { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(d);
+        } catch { return data.entry_date; }
+    }, [data, lang]);
+
     return (
         <div className="max-w-3xl mx-auto" data-testid="liturgy-page">
             <p className="label-eyebrow mb-3">{t("nav.liturgy")}</p>
-            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-8">
+            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2">
                 {data?.title || t("nav.liturgy")}
             </h1>
+            {formattedDate && (
+                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-6"
+                   data-testid="liturgy-date">{formattedDate}</p>
+            )}
 
             <div className="flex flex-wrap gap-2 mb-10">
                 {hours.map((h) => (

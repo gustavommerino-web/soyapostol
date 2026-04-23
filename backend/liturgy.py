@@ -113,6 +113,10 @@ async def _fetch_divine_office(hour: str) -> dict:
         s.decompose()
     cleaned_html = str(soup)
     text = soup.get_text("\n", strip=True)
+    # Normalize entry_date YYYYMMDD → YYYY-MM-DD
+    iso_entry_date = chosen_date
+    if chosen_date and len(chosen_date) == 8 and chosen_date.isdigit():
+        iso_entry_date = f"{chosen_date[:4]}-{chosen_date[4:6]}-{chosen_date[6:8]}"
     return {
         "hour": hour,
         "lang": "en",
@@ -121,7 +125,7 @@ async def _fetch_divine_office(hour: str) -> dict:
         "content_text": text,
         "source_url": entry.get("link", ""),
         "source": "Divine Office",
-        "entry_date": chosen_date,
+        "entry_date": iso_entry_date,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -165,6 +169,7 @@ async def _fetch_ldlh(hour: str) -> dict:
         "content_text": cuerpo.get_text("\n", strip=True),
         "source_url": url,
         "source": "Liturgia de las Horas",
+        "entry_date": d.isoformat(),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -191,6 +196,7 @@ async def _fetch_ibreviary(hour: str, lang: str) -> dict:
         "content_text": container.get_text("\n", strip=True),
         "source_url": url,
         "source": "iBreviary",
+        "entry_date": datetime.now(timezone.utc).date().isoformat(),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
