@@ -22,7 +22,7 @@ class FavoriteIn(BaseModel):
 async def list_favorites(request: Request, user: dict = Depends(get_current_user)):
     db = request.app.state.db
     user_id = str(user["_id"])
-    cursor = db.favorites.find({"user_id": user_id}).sort("created_at", -1)
+    cursor = db.favorites.find({"user_id": user_id}).sort("created_at", -1).limit(500)
     items = []
     async for doc in cursor:
         items.append({

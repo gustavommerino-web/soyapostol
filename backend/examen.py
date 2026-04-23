@@ -21,7 +21,7 @@ ALLOWED_TYPES = {
 @router.get("")
 async def list_examen(request: Request):
     db = request.app.state.db
-    cursor = db.examen_docs.find({}, {"data_b64": 0}).sort("created_at", -1)
+    cursor = db.examen_docs.find({}, {"data_b64": 0}).sort("created_at", -1).limit(200)
     items = []
     async for doc in cursor:
         items.append({
