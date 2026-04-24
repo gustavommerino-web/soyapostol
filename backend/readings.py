@@ -6,9 +6,9 @@ USCCB publishes readings on US Eastern time, so the cache key uses that timezone
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-import asyncio
 from fastapi import APIRouter, Request, HTTPException, Query
-from playwright.async_api import async_playwright, Browser
+
+from browser_pool import get_browser
 
 router = APIRouter(prefix="/readings", tags=["readings"])
 
@@ -25,22 +25,6 @@ def _today_us_eastern() -> str:
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
-
-_browser: Optional[Browser] = None
-_playwright = None
-_browser_lock = asyncio.Lock()
-
-
-async def _get_browser() -> Browser:
-    global _browser, _playwright
-    async with _browser_lock:
-        if _browser is None or not _browser.is_connected():
-            _playwright = await async_playwright().start()
-            _browser = await _playwright.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-            )
-        return _browser
 
 
 # Extraction script used on the USCCB daily readings page.
@@ -90,7 +74,7 @@ _EXTRACT_JS = """
 
 
 async def _scrape(url: str, lang: str) -> dict:
-    browser = await _get_browser()
+    browser = await get_browser()
     context = await browser.new_context(user_agent=UA, locale="es-ES" if lang == "es" else "en-US")
     page = await context.new_page()
     try:

@@ -80,7 +80,7 @@ export default function Examen() {
             )}
 
             {loading && <p className="text-stoneMuted">{t("common.loading")}</p>}
-            {!loading && docs.length === 0 && <p className="text-stoneMuted" data-testid="examen-empty">No documents yet.</p>}
+            {!loading && docs.length === 0 && <p className="text-stoneMuted" data-testid="examen-empty">{t("examen.empty")}</p>}
 
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="examen-list">
                 {docs.map((d) => (

@@ -38,18 +38,28 @@ def create_refresh_token(user_id: str) -> str:
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 
-def _cookie_flags() -> dict:
+def _cookie_flags(request: Optional[Request] = None) -> dict:
     """Cookie flags suitable for the current environment.
-    Production (COOKIE_SECURE=true) uses SameSite=None + Secure, which is required
-    when the frontend and backend live on different domains (e.g., Railway).
+    Auto-detects production (HTTPS) vs local dev (HTTP) from the incoming
+    request's scheme (respecting X-Forwarded-Proto from k8s/ingress).
+    Env vars COOKIE_SECURE / COOKIE_SAMESITE override auto-detection if set.
     """
-    secure = os.environ.get("COOKIE_SECURE", "false").lower() in ("true", "1", "yes")
+    env_secure = os.environ.get("COOKIE_SECURE")
+    if env_secure is not None:
+        secure = env_secure.lower() in ("true", "1", "yes")
+    elif request is not None:
+        scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+        secure = scheme == "https"
+    else:
+        secure = False
+    # SameSite=None is required for cross-domain cookies (frontend at soyapostol.org
+    # talking to backend at apostol-sacred.emergent.host); lax is fine for same-origin.
     samesite = os.environ.get("COOKIE_SAMESITE", "none" if secure else "lax").lower()
     return {"httponly": True, "secure": secure, "samesite": samesite, "path": "/"}
 
 
-def set_auth_cookies(response: Response, access: str, refresh: str):
-    flags = _cookie_flags()
+def set_auth_cookies(response: Response, access: str, refresh: str, request: Optional[Request] = None):
+    flags = _cookie_flags(request)
     response.set_cookie("access_token", access, max_age=3600, **flags)
     response.set_cookie("refresh_token", refresh, max_age=604800, **flags)
 
@@ -118,7 +128,7 @@ async def register(data: RegisterIn, response: Response, request: Request):
     user_id = str(result.inserted_id)
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
-    set_auth_cookies(response, access, refresh)
+    set_auth_cookies(response, access, refresh, request)
     return {"id": user_id, "email": email, "name": doc["name"], "role": "user"}
 
 
@@ -149,7 +159,7 @@ async def login(data: LoginIn, response: Response, request: Request):
     user_id = str(user["_id"])
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
-    set_auth_cookies(response, access, refresh)
+    set_auth_cookies(response, access, refresh, request)
     return _user_public(user)
 
 
@@ -159,9 +169,11 @@ async def me(user: dict = Depends(get_current_user)):
 
 
 @router.post("/logout")
-async def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
+async def logout(response: Response, request: Request):
+    flags = _cookie_flags(request)
+    # Overwrite with immediate expiry, using the exact same flags the cookie was set with.
+    response.set_cookie("access_token", "", max_age=0, **flags)
+    response.set_cookie("refresh_token", "", max_age=0, **flags)
     return {"ok": True}
 
 
@@ -178,7 +190,7 @@ async def refresh_token_endpoint(request: Request, response: Response):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         access = create_access_token(str(user["_id"]), user["email"])
-        response.set_cookie("access_token", access, max_age=3600, **_cookie_flags())
+        response.set_cookie("access_token", access, max_age=3600, **_cookie_flags(request))
         return {"ok": True}
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")

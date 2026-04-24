@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 2: Validated shared Playwright browser_pool refactor (readings + bible) and Examen admin PDF upload/list/view/delete flow end-to-end. Backend pytest suite expanded to 29 tests — all passing. Key new checks: readings EN >=3 sections, readings cache hit <1.5s on second call (pool warm), Bible books ES == 73 (full Catholic canon), Bible chapter EN via Playwright/NABRE returns verses, Examen PDF upload (application/pdf) + list + download bytes + delete, non-admin 403, unauthenticated delete 401. Frontend Playwright test logged in as admin, navigated to /examen, uploaded a PDF, verified list item + view link href + delete + Spanish empty-state 'Aún no hay documentos.' Language toggle verified on both Dashboard and Examen (ES<->EN, e.g. 'Examen de Conciencia' <-> 'Examen of Conscience').",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "browser_pool._ensure_chromium_installed runs subprocess.run (synchronous) inside the asyncio startup task — it will block the event loop for up to 300s if an install is actually required, so any HTTP request (including health) arriving during a cold-start install will stall. Consider asyncio.to_thread(...) or running the install in a ProcessPoolExecutor so the event loop stays responsive while install proceeds.",
+    "browser_pool.start_browser silently swallows exceptions from _ensure_chromium_installed (logs error but continues). The subsequent async_playwright().chromium.launch() call will then raise on every get_browser() call without a clear remediation hint. Consider re-raising after the log so startup fails loudly.",
+    "examen.py still allows text/plain, application/msword, docx, markdown in ALLOWED_TYPES but the frontend 'accept' attribute and branding consistently say PDF/DOC/DOCX/TXT/MD. Either narrow to PDF only (product ask 'Admin PDF upload') or keep but document. Currently backend is permissive and PDF uploads pass fine.",
+    "readings cache: with the shared pool, the first cold call still pays Playwright page creation cost (~1–2s). For the public health-check experience you could pre-scrape ES+EN once in the startup task after start_browser completes.",
+    "CORS allow_origins falls back to '*' when CORS_ORIGINS env is only '*' (filtered out) and no production origin matches — but then allow_credentials=True with regex-only match is fine. Minor: log the resolved origin list at startup for easier debugging."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "100% (admin login, upload, list, view link, delete, empty state, lang toggle all verified)"},
+  "test_credentials": "admin@apostol.app / Apostol2026! verified working; regular users registered ephemerally inside tests (test_*, reg_*, lo_* prefixes).",
+  "seed_data_creation": "Tests create TEST_examen_pdf, TEST_del_unauth (examen docs — deleted at test end) and TEST_* favorites (deleted). No persistent seed written.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "backend_test.py (29 tests) runs in ~8s against public preview URL. Browser pool is warm after first readings call; test_readings_cache_fast asserts <1.5s on second call. Examen tests use application/pdf. Bible test now strictly asserts len(books)==73 for ES. Frontend flow confirmed: login -> /examen upload (data-testid=examen-upload-form, examen-title-input, examen-file-input, examen-upload-btn) -> list (examen-item-{id}, examen-view-{id}, examen-delete-{id}) -> empty state (examen-empty). Language toggle testids are lang-toggle-es / lang-toggle-en (not a single 'lang-toggle').",
+  "rca of the issue": "N/A — no blocking issues found this iteration."
+}

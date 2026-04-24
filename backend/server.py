@@ -5,12 +5,14 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import asyncio
 import logging
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from auth import router as auth_router, seed_admin, ensure_indexes
+from browser_pool import start_browser, stop_browser
 from readings import router as readings_router
 from liturgy import router as liturgy_router
 from prayers import router as prayers_router
@@ -47,13 +49,29 @@ api_router.include_router(favorites_router)
 
 app.include_router(api_router)
 
-_cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '*').split(',') if o.strip()]
-_allow_credentials = "*" not in _cors_origins  # browsers forbid credentials + wildcard
+# Production origins that should always be allowed for the deployed app.
+# Baked in so that redeploying "just works" with the public domain, no env vars needed.
+_PRODUCTION_ORIGINS = [
+    "https://soyapostol.org",
+    "https://www.soyapostol.org",
+]
+
+_env_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip() and o.strip() != "*"]
+
+# Always allow the production domain(s) + anything the user configured via env.
+# Starlette's CORSMiddleware with an explicit list returns Access-Control-Allow-Origin:
+# <exact origin> when credentials are allowed, which is what browsers require.
+_allow_origins = list(dict.fromkeys(_PRODUCTION_ORIGINS + _env_origins))
+
+# Regex fallback: allow *.emergent.host and *.emergentagent.com (Emergent preview/prod
+# URLs) so the app works during development too. Matches against the Origin header.
+_allow_origin_regex = r"^https://([a-z0-9-]+\.)*(emergent\.host|emergentagent\.com|soyapostol\.org)$"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=_allow_credentials,
-    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_origins=_allow_origins,
+    allow_origin_regex=_allow_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -69,9 +87,16 @@ logger = logging.getLogger(__name__)
 async def on_startup():
     await ensure_indexes(db)
     await seed_admin(db)
+    # Launch the shared Chromium browser in the background so the FastAPI
+    # app can start accepting traffic immediately. If the install step is
+    # needed, it will happen inside this task (max ~300 s) and requests that
+    # need scraping during that window will wait for the browser via
+    # `browser_pool.get_browser()`.
+    asyncio.create_task(start_browser())
     logger.info("Apostol API started")
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    await stop_browser()
     client.close()

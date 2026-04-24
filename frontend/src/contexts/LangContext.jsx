@@ -51,7 +51,7 @@ const STRINGS = {
             favorites_desc: "Tus textos guardados",
         },
         readings: { first: "Primera Lectura", psalm: "Salmo", second: "Segunda Lectura", gospel: "Evangelio", commentary: "Comentario" },
-        examen: { upload: "Subir documento", title: "Título", description: "Descripción", file: "Archivo", admin_only: "Solo el administrador puede subir documentos." },
+        examen: { upload: "Subir documento", title: "Título", description: "Descripción", file: "Archivo", admin_only: "Solo el administrador puede subir documentos.", empty: "Aún no hay documentos." },
     },
     en: {
         app_name: "soyapostol",
@@ -103,7 +103,7 @@ const STRINGS = {
             favorites_desc: "Your saved passages",
         },
         readings: { first: "First Reading", psalm: "Psalm", second: "Second Reading", gospel: "Gospel", commentary: "Commentary" },
-        examen: { upload: "Upload document", title: "Title", description: "Description", file: "File", admin_only: "Only the administrator can upload documents." },
+        examen: { upload: "Upload document", title: "Title", description: "Description", file: "File", admin_only: "Only the administrator can upload documents.", empty: "No documents yet." },
     },
 };
 

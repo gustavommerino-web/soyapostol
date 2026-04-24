@@ -9,7 +9,6 @@ Playwright is used for USCCB (WAF blocks plain HTTP), httpx for Vatican.
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
-import asyncio
 import html
 import json
 import re
@@ -18,6 +17,7 @@ from bs4 import BeautifulSoup
 from fastapi import APIRouter, Request, Query, HTTPException
 
 from bible_index import build_book_index
+from browser_pool import get_browser
 
 router = APIRouter(prefix="/bible", tags=["bible"])
 
@@ -37,23 +37,6 @@ def _load_index() -> list[dict]:
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
-
-_browser = None
-_playwright = None
-_browser_lock = asyncio.Lock()
-
-
-async def _get_browser():
-    global _browser, _playwright
-    from playwright.async_api import async_playwright
-    async with _browser_lock:
-        if _browser is None or not _browser.is_connected():
-            _playwright = await async_playwright().start()
-            _browser = await _playwright.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-            )
-        return _browser
 
 
 # JS extractor for USCCB NABRE chapter pages.
@@ -82,7 +65,7 @@ _USCCB_EXTRACT_JS = """
 
 
 async def _fetch_nabre(slug: str, chapter: int) -> list[dict]:
-    browser = await _get_browser()
+    browser = await get_browser()
     ctx = await browser.new_context(user_agent=UA, locale="en-US")
     page = await ctx.new_page()
     try:
