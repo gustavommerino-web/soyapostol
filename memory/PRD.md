@@ -38,23 +38,29 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Prayers library (ACI Prensa) grouped by category with individual prayer fetch
 - ✅ Examen of Conscience (admin-only upload, PDF/DOCX/TXT, base64 in MongoDB)
 - ✅ News (Vatican + ACI ES; Vatican + CNA + NCRegister EN) with source filter
-- ✅ Bible reader via bolls.life (DRA for EN Catholic, NVI for ES)
-- ✅ Catechism structure (4 parts, 12 sections) with paragraph chunk reader
+- ✅ Bible reader (full 73-book Catholic canon: Vatican BIA for ES, USCCB NABRE for EN via Playwright)
+- ✅ Catechism structure (4 parts, 12 sections) with paragraph chunk reader (Vatican manifests ES + EN)
 - ✅ Favorites CRUD (user-scoped, section filter)
 - ✅ 26/26 backend tests passing
 
+## Implemented (2026-04-24)
+- ✅ Shared Playwright Chromium pool (`backend/browser_pool.py`) launched on FastAPI startup — removes per-module browser singletons in `readings.py` / `bible.py`, eliminates cold-start timeouts, auto-installs Chromium if missing (runs in worker thread to keep loop responsive)
+- ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
+- ✅ 29/29 backend tests + frontend Examen flow passing (`iteration_2.json`)
+
 ## Backlog (P0/P1/P2)
 ### P1
+- Verify custom-domain deployment on `soyapostol.org` once user redeploys (CORS + SameSite=none cookies already configured)
 - Date selection for Readings (scrape archived pages or switch to an API with date support)
 - English prayer catalog (CNA resources index)
-- Spanish CCC text (integrate vatican.va catechism_sp/index_sp.html per-paragraph)
 - Highlight-to-favorite on Bible/CCC paragraphs (select text → save)
 ### P2
 - Forgot password flow (backend handler exists; frontend form pending)
 - Offline reading / PWA manifest
 - Reading plans (year A/B/C tracker, chapter-a-day)
 - Audio liturgy & daily gospel TTS
-- Deploy CORS_ORIGINS to specific domain & `secure=True` cookies for production
+- Freemium / donation model
+- Pre-scrape ES+EN readings on startup once browser pool is warm (avoid first-user 1–2 s latency)
 
 ## Credentials
 See `/app/memory/test_credentials.md`

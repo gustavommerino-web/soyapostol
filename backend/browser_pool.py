@@ -66,7 +66,10 @@ def _ensure_chromium_installed() -> None:
         )
         logger.info("Playwright chromium installed")
     except Exception as e:
+        # Re-raise so start_browser fails loudly instead of letting the next
+        # launch() call blow up with an opaque "executable doesn't exist".
         logger.error("playwright install chromium failed: %s", e)
+        raise
 
 
 async def start_browser() -> None:
@@ -75,7 +78,9 @@ async def start_browser() -> None:
     async with _lock:
         if _browser is not None and _browser.is_connected():
             return
-        _ensure_chromium_installed()
+        # Run the (potentially long) install step in a worker thread so the
+        # FastAPI event loop stays responsive during cold starts.
+        await asyncio.to_thread(_ensure_chromium_installed)
         _playwright = await async_playwright().start()
         _browser = await _playwright.chromium.launch(
             headless=True,
