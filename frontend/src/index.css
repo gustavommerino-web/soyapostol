@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,400;1,700&family=Montserrat:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,25 +6,28 @@
 
 @layer base {
     :root {
-        --background: 36 25% 97%;
-        --foreground: 24 10% 10%;
-        --card: 36 22% 93%;
-        --card-foreground: 24 10% 10%;
-        --popover: 36 22% 96%;
-        --popover-foreground: 24 10% 10%;
-        --primary: 351 56% 35%;
-        --primary-foreground: 36 25% 97%;
-        --secondary: 36 16% 88%;
-        --secondary-foreground: 24 10% 10%;
-        --muted: 36 16% 90%;
-        --muted-foreground: 24 6% 35%;
-        --accent: 36 16% 88%;
-        --accent-foreground: 24 10% 10%;
+        /* Off-white background (#FDFDFD) → 0 0% 99% */
+        --background: 0 0% 99%;
+        /* Charcoal text (#2D3436) → 200 9% 19% */
+        --foreground: 200 9% 19%;
+        --card: 0 0% 99%;
+        --card-foreground: 200 9% 19%;
+        --popover: 0 0% 99%;
+        --popover-foreground: 200 9% 19%;
+        /* Deep Blue accent (#0984E3) → 204 95% 46% */
+        --primary: 204 95% 46%;
+        --primary-foreground: 0 0% 99%;
+        --secondary: 210 17% 95%;
+        --secondary-foreground: 200 9% 19%;
+        --muted: 210 17% 95%;
+        --muted-foreground: 200 8% 42%;
+        --accent: 210 17% 95%;
+        --accent-foreground: 200 9% 19%;
         --destructive: 0 70% 45%;
-        --destructive-foreground: 36 25% 97%;
-        --border: 30 10% 86%;
-        --input: 30 10% 86%;
-        --ring: 351 56% 35%;
+        --destructive-foreground: 0 0% 99%;
+        --border: 210 16% 90%;
+        --input: 210 16% 90%;
+        --ring: 204 95% 46%;
         --radius: 0.375rem;
     }
 }
@@ -34,94 +37,121 @@
         @apply border-border;
     }
     html, body {
-        background-color: #FBF9F6;
-        color: #1C1917;
-        font-family: 'Outfit', system-ui, sans-serif;
+        background-color: #FDFDFD;
+        color: #2D3436;
+        /* Body: Merriweather 18px */
+        font-family: 'Merriweather', Georgia, serif;
+        font-size: 18px;
+        line-height: 1.7;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
+    /* Headings: Montserrat Bold */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Montserrat', system-ui, sans-serif;
+        font-weight: 700;
+        color: #2D3436;
+        letter-spacing: -0.01em;
+    }
     ::selection {
-        background-color: #8B2635;
-        color: #FBF9F6;
+        background-color: #0984E3;
+        color: #FDFDFD;
+    }
+    a {
+        color: #0984E3;
+    }
+    a:hover {
+        color: #076CB8;
     }
 }
 
 @layer components {
-    .heading-serif { font-family: 'Cormorant Garamond', serif; letter-spacing: -0.01em; }
-    .reading-serif { font-family: 'Lora', serif; }
-    .ui-sans { font-family: 'Outfit', sans-serif; }
+    /* Re-purposed utility classes — kept the same names so existing markup
+       keeps working, but now they map to the professional reading theme. */
+    .heading-serif {
+        font-family: 'Montserrat', system-ui, sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        color: #2D3436;
+    }
+    .reading-serif {
+        font-family: 'Merriweather', Georgia, serif;
+        color: #2D3436;
+    }
+    .ui-sans {
+        font-family: 'Montserrat', system-ui, sans-serif;
+    }
 
     .surface-card {
-        background-color: #F2EFE9;
-        border: 1px solid #E7E5E4;
-        transition: border-color 200ms ease, transform 200ms ease;
+        background-color: #FFFFFF;
+        border: 1px solid #DFE4EA;
+        transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
     }
     .surface-card:hover {
-        border-color: #8B2635;
+        border-color: #0984E3;
         transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(9, 132, 227, 0.08);
     }
 
     .label-eyebrow {
-        font-family: 'Outfit', sans-serif;
+        font-family: 'Montserrat', system-ui, sans-serif;
         font-size: 0.75rem;
         text-transform: uppercase;
-        letter-spacing: 0.2em;
-        color: #78716C;
-        font-weight: 500;
+        letter-spacing: 0.18em;
+        color: #636E72;
+        font-weight: 600;
     }
 
     .btn-primary {
-        background-color: #8B2635;
-        color: #FBF9F6;
-        font-family: 'Outfit', sans-serif;
+        background-color: #0984E3;
+        color: #FDFDFD;
+        font-family: 'Montserrat', system-ui, sans-serif;
         padding: 0.625rem 1.25rem;
         border-radius: 0.375rem;
-        transition: background-color 200ms ease, transform 200ms ease;
-        font-weight: 500;
+        transition: background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+        font-weight: 600;
     }
     .btn-primary:hover {
-        background-color: #701D2A;
+        background-color: #076CB8;
         transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(9, 132, 227, 0.22);
     }
     .btn-ghost {
-        color: #8B2635;
-        font-family: 'Outfit', sans-serif;
+        color: #0984E3;
+        font-family: 'Montserrat', system-ui, sans-serif;
         padding: 0.5rem 1rem;
-        border: 1px solid #8B2635;
+        border: 1px solid #0984E3;
         border-radius: 0.375rem;
         transition: background-color 200ms ease;
         background: transparent;
+        font-weight: 600;
     }
     .btn-ghost:hover {
-        background-color: rgba(139, 38, 53, 0.06);
+        background-color: rgba(9, 132, 227, 0.06);
     }
 
     .reading-prose p {
         margin-bottom: 1.25em;
-        line-height: 1.85;
-        font-family: 'Lora', serif;
+        line-height: 1.8;
+        font-family: 'Merriweather', Georgia, serif;
         font-size: 1.125rem;
-        color: #1C1917;
+        color: #2D3436;
     }
-    .reading-prose h2, .reading-prose h3 {
-        font-family: 'Cormorant Garamond', serif;
+    .reading-prose h2,
+    .reading-prose h3 {
+        font-family: 'Montserrat', system-ui, sans-serif;
+        font-weight: 700;
         margin-top: 1.5em;
         margin-bottom: 0.5em;
-        color: #1C1917;
+        color: #2D3436;
     }
 }
 
-/* Parchment texture overlay (subtle) */
+/* Parchment overlay no longer applies to the new clean theme — keep an empty
+   stub so any markup still using the class doesn't break. */
 .parchment-overlay::before {
     content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url('https://images.pexels.com/photos/235985/pexels-photo-235985.jpeg');
-    background-size: cover;
-    background-position: center;
-    opacity: 0.06;
-    pointer-events: none;
-    mix-blend-mode: multiply;
+    display: none;
 }
 
 @layer base {

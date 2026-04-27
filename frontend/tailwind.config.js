@@ -5,25 +5,25 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                heading: ['"Cormorant Garamond"', 'serif'],
-                reading: ['Lora', 'serif'],
-                ui: ['Outfit', 'sans-serif'],
+                heading: ['Montserrat', 'system-ui', 'sans-serif'],
+                reading: ['Merriweather', 'Georgia', 'serif'],
+                ui: ['Montserrat', 'system-ui', 'sans-serif'],
             },
             colors: {
                 sand: {
-                    50:  '#FBF9F6',
-                    100: '#F2EFE9',
-                    200: '#EAE5DC',
-                    300: '#E7E5E4',
+                    50:  '#FDFDFD',
+                    100: '#F4F6F8',
+                    200: '#E8ECF0',
+                    300: '#DFE4EA',
                 },
-                stone900: '#1C1917',
-                stoneMuted: '#57534E',
-                stoneFaint: '#78716C',
+                stone900: '#2D3436',
+                stoneMuted: '#636E72',
+                stoneFaint: '#95A5A6',
                 sangre: {
-                    DEFAULT: '#8B2635',
-                    hover:   '#701D2A',
+                    DEFAULT: '#0984E3',
+                    hover:   '#076CB8',
                 },
-                gold: '#D4AF37',
+                gold: '#0984E3',
                 background: 'hsl(var(--background))',
                 foreground: 'hsl(var(--foreground))',
                 card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
