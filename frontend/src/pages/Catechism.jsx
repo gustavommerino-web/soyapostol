@@ -1,119 +1,212 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
-import api from "@/lib/api";
 import FavoriteButton from "@/components/FavoriteButton";
-import { CaretLeft } from "@phosphor-icons/react";
+import { MagnifyingGlass, ArrowLeft, X } from "@phosphor-icons/react";
+
+const PAGE_SIZE = 20;
+const DATA_URL = "/data/catechism.json";
 
 export default function Catechism() {
-    const { t, lang } = useLang();
-    const [structure, setStructure] = React.useState([]);
-    const [section, setSection] = React.useState(null);
-    const [paragraphs, setParagraphs] = React.useState([]);
+    const { t } = useLang();
+    const navigate = useNavigate();
+
+    const [entries, setEntries] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
-    const [chunkStart, setChunkStart] = React.useState(null);
+    const [error, setError] = React.useState("");
+    const [query, setQuery] = React.useState("");
+    const [visible, setVisible] = React.useState(PAGE_SIZE);
+    const sentinelRef = React.useRef(null);
+    const listRef = React.useRef(null);
 
+    // Fetch the catechism file only on entry.
     React.useEffect(() => {
-        setLoading(true);
-        api.get(`/catechism/structure?lang=${lang}`)
-            .then((r) => setStructure(r.data || []))
-            .finally(() => setLoading(false));
-    }, [lang]);
+        let cancelled = false;
+        (async () => {
+            setLoading(true);
+            setError("");
+            try {
+                const res = await fetch(DATA_URL, { cache: "force-cache" });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (!cancelled) setEntries(Array.isArray(data) ? data : []);
+            } catch (e) {
+                if (!cancelled) setError(e.message || "Failed to load");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
-    const openSection = async (s) => {
-        setSection(s);
-        setChunkStart(s.start);
-        await loadChunk(s.start, s);
-    };
+    // Derive the filtered / jumped list + mode flag.
+    const { results, jumpTarget } = React.useMemo(() => {
+        const q = query.trim();
+        if (!q) return { results: entries, jumpTarget: null };
 
-    const loadChunk = async (start, s = section) => {
-        const end = Math.min(s.end, start + 39);
-        setLoading(true);
-        try {
-            const r = await api.get(`/catechism/paragraphs?start=${start}&end=${end}&lang=${lang}`);
-            setParagraphs(r.data.paragraphs || []);
-            setChunkStart(start);
-        } finally { setLoading(false); }
-    };
+        // Pure number → jump-to-entry mode (exact id match + a small window around it).
+        if (/^\d+$/.test(q)) {
+            const n = parseInt(q, 10);
+            const idx = entries.findIndex((e) => e.id === n);
+            if (idx >= 0) {
+                return {
+                    results: entries.slice(Math.max(0, idx - 2), idx + 15),
+                    jumpTarget: n,
+                };
+            }
+            return { results: [], jumpTarget: n };
+        }
 
-    if (section) {
-        const nextStart = chunkStart + 40;
-        const prevStart = Math.max(section.start, chunkStart - 40);
-        return (
-            <div className="max-w-3xl mx-auto" data-testid="catechism-section-page">
-                <button onClick={() => { setSection(null); setParagraphs([]); }}
-                    data-testid="catechism-back-btn"
-                    className="inline-flex items-center gap-1.5 text-sm text-stoneMuted hover:text-sangre mb-6">
-                    <CaretLeft size={14} weight="bold" /> {t("nav.catechism")}
-                </button>
-                <p className="label-eyebrow mb-2">CCC §{section.start}–{section.end}</p>
-                <h1 className="heading-serif text-4xl tracking-tight leading-tight mb-8">{section.title}</h1>
+        // Text mode → case-insensitive contains filter.
+        const needle = q.toLowerCase();
+        const filtered = entries.filter((e) => e.text && e.text.toLowerCase().includes(needle));
+        return { results: filtered, jumpTarget: null };
+    }, [query, entries]);
 
-                {loading && <p className="text-stoneMuted" data-testid="catechism-loading">{t("common.loading")}</p>}
+    // Reset pagination whenever the result set changes.
+    React.useEffect(() => {
+        setVisible(PAGE_SIZE);
+        if (listRef.current) listRef.current.scrollTop = 0;
+    }, [query]);
 
-                <article className="reading-prose">
-                    {paragraphs.map((p) => (
-                        <div key={p.number} className="mb-8 group" data-testid={`ccc-para-${p.number}`}>
-                            <div className="flex items-start gap-3">
-                                <span className="text-sangre font-medium ui-sans text-sm mt-1 shrink-0">§{p.number}</span>
-                                <div className="flex-1">
-                                    <p className="m-0">{p.text}</p>
-                                    <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <FavoriteButton section="catechism"
-                                            title={`CCC §${p.number}`}
-                                            content={p.text}
-                                            metadata={{ paragraph: p.number, section: section.id }}
-                                            testId={`fav-ccc-${p.number}`} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </article>
+    // IntersectionObserver for lazy pagination.
+    React.useEffect(() => {
+        const node = sentinelRef.current;
+        if (!node) return undefined;
+        const observer = new IntersectionObserver((entries_) => {
+            if (entries_.some((e) => e.isIntersecting)) {
+                setVisible((v) => Math.min(results.length, v + PAGE_SIZE));
+            }
+        }, { rootMargin: "200px" });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [results.length]);
 
-                <div className="flex gap-3 mt-10">
-                    {chunkStart > section.start && (
-                        <button onClick={() => loadChunk(prevStart)} className="btn-ghost" data-testid="ccc-prev-chunk">
-                            ← §{prevStart}
-                        </button>
-                    )}
-                    {chunkStart + 40 <= section.end && (
-                        <button onClick={() => loadChunk(nextStart)} className="btn-primary" data-testid="ccc-next-chunk">
-                            §{nextStart} →
-                        </button>
-                    )}
-                </div>
-            </div>
+    // When the user types a number, scroll the matching paragraph into view.
+    React.useEffect(() => {
+        if (jumpTarget == null) return;
+        const el = document.querySelector(`[data-ccc-id="${jumpTarget}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, [jumpTarget, visible]);
+
+    const shown = results.slice(0, visible);
+    const hasMore = visible < results.length;
+
+    const highlightText = (text) => {
+        const q = query.trim();
+        if (!q || /^\d+$/.test(q)) return text;
+        const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
+        const parts = text.split(re);
+        return parts.map((p, i) =>
+            re.test(p)
+                ? <mark key={i} className="bg-sangre/15 text-stone900 rounded px-0.5">{p}</mark>
+                : <React.Fragment key={i}>{p}</React.Fragment>,
         );
-    }
+    };
 
     return (
-        <div className="max-w-5xl mx-auto" data-testid="catechism-page">
+        <div data-testid="catechism-page">
+            <button
+                type="button"
+                onClick={() => navigate("/")}
+                data-testid="catechism-back-btn"
+                className="inline-flex items-center gap-1.5 text-sm text-stoneMuted hover:text-sangre mb-6"
+            >
+                <ArrowLeft size={14} weight="bold" /> {t("common.back_to_menu")}
+            </button>
+
             <p className="label-eyebrow mb-3">{t("nav.catechism")}</p>
-            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">{t("nav.catechism")}</h1>
-            <p className="text-stoneMuted mb-12 max-w-2xl">{t("sections.catechism_desc")}</p>
+            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">
+                {t("nav.catechism")}
+            </h1>
+            <p className="text-stoneMuted mb-8">{t("sections.catechism_desc")}</p>
 
-            {loading && <p className="text-stoneMuted">{t("common.loading")}</p>}
-
-            <div className="space-y-12">
-                {structure.map((part) => (
-                    <section key={part.part} data-testid={`ccc-part-${part.part}`}>
-                        <p className="label-eyebrow mb-2">Pars {part.part}</p>
-                        <h2 className="heading-serif text-3xl tracking-tight mb-6 border-b border-sand-300 pb-3">{part.title}</h2>
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {part.sections.map((s) => (
-                                <li key={s.id}>
-                                    <button onClick={() => openSection(s)}
-                                        data-testid={`ccc-section-${s.id}`}
-                                        className="surface-card w-full text-left p-5">
-                                        <p className="label-eyebrow mb-1">§{s.start}–{s.end}</p>
-                                        <p className="reading-serif text-lg leading-snug">{s.title}</p>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                ))}
+            {/* Search */}
+            <div className="relative mb-8" data-testid="catechism-search-wrap">
+                <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint" />
+                <input
+                    type="search"
+                    inputMode="search"
+                    placeholder={t("catechism.search_placeholder")}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    data-testid="catechism-search-input"
+                    className="w-full pl-10 pr-10 py-3 bg-sand-100 border border-sand-300 rounded-md focus:outline-none focus:border-sangre transition-colors ui-sans text-sm"
+                />
+                {query && (
+                    <button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        data-testid="catechism-search-clear"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stoneMuted hover:text-sangre"
+                        aria-label="Clear"
+                    >
+                        <X size={16} weight="bold" />
+                    </button>
+                )}
             </div>
+
+            {loading && <p className="text-stoneMuted" data-testid="catechism-loading">{t("common.loading")}</p>}
+            {error && <p className="text-sangre" data-testid="catechism-error">{error}</p>}
+
+            {!loading && !error && (
+                <>
+                    <p className="label-eyebrow mb-4" data-testid="catechism-results-meta">
+                        {query.trim()
+                            ? t("catechism.results_count", { count: results.length })
+                            : t("catechism.total_count", { count: entries.length })}
+                    </p>
+
+                    {results.length === 0 && query && (
+                        <p className="text-stoneMuted italic" data-testid="catechism-empty">
+                            {t("catechism.no_results")}
+                        </p>
+                    )}
+
+                    <ol ref={listRef} className="reading-prose space-y-7" data-testid="catechism-list">
+                        {shown.map((p) => (
+                            <li
+                                key={p.id}
+                                data-ccc-id={p.id}
+                                data-testid={`ccc-para-${p.id}`}
+                                className="group"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <span className="text-sangre font-semibold ui-sans text-sm mt-1 shrink-0">
+                                        §{p.id}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="m-0 whitespace-pre-line">{highlightText(p.text)}</p>
+                                        <div className="mt-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                            <FavoriteButton
+                                                section="catechism"
+                                                title={`CCC §${p.id}`}
+                                                content={p.text}
+                                                metadata={{ paragraph: p.id }}
+                                                testId={`fav-ccc-${p.id}`}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ol>
+
+                    {/* Sentinel + manual load-more fallback */}
+                    {hasMore && (
+                        <div ref={sentinelRef} className="mt-10 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => setVisible((v) => Math.min(results.length, v + PAGE_SIZE))}
+                                data-testid="catechism-load-more"
+                                className="btn-ghost"
+                            >
+                                {t("catechism.load_more")} ({visible}/{results.length})
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }

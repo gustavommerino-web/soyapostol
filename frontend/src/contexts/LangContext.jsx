@@ -40,6 +40,7 @@ const STRINGS = {
             view: "Ver",
             search: "Buscar",
             refresh: "Actualizar",
+            back_to_menu: "Volver al menú",
         },
         sections: {
             readings_desc: "Las lecturas del día con comentario del Evangelio",
@@ -53,6 +54,13 @@ const STRINGS = {
         },
         readings: { first: "Primera Lectura", psalm: "Salmo", second: "Segunda Lectura", gospel: "Evangelio", commentary: "Comentario" },
         examen: { upload: "Subir documento", title: "Título", description: "Descripción", file: "Archivo", admin_only: "Solo el administrador puede subir documentos.", empty: "Aún no hay documentos." },
+        catechism: {
+            search_placeholder: "Buscar por número (ej. 144) o por texto…",
+            results_count: "{count} resultado(s)",
+            total_count: "{count} párrafos",
+            no_results: "Sin resultados. Prueba otro término o número.",
+            load_more: "Cargar más",
+        },
         auth: {
             forgot_password: "¿Olvidaste tu contraseña?",
             recover_eyebrow: "Recuperar acceso",
@@ -115,6 +123,7 @@ const STRINGS = {
             view: "View",
             search: "Search",
             refresh: "Refresh",
+            back_to_menu: "Back to menu",
         },
         sections: {
             readings_desc: "Today's readings with Gospel commentary",
@@ -128,6 +137,13 @@ const STRINGS = {
         },
         readings: { first: "First Reading", psalm: "Psalm", second: "Second Reading", gospel: "Gospel", commentary: "Commentary" },
         examen: { upload: "Upload document", title: "Title", description: "Description", file: "File", admin_only: "Only the administrator can upload documents.", empty: "No documents yet." },
+        catechism: {
+            search_placeholder: "Search by number (e.g. 144) or text…",
+            results_count: "{count} result(s)",
+            total_count: "{count} paragraphs",
+            no_results: "No results. Try another term or number.",
+            load_more: "Load more",
+        },
         auth: {
             forgot_password: "Forgot your password?",
             recover_eyebrow: "Recover access",
@@ -159,12 +175,16 @@ export function LangProvider({ children }) {
     const [lang, setLang] = useState(() => localStorage.getItem("apostol_lang") || "es");
     useEffect(() => { localStorage.setItem("apostol_lang", lang); }, [lang]);
 
-    const t = (path) => {
+    const t = (path, vars) => {
         const parts = path.split(".");
         let v = STRINGS[lang];
         for (const p of parts) {
             if (v && Object.prototype.hasOwnProperty.call(v, p)) v = v[p];
             else return path;
+        }
+        if (typeof v === "string" && vars) {
+            return v.replace(/\{(\w+)\}/g, (m, k) =>
+                Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m);
         }
         return v;
     };
