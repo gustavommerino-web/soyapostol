@@ -99,18 +99,11 @@ export default function Layout() {
                                 <span className="hidden sm:inline">{t("nav.logout")}</span>
                             </button>
                         ) : (
-                            <>
-                                <Link
-                                    to="/login"
-                                    data-testid="header-login-link"
-                                    className="ui-sans text-sm px-2.5 sm:px-3 py-2 hover:text-sangre transition-colors"
-                                >{t("nav.login")}</Link>
-                                <Link
-                                    to="/register"
-                                    data-testid="header-register-link"
-                                    className="btn-primary text-sm hidden sm:inline-flex"
-                                >{t("nav.register")}</Link>
-                            </>
+                            <Link
+                                to="/login"
+                                data-testid="header-login-link"
+                                className="ui-sans text-sm px-2.5 sm:px-3 py-2 hover:text-sangre transition-colors"
+                            >{t("nav.login")}</Link>
                         )}
                     </div>
                 </div>
