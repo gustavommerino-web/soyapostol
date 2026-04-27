@@ -59,7 +59,7 @@ export default function Examen() {
             <p className="text-stoneMuted mb-10 max-w-2xl">{t("sections.examen_desc")}</p>
 
             {isAdmin ? (
-                <form onSubmit={onUpload} className="surface-card rounded-md p-6 mb-10 grid gap-4" data-testid="examen-upload-form">
+                <form onSubmit={onUpload} className="surface-card p-6 mb-10 grid gap-4" data-testid="examen-upload-form">
                     <p className="label-eyebrow">{t("examen.upload")}</p>
                     <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("examen.title")}
                         required data-testid="examen-title-input"
@@ -84,7 +84,7 @@ export default function Examen() {
 
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="examen-list">
                 {docs.map((d) => (
-                    <li key={d.id} className="surface-card rounded-md p-5 flex items-start gap-4" data-testid={`examen-item-${d.id}`}>
+                    <li key={d.id} className="surface-card p-5 flex items-start gap-4" data-testid={`examen-item-${d.id}`}>
                         {fileIcon(d.content_type)}
                         <div className="flex-1 min-w-0">
                             <h3 className="reading-serif text-lg leading-snug truncate">{d.title}</h3>

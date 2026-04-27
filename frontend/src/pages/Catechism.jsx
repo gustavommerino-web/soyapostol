@@ -104,7 +104,7 @@ export default function Catechism() {
                                 <li key={s.id}>
                                     <button onClick={() => openSection(s)}
                                         data-testid={`ccc-section-${s.id}`}
-                                        className="surface-card w-full text-left rounded-md p-5">
+                                        className="surface-card w-full text-left p-5">
                                         <p className="label-eyebrow mb-1">§{s.start}–{s.end}</p>
                                         <p className="reading-serif text-lg leading-snug">{s.title}</p>
                                     </button>

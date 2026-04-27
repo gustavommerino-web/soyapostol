@@ -52,7 +52,7 @@ export default function Bible() {
 
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
                 {/* Book list */}
-                <aside className="surface-card rounded-md p-4 max-h-[70vh] overflow-y-auto" data-testid="bible-books">
+                <aside className="surface-card p-4 max-h-[70vh] overflow-y-auto" data-testid="bible-books">
                     <p className="label-eyebrow mb-3 px-2">Books</p>
                     {books.map((b) => (
                         <button key={b.bookid} onClick={() => { setBook(b); setChapter(1); }}

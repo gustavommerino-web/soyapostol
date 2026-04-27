@@ -85,12 +85,21 @@
     .surface-card {
         background-color: #FFFFFF;
         border: 1px solid #DFE4EA;
-        transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+        border-radius: 12px;
+        box-shadow:
+            0 1px 2px rgba(45, 52, 54, 0.04),
+            0 6px 18px rgba(45, 52, 54, 0.05);
+        transition:
+            border-color 200ms ease,
+            transform 200ms ease,
+            box-shadow 200ms ease;
     }
     .surface-card:hover {
         border-color: #0984E3;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(9, 132, 227, 0.08);
+        transform: translateY(-2px);
+        box-shadow:
+            0 2px 4px rgba(9, 132, 227, 0.06),
+            0 12px 28px rgba(9, 132, 227, 0.10);
     }
 
     .label-eyebrow {

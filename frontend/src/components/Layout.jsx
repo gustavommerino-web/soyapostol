@@ -22,6 +22,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import ReadingProgressBar from "@/components/ReadingProgressBar";
 import { Toaster } from "sonner";
 
 const ALL_NAV = [
@@ -54,6 +55,7 @@ export default function Layout() {
 
     return (
         <div className="min-h-screen bg-sand-50 text-stone900">
+            <ReadingProgressBar />
             {/* Sticky header */}
             <header
                 className="sticky top-0 z-30 border-b border-sand-300 bg-sand-50/90 backdrop-blur-md"

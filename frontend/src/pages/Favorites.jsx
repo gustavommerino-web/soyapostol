@@ -81,7 +81,7 @@ export default function Favorites() {
 
             <ul className="space-y-5" data-testid="favorites-list">
                 {filtered.map((f) => (
-                    <li key={f.id} className="surface-card rounded-md p-6" data-testid={`favorite-${f.id}`}>
+                    <li key={f.id} className="surface-card p-6" data-testid={`favorite-${f.id}`}>
                         <div className="flex items-start justify-between gap-4 mb-3">
                             <div className="min-w-0 flex-1">
                                 <span className="label-eyebrow text-sangre">{SECTION_LABELS[lang]?.[f.section] || f.section}</span>

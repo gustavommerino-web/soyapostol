@@ -94,7 +94,7 @@ export default function Prayers() {
                                 <li key={item.slug}>
                                     <button onClick={() => open(item)}
                                         data-testid={`prayer-item-${item.slug}`}
-                                        className="surface-card w-full text-left rounded-md p-4 hover:border-sangre transition-colors">
+                                        className="surface-card w-full text-left p-4 hover:border-sangre transition-colors">
                                         <p className="reading-serif text-base leading-snug">{item.title}</p>
                                     </button>
                                 </li>

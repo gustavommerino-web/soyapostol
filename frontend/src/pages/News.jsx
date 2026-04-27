@@ -56,7 +56,7 @@ export default function News() {
 
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-5" data-testid="news-list">
                 {filtered.map((n, idx) => (
-                    <li key={n.link || `${n.source}-${n.title}`} className="surface-card rounded-md p-6 flex flex-col" data-testid={`news-item-${idx}`}>
+                    <li key={n.link || `${n.source}-${n.title}`} className="surface-card p-6 flex flex-col" data-testid={`news-item-${idx}`}>
                         <div className="flex items-center justify-between mb-3">
                             <span className="label-eyebrow text-sangre">{n.source}</span>
                             <span className="text-xs text-stoneFaint">{fmtDate(n.published)}</span>
