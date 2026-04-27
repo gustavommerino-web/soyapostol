@@ -30,11 +30,11 @@ const ALL_NAV = [
     { to: "/readings", key: "readings", Icon: BookOpen },
     { to: "/liturgy", key: "liturgy", Icon: Sun },
     { to: "/prayers", key: "prayers", Icon: HandsPraying },
-    { to: "/examen", key: "examen", Icon: Heart },
+    { to: "/examen", key: "examen", Icon: BookOpenText },
     { to: "/news", key: "news", Icon: Newspaper },
     { to: "/bible", key: "bible", Icon: BookBookmark },
     { to: "/catechism", key: "catechism", Icon: Books },
-    { to: "/favorites", key: "favorites", Icon: BookOpenText },
+    { to: "/favorites", key: "favorites", Icon: Heart },
 ];
 
 // Bottom-nav primary tabs (mobile). Last slot is the "More" sheet.
