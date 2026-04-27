@@ -41,20 +41,22 @@ function getFlatIndex(data) {
     return out;
 }
 
-// Parse "John 3:16" / "John 3" / "John" / "1 Kings 17:5"
+// Parse "John 3:16" / "John 3" / "1 Kings 17:5" — chapter number is required
+// so this never matches arbitrary text the user is mid-typing.
 function parseReference(query, books) {
     const q = query.trim();
     if (!q) return null;
     const m = q.match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
-    const bookName = (m ? m[1] : q).toLowerCase();
-    const chap = m ? parseInt(m[2], 10) : null;
-    const verse = m && m[3] ? parseInt(m[3], 10) : null;
+    if (!m) return null;
+    const bookName = m[1].trim().toLowerCase();
+    const chap = parseInt(m[2], 10);
+    const verse = m[3] ? parseInt(m[3], 10) : null;
 
     const found = books.find((b) => b.name.toLowerCase() === bookName)
         || books.find((b) => b.name.toLowerCase().startsWith(bookName))
         || books.find((b) => b.name.toLowerCase().includes(bookName));
     if (!found) return null;
-    return { book: found, chapter: chap || 1, verse };
+    return { book: found, chapter: chap, verse };
 }
 
 function escapeRegex(str) {
@@ -102,41 +104,39 @@ function BibleEnglish() {
     const currentBook = books[bookIdx] || null;
     const totalChapters = currentBook?.chapters?.length || 1;
 
-    // Build search results / detect reference
-    const { results, ref, mode } = React.useMemo(() => {
+    // Text search runs continuously as the user types. The reference jump
+    // only happens explicitly (Enter / clicking a result) so typing never
+    // hijacks the input.
+    const results = React.useMemo(() => {
         const q = query.trim();
-        if (!q || !data) return { results: [], ref: null, mode: "reading" };
-
-        // Try reference parse first
-        const parsed = parseReference(q, books);
-        if (parsed) return { results: [], ref: parsed, mode: "ref" };
-
-        // Text search across all verses
+        if (!q || !data) return [];
         const idx = getFlatIndex(data);
         const needle = q.toLowerCase();
-        const filtered = idx.filter((v) => v.text.toLowerCase().includes(needle));
-        return { results: filtered, ref: null, mode: "text" };
-    }, [query, data, books]);
+        return idx.filter((v) => v.text.toLowerCase().includes(needle));
+    }, [query, data]);
 
-    // When a reference is parsed, jump to that book/chapter and clear search.
-    React.useEffect(() => {
-        if (mode !== "ref" || !ref) return;
-        const idx = books.findIndex((b) => b.name === ref.book.name);
-        if (idx >= 0) {
-            setBookIdx(idx);
-            setChapter(Math.min(ref.book.chapters.length, ref.chapter));
-            setQuery("");
-            // Smooth scroll to verse if specified
-            requestAnimationFrame(() => {
-                if (ref.verse) {
-                    const el = document.querySelector(`[data-bible-verse="${ref.verse}"]`);
-                    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-                } else {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                }
-            });
-        }
-    }, [mode, ref, books]);
+    const jumpToReference = React.useCallback((book, chap, verse) => {
+        const idx = books.findIndex((b) => b.name === book.name);
+        if (idx < 0) return;
+        setBookIdx(idx);
+        setChapter(Math.min(book.chapters.length, chap));
+        setQuery("");
+        requestAnimationFrame(() => {
+            if (verse) {
+                const el = document.querySelector(`[data-bible-verse="${verse}"]`);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                else window.scrollTo({ top: 0, behavior: "smooth" });
+            } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        });
+    }, [books]);
+
+    const onSearchSubmit = (e) => {
+        e.preventDefault();
+        const parsed = parseReference(query, books);
+        if (parsed) jumpToReference(parsed.book, parsed.chapter, parsed.verse);
+    };
 
     // Reset pagination when search results change
     React.useEffect(() => { setVisible(PAGE_SIZE); }, [query]);
@@ -176,7 +176,11 @@ function BibleEnglish() {
     const chapterContent = currentChapterVerses.map((v) => `${v.verse}. ${v.text}`).join("\n");
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
-    const searching = mode === "text";
+    const searching = query.trim().length > 0;
+    const refSuggestion = React.useMemo(
+        () => parseReference(query, books),
+        [query, books],
+    );
 
     return (
         <div data-testid="bible-page">
@@ -193,7 +197,7 @@ function BibleEnglish() {
                 className="sticky top-[56px] md:top-[72px] z-20 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 py-3 bg-sand-50/95 backdrop-blur-md border-b border-sand-300 mb-8"
                 data-testid="bible-search-wrap"
             >
-                <div className="relative max-w-[720px] mx-auto">
+                <form onSubmit={onSearchSubmit} className="relative max-w-[720px] mx-auto" data-testid="bible-search-form">
                     <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint" />
                     <input
                         type="search"
@@ -211,7 +215,7 @@ function BibleEnglish() {
                             <X size={16} weight="bold" />
                         </button>
                     )}
-                </div>
+                </form>
             </div>
 
             {loading && <p className="text-stoneMuted" data-testid="bible-loading">{t("common.loading")}</p>}
@@ -289,6 +293,21 @@ function BibleEnglish() {
                         </>
                     ) : (
                         <>
+                            {refSuggestion && (
+                                <button
+                                    type="button"
+                                    onClick={() => jumpToReference(
+                                        refSuggestion.book,
+                                        refSuggestion.chapter,
+                                        refSuggestion.verse,
+                                    )}
+                                    data-testid="bible-ref-suggestion"
+                                    className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-sangre/10 border border-sangre/30 text-sangre rounded-md hover:bg-sangre hover:text-sand-50 transition-colors ui-sans text-sm"
+                                >
+                                    {t("bible.go_to")}: {refSuggestion.book.name} {refSuggestion.chapter}{refSuggestion.verse ? `:${refSuggestion.verse}` : ""}
+                                </button>
+                            )}
+
                             <p className="label-eyebrow mb-4" data-testid="bible-results-meta">
                                 {t("bible.results_count", { count: results.length })}
                             </p>
@@ -308,7 +327,10 @@ function BibleEnglish() {
                                     >
                                         <button
                                             type="button"
-                                            onClick={() => setQuery(`${v.book} ${v.chapter}:${v.verse}`)}
+                                            onClick={() => {
+                                                const bookObj = books.find((b) => b.name === v.book);
+                                                if (bookObj) jumpToReference(bookObj, v.chapter, v.verse);
+                                            }}
                                             className="block w-full text-left"
                                         >
                                             <p className="label-eyebrow mb-1 group-hover:text-sangre transition-colors">

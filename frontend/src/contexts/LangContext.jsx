@@ -63,9 +63,10 @@ const STRINGS = {
             load_more: "Cargar más",
         },
         bible: {
-            search_placeholder: "Buscar (ej. \"Juan 3:16\") o palabra…",
+            search_placeholder: "Buscar palabra clave o referencia (ej. \"Juan 3:16\"). Pulsa Enter para saltar.",
             results_count: "{count} resultado(s)",
             no_results: "Sin resultados. Prueba otra palabra o referencia.",
+            go_to: "Ir a",
         },
         auth: {
             forgot_password: "¿Olvidaste tu contraseña?",
@@ -152,9 +153,10 @@ const STRINGS = {
             load_more: "Load more",
         },
         bible: {
-            search_placeholder: "Search (e.g. \"John 3:16\") or any word…",
+            search_placeholder: "Search keyword or reference (e.g. \"John 3:16\"). Press Enter to jump.",
             results_count: "{count} result(s)",
             no_results: "No results. Try another word or reference.",
+            go_to: "Go to",
         },
         auth: {
             forgot_password: "Forgot your password?",
