@@ -3,6 +3,7 @@ import { useLang } from "@/contexts/LangContext";
 import api from "@/lib/api";
 import { localDateISO } from "@/lib/localDate";
 import FavoriteButton from "@/components/FavoriteButton";
+import BackToTopButton from "@/components/BackToTopButton";
 import { ArrowSquareOut } from "@phosphor-icons/react";
 
 export default function Readings() {
@@ -89,6 +90,7 @@ export default function Readings() {
                     ))}
                 </article>
             ))}
+            <BackToTopButton testId="readings-back-to-top" />
         </div>
     );
 }

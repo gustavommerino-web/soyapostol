@@ -4,6 +4,7 @@ import { useLang } from "@/contexts/LangContext";
 import api from "@/lib/api";
 import { localDateISO } from "@/lib/localDate";
 import FavoriteButton from "@/components/FavoriteButton";
+import BackToTopButton from "@/components/BackToTopButton";
 import { ArrowSquareOut } from "@phosphor-icons/react";
 
 export default function Liturgy() {
@@ -90,6 +91,7 @@ export default function Liturgy() {
                     <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.content_html, { USE_PROFILES: { html: true }, FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"], FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"] }) }} />
                 </article>
             )}
+            <BackToTopButton testId="liturgy-back-to-top" />
         </div>
     );
 }

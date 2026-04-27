@@ -1,7 +1,8 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import FavoriteButton from "@/components/FavoriteButton";
-import { MagnifyingGlass, ArrowUp, X } from "@phosphor-icons/react";
+import BackToTopButton from "@/components/BackToTopButton";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 const DATA_URL = "/data/catechism.json";
@@ -22,7 +23,6 @@ export default function Catechism() {
     const [error, setError] = React.useState("");
     const [query, setQuery] = React.useState("");
     const [visible, setVisible] = React.useState(PAGE_SIZE);
-    const [showBackToTop, setShowBackToTop] = React.useState(false);
     const sentinelRef = React.useRef(null);
 
     // Fetch the catechism file only on entry.
@@ -94,24 +94,13 @@ export default function Catechism() {
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, [jumpTarget, visible]);
 
-    // Toggle the back-to-top button visibility.
-    React.useEffect(() => {
-        const onScroll = () => setShowBackToTop(window.scrollY > 400);
-        onScroll();
-        window.addEventListener("scroll", onScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onScroll);
-    }, []);
-
     const jumpToPart = (part) => {
         // Reuse the jump-to-number behavior so the reader lands on §start and
         // can keep reading from that section.
         setQuery(String(part.start));
     };
 
-    const scrollToTop = () => {
-        setQuery("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    };
+    const onResetTop = () => setQuery("");
 
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
@@ -256,18 +245,7 @@ export default function Catechism() {
             )}
 
             {/* Floating back-to-top button */}
-            {showBackToTop && (
-                <button
-                    type="button"
-                    onClick={scrollToTop}
-                    data-testid="catechism-back-to-top"
-                    aria-label={t("common.back_to_top")}
-                    title={t("common.back_to_top")}
-                    className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-30 h-12 w-12 rounded-full bg-sangre text-sand-50 shadow-lg hover:bg-sangre-hover transition-all flex items-center justify-center"
-                >
-                    <ArrowUp size={20} weight="bold" />
-                </button>
-            )}
+            <BackToTopButton onClick={onResetTop} testId="catechism-back-to-top" />
         </div>
     );
 }

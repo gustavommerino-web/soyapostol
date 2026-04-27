@@ -1,7 +1,8 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import FavoriteButton from "@/components/FavoriteButton";
-import { MagnifyingGlass, ArrowUp, X, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import BackToTopButton from "@/components/BackToTopButton";
+import { MagnifyingGlass, X, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 
@@ -148,7 +149,6 @@ export default function Bible() {
     const [chapter, setChapter] = React.useState(1);
     const [query, setQuery] = React.useState("");
     const [visible, setVisible] = React.useState(PAGE_SIZE);
-    const [showBackToTop, setShowBackToTop] = React.useState(false);
     const sentinelRef = React.useRef(null);
 
     // Load (or swap) the JSON whenever the language changes.
@@ -228,17 +228,7 @@ export default function Bible() {
         return () => observer.disconnect();
     }, [results.length]);
 
-    React.useEffect(() => {
-        const onScroll = () => setShowBackToTop(window.scrollY > 400);
-        onScroll();
-        window.addEventListener("scroll", onScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onScroll);
-    }, []);
-
-    const scrollToTop = () => {
-        setQuery("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    };
+    const onResetTop = () => setQuery("");
 
     const currentChapterVerses = React.useMemo(() => {
         if (!currentBook) return [];
@@ -432,18 +422,7 @@ export default function Bible() {
                 </>
             )}
 
-            {showBackToTop && (
-                <button
-                    type="button"
-                    onClick={scrollToTop}
-                    data-testid="bible-back-to-top"
-                    aria-label={t("common.back_to_top")}
-                    title={t("common.back_to_top")}
-                    className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-30 h-12 w-12 rounded-full bg-sangre text-sand-50 shadow-lg hover:bg-sangre-hover transition-all flex items-center justify-center"
-                >
-                    <ArrowUp size={20} weight="bold" />
-                </button>
-            )}
+            <BackToTopButton onClick={onResetTop} testId="bible-back-to-top" />
         </div>
     );
 }
