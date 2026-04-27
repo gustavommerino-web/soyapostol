@@ -1,29 +1,109 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
-import api from "@/lib/api";
 import FavoriteButton from "@/components/FavoriteButton";
 import { MagnifyingGlass, ArrowUp, X, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
-const EN_DATA_URL = "/data/bible-en.json";
 
-// Module-level caches so the 10 MB Bible is fetched + indexed only once.
-let _enCache = null;
-let _enInflight = null;
-let _flatIndex = null;
+// Per-language data files. Both follow the same shape:
+//   { translation: string, books: [{ name, chapters: [{ chapter, verses: [{ verse, text }] }] }] }
+const SOURCES = {
+    en: { url: "/data/bible-en.json" },
+    es: { url: "/data/bible-es.json" },
+};
 
-async function loadEnglishBible() {
-    if (_enCache) return _enCache;
-    if (_enInflight) return _enInflight;
-    _enInflight = fetch(EN_DATA_URL, { cache: "force-cache" })
+// Spanish display overrides — the SpaRV JSON ships with English book names,
+// so we translate them for the UI without touching the data. Reference parsing
+// also accepts these Spanish names (see parseReference below).
+const ES_BOOK_NAMES = {
+    "Genesis": "Génesis",
+    "Exodus": "Éxodo",
+    "Leviticus": "Levítico",
+    "Numbers": "Números",
+    "Deuteronomy": "Deuteronomio",
+    "Joshua": "Josué",
+    "Judges": "Jueces",
+    "Ruth": "Rut",
+    "I Samuel": "1 Samuel",
+    "II Samuel": "2 Samuel",
+    "I Kings": "1 Reyes",
+    "II Kings": "2 Reyes",
+    "I Chronicles": "1 Crónicas",
+    "II Chronicles": "2 Crónicas",
+    "Ezra": "Esdras",
+    "Nehemiah": "Nehemías",
+    "Esther": "Ester",
+    "Job": "Job",
+    "Psalms": "Salmos",
+    "Proverbs": "Proverbios",
+    "Ecclesiastes": "Eclesiastés",
+    "Song of Solomon": "Cantares",
+    "Isaiah": "Isaías",
+    "Jeremiah": "Jeremías",
+    "Lamentations": "Lamentaciones",
+    "Ezekiel": "Ezequiel",
+    "Daniel": "Daniel",
+    "Hosea": "Oseas",
+    "Joel": "Joel",
+    "Amos": "Amós",
+    "Obadiah": "Abdías",
+    "Jonah": "Jonás",
+    "Micah": "Miqueas",
+    "Nahum": "Nahúm",
+    "Habakkuk": "Habacuc",
+    "Zephaniah": "Sofonías",
+    "Haggai": "Hageo",
+    "Zechariah": "Zacarías",
+    "Malachi": "Malaquías",
+    "Matthew": "Mateo",
+    "Mark": "Marcos",
+    "Luke": "Lucas",
+    "John": "Juan",
+    "Acts": "Hechos",
+    "Romans": "Romanos",
+    "I Corinthians": "1 Corintios",
+    "II Corinthians": "2 Corintios",
+    "Galatians": "Gálatas",
+    "Ephesians": "Efesios",
+    "Philippians": "Filipenses",
+    "Colossians": "Colosenses",
+    "I Thessalonians": "1 Tesalonicenses",
+    "II Thessalonians": "2 Tesalonicenses",
+    "I Timothy": "1 Timoteo",
+    "II Timothy": "2 Timoteo",
+    "Titus": "Tito",
+    "Philemon": "Filemón",
+    "Hebrews": "Hebreos",
+    "James": "Santiago",
+    "I Peter": "1 Pedro",
+    "II Peter": "2 Pedro",
+    "I John": "1 Juan",
+    "II John": "2 Juan",
+    "III John": "3 Juan",
+    "Jude": "Judas",
+    "Revelation of John": "Apocalipsis",
+};
+
+// Module-level caches keyed by lang. The 8–10 MB JSONs are fetched + indexed
+// only once per session and survive route changes.
+const _cache = {};      // lang → parsed data
+const _inflight = {};   // lang → Promise
+const _flatIndex = {};  // lang → flat verse index for search
+
+async function loadBible(lang) {
+    if (_cache[lang]) return _cache[lang];
+    if (_inflight[lang]) return _inflight[lang];
+    const url = SOURCES[lang]?.url;
+    if (!url) throw new Error(`No bible source for lang ${lang}`);
+    _inflight[lang] = fetch(url, { cache: "force-cache" })
         .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-        .then((data) => { _enCache = data; _enInflight = null; return data; })
-        .catch((e) => { _enInflight = null; throw e; });
-    return _enInflight;
+        .then((data) => { _cache[lang] = data; delete _inflight[lang]; return data; })
+        .catch((e) => { delete _inflight[lang]; throw e; });
+    return _inflight[lang];
 }
 
-function getFlatIndex(data) {
-    if (_flatIndex) return _flatIndex;
+function getFlatIndex(lang, data) {
+    if (_flatIndex[lang]) return _flatIndex[lang];
     const out = [];
     for (const b of data.books) {
         for (const ch of b.chapters) {
@@ -37,26 +117,41 @@ function getFlatIndex(data) {
             }
         }
     }
-    _flatIndex = out;
+    _flatIndex[lang] = out;
     return out;
 }
 
-// Parse "John 3:16" / "John 3" / "1 Kings 17:5" — chapter number is required
-// so this never matches arbitrary text the user is mid-typing.
-function parseReference(query, books) {
+// Display name resolver — Spanish-aware.
+function displayName(rawName, lang) {
+    if (lang === "es") return ES_BOOK_NAMES[rawName] || rawName;
+    return rawName;
+}
+
+// Parse "John 3:16" / "Juan 3:16" / "1 Reyes 17:5" / "Genesis 50".
+// Chapter number is required so this never matches arbitrary text the user is
+// mid-typing.
+function parseReference(query, books, lang) {
     const q = query.trim();
     if (!q) return null;
     const m = q.match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
     if (!m) return null;
-    const bookName = m[1].trim().toLowerCase();
+    const target = m[1].trim().toLowerCase();
     const chap = parseInt(m[2], 10);
     const verse = m[3] ? parseInt(m[3], 10) : null;
 
-    const found = books.find((b) => b.name.toLowerCase() === bookName)
-        || books.find((b) => b.name.toLowerCase().startsWith(bookName))
-        || books.find((b) => b.name.toLowerCase().includes(bookName));
+    // Try matching against either the raw book name or the localized display name.
+    const candidates = books.map((b) => ({
+        book: b,
+        names: [b.name.toLowerCase(), displayName(b.name, lang).toLowerCase()],
+    }));
+
+    let found =
+        candidates.find((c) => c.names.includes(target))
+        || candidates.find((c) => c.names.some((n) => n.startsWith(target)))
+        || candidates.find((c) => c.names.some((n) => n.includes(target)));
+
     if (!found) return null;
-    return { book: found, chapter: chap, verse };
+    return { book: found.book, chapter: chap, verse };
 }
 
 function escapeRegex(str) {
@@ -75,12 +170,11 @@ function highlightText(text, query) {
     );
 }
 
-// ----------------------------- English (local) -----------------------------
+export default function Bible() {
+    const { t, lang } = useLang();
 
-function BibleEnglish() {
-    const { t } = useLang();
-    const [data, setData] = React.useState(_enCache);
-    const [loading, setLoading] = React.useState(!_enCache);
+    const [data, setData] = React.useState(_cache[lang] || null);
+    const [loading, setLoading] = React.useState(!_cache[lang]);
     const [error, setError] = React.useState("");
     const [bookIdx, setBookIdx] = React.useState(0);
     const [chapter, setChapter] = React.useState(1);
@@ -89,31 +183,44 @@ function BibleEnglish() {
     const [showBackToTop, setShowBackToTop] = React.useState(false);
     const sentinelRef = React.useRef(null);
 
+    // Load (or swap) the JSON whenever the language changes.
     React.useEffect(() => {
         let cancelled = false;
-        if (_enCache) { setData(_enCache); return undefined; }
+        setQuery("");
+        setBookIdx(0);
+        setChapter(1);
+        if (_cache[lang]) {
+            setData(_cache[lang]);
+            setLoading(false);
+            setError("");
+            return undefined;
+        }
         setLoading(true);
-        loadEnglishBible()
-            .then((d) => { if (!cancelled) { setData(d); setError(""); } })
+        setError("");
+        loadBible(lang)
+            .then((d) => { if (!cancelled) setData(d); })
             .catch((e) => { if (!cancelled) setError(e.message || "Failed to load"); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, []);
+    }, [lang]);
 
     const books = data?.books || [];
     const currentBook = books[bookIdx] || null;
     const totalChapters = currentBook?.chapters?.length || 1;
 
-    // Text search runs continuously as the user types. The reference jump
-    // only happens explicitly (Enter / clicking a result) so typing never
-    // hijacks the input.
+    // Continuous text search.
     const results = React.useMemo(() => {
         const q = query.trim();
         if (!q || !data) return [];
-        const idx = getFlatIndex(data);
+        const idx = getFlatIndex(lang, data);
         const needle = q.toLowerCase();
         return idx.filter((v) => v.text.toLowerCase().includes(needle));
-    }, [query, data]);
+    }, [query, data, lang]);
+
+    const refSuggestion = React.useMemo(
+        () => parseReference(query, books, lang),
+        [query, books, lang],
+    );
 
     const jumpToReference = React.useCallback((book, chap, verse) => {
         const idx = books.findIndex((b) => b.name === book.name);
@@ -134,14 +241,13 @@ function BibleEnglish() {
 
     const onSearchSubmit = (e) => {
         e.preventDefault();
-        const parsed = parseReference(query, books);
-        if (parsed) jumpToReference(parsed.book, parsed.chapter, parsed.verse);
+        if (refSuggestion) {
+            jumpToReference(refSuggestion.book, refSuggestion.chapter, refSuggestion.verse);
+        }
     };
 
-    // Reset pagination when search results change
     React.useEffect(() => { setVisible(PAGE_SIZE); }, [query]);
 
-    // Lazy-load more search results
     React.useEffect(() => {
         const node = sentinelRef.current;
         if (!node) return undefined;
@@ -154,7 +260,6 @@ function BibleEnglish() {
         return () => observer.disconnect();
     }, [results.length]);
 
-    // Back-to-top toggle
     React.useEffect(() => {
         const onScroll = () => setShowBackToTop(window.scrollY > 400);
         onScroll();
@@ -177,10 +282,7 @@ function BibleEnglish() {
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
     const searching = query.trim().length > 0;
-    const refSuggestion = React.useMemo(
-        () => parseReference(query, books),
-        [query, books],
-    );
+    const currentBookDisplay = currentBook ? displayName(currentBook.name, lang) : "";
 
     return (
         <div data-testid="bible-page">
@@ -189,7 +291,7 @@ function BibleEnglish() {
                 {t("nav.bible")}
             </h1>
             <p className="text-sm text-stoneMuted italic mb-6" data-testid="bible-translation-label">
-                {data?.translation || "Catholic Public Domain Version"}
+                {data?.translation || ""}
             </p>
 
             {/* Sticky search bar */}
@@ -209,9 +311,13 @@ function BibleEnglish() {
                         className="w-full pl-10 pr-10 py-3 bg-white border border-sand-300 rounded-md focus:outline-none focus:border-sangre transition-colors ui-sans text-sm"
                     />
                     {query && (
-                        <button type="button" onClick={() => setQuery("")} aria-label="Clear"
+                        <button
+                            type="button"
+                            onClick={() => setQuery("")}
+                            aria-label="Clear"
                             data-testid="bible-search-clear"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stoneMuted hover:text-sangre">
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stoneMuted hover:text-sangre"
+                        >
                             <X size={16} weight="bold" />
                         </button>
                     )}
@@ -225,7 +331,6 @@ function BibleEnglish() {
                 <>
                     {!searching ? (
                         <>
-                            {/* Book + chapter selectors */}
                             <div className="flex flex-wrap items-center gap-3 mb-6" data-testid="bible-selectors">
                                 <select
                                     value={bookIdx}
@@ -234,7 +339,7 @@ function BibleEnglish() {
                                     className="px-3 py-2 bg-white border border-sand-300 rounded-md ui-sans text-sm focus:outline-none focus:border-sangre min-w-[180px]"
                                 >
                                     {books.map((b, i) => (
-                                        <option key={b.name} value={i}>{b.name}</option>
+                                        <option key={b.name} value={i}>{displayName(b.name, lang)}</option>
                                     ))}
                                 </select>
 
@@ -267,16 +372,16 @@ function BibleEnglish() {
 
                                 <FavoriteButton
                                     section="bible"
-                                    title={`${currentBook?.name} ${chapter}`}
+                                    title={`${currentBookDisplay} ${chapter}`}
                                     content={chapterContent}
-                                    metadata={{ book: currentBook?.name, chapter }}
+                                    metadata={{ book: currentBook?.name, chapter, lang }}
                                     testId="fav-bible-chapter"
                                 />
                             </div>
 
                             <h2 className="heading-serif text-3xl tracking-tight mb-6 border-b border-sand-300 pb-3"
                                 data-testid="bible-chapter-title">
-                                {currentBook?.name} {chapter}
+                                {currentBookDisplay} {chapter}
                             </h2>
 
                             <div className="reading-prose" data-testid="bible-verses">
@@ -287,7 +392,7 @@ function BibleEnglish() {
                                     </p>
                                 ))}
                                 {currentChapterVerses.length === 0 && (
-                                    <p className="text-stoneMuted">No verses.</p>
+                                    <p className="text-stoneMuted">{t("common.loading")}</p>
                                 )}
                             </div>
                         </>
@@ -304,7 +409,7 @@ function BibleEnglish() {
                                     data-testid="bible-ref-suggestion"
                                     className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-sangre/10 border border-sangre/30 text-sangre rounded-md hover:bg-sangre hover:text-sand-50 transition-colors ui-sans text-sm"
                                 >
-                                    {t("bible.go_to")}: {refSuggestion.book.name} {refSuggestion.chapter}{refSuggestion.verse ? `:${refSuggestion.verse}` : ""}
+                                    {t("bible.go_to")}: {displayName(refSuggestion.book.name, lang)} {refSuggestion.chapter}{refSuggestion.verse ? `:${refSuggestion.verse}` : ""}
                                 </button>
                             )}
 
@@ -334,7 +439,7 @@ function BibleEnglish() {
                                             className="block w-full text-left"
                                         >
                                             <p className="label-eyebrow mb-1 group-hover:text-sangre transition-colors">
-                                                {v.book} {v.chapter}:{v.verse}
+                                                {displayName(v.book, lang)} {v.chapter}:{v.verse}
                                             </p>
                                             <p className="m-0">{highlightText(v.text, query)}</p>
                                         </button>
@@ -373,119 +478,4 @@ function BibleEnglish() {
             )}
         </div>
     );
-}
-
-// ----------------------------- Spanish (backend) -----------------------------
-
-function BibleSpanish() {
-    const { t } = useLang();
-    const [books, setBooks] = React.useState([]);
-    const [translation, setTranslation] = React.useState("");
-    const [book, setBook] = React.useState(null);
-    const [chapter, setChapter] = React.useState(1);
-    const [verses, setVerses] = React.useState([]);
-    const [loading, setLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        setLoading(true);
-        api.get("/bible/books?lang=es")
-            .then((r) => {
-                setBooks(r.data.books || []);
-                setTranslation(r.data.translation || "");
-                if (!book && r.data.books?.length) setBook(r.data.books[0]);
-            })
-            .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    React.useEffect(() => {
-        if (!book) return;
-        setLoading(true);
-        api.get(`/bible/chapter?book=${book.bookid}&chapter=${chapter}&lang=es`)
-            .then((r) => setVerses(r.data.verses || []))
-            .finally(() => setLoading(false));
-    }, [book, chapter]);
-
-    const chapterContent = verses.map((v) => `${v.verse}. ${v.text}`).join("\n");
-    const totalChapters = book?.chapters || 1;
-    const translationLabel = translation === "BIA"
-        ? "Biblia de la Iglesia en América · Vaticano"
-        : translation;
-
-    return (
-        <div data-testid="bible-page">
-            <p className="label-eyebrow mb-3">{t("nav.bible")}</p>
-            <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2">
-                {t("nav.bible")}
-            </h1>
-            {translationLabel && (
-                <p className="text-sm text-stoneMuted italic mb-10" data-testid="bible-translation-label">
-                    {translationLabel}
-                </p>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
-                <aside className="surface-card p-4 max-h-[70vh] overflow-y-auto" data-testid="bible-books">
-                    <p className="label-eyebrow mb-3 px-2">Libros</p>
-                    {books.map((b) => (
-                        <button key={b.bookid}
-                            onClick={() => { setBook(b); setChapter(1); }}
-                            data-testid={`bible-book-${b.bookid}`}
-                            className={`block w-full text-left px-3 py-1.5 rounded-sm reading-serif text-sm transition-colors ${book?.bookid === b.bookid ? "bg-sangre text-sand-50" : "text-stoneMuted hover:bg-sand-200"}`}
-                        >
-                            {b.name}
-                        </button>
-                    ))}
-                    {books.length === 0 && !loading && <p className="text-sm text-stoneFaint p-2">No books available.</p>}
-                </aside>
-
-                <div>
-                    {book && (
-                        <div className="flex items-center justify-between border-b border-sand-300 pb-3 mb-6">
-                            <h2 className="heading-serif text-3xl tracking-tight">{book.name} {chapter}</h2>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => setChapter((c) => Math.max(1, c - 1))} disabled={chapter <= 1}
-                                    data-testid="bible-prev-chapter"
-                                    className="p-2 border border-sand-300 rounded-md hover:border-sangre disabled:opacity-40">
-                                    <CaretLeft size={14} weight="bold" />
-                                </button>
-                                <select value={chapter} onChange={(e) => setChapter(Number(e.target.value))}
-                                    data-testid="bible-chapter-select"
-                                    className="px-3 py-2 bg-white border border-sand-300 rounded-md ui-sans text-sm focus:outline-none focus:border-sangre">
-                                    {Array.from({ length: totalChapters }, (_, i) => i + 1).map((n) => (
-                                        <option key={n} value={n}>{n}</option>
-                                    ))}
-                                </select>
-                                <button onClick={() => setChapter((c) => Math.min(totalChapters, c + 1))} disabled={chapter >= totalChapters}
-                                    data-testid="bible-next-chapter"
-                                    className="p-2 border border-sand-300 rounded-md hover:border-sangre disabled:opacity-40">
-                                    <CaretRight size={14} weight="bold" />
-                                </button>
-                                <FavoriteButton section="bible"
-                                    title={`${book.name} ${chapter}`}
-                                    content={chapterContent}
-                                    metadata={{ book: book.name, chapter }}
-                                    testId="fav-bible-chapter" />
-                            </div>
-                        </div>
-                    )}
-                    {loading && <p className="text-stoneMuted" data-testid="bible-loading">{t("common.loading")}</p>}
-                    <div className="reading-prose" data-testid="bible-verses">
-                        {verses.map((v) => (
-                            <p key={v.verse}>
-                                <sup className="text-sangre text-xs mr-1 font-semibold">{v.verse}</sup>
-                                {v.text}
-                            </p>
-                        ))}
-                        {!loading && verses.length === 0 && <p className="text-stoneMuted">Sin versículos.</p>}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-export default function Bible() {
-    const { lang } = useLang();
-    return lang === "en" ? <BibleEnglish /> : <BibleSpanish />;
 }
