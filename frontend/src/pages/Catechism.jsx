@@ -1,8 +1,7 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
 import FavoriteButton from "@/components/FavoriteButton";
-import { MagnifyingGlass, ArrowLeft, ArrowUp, X } from "@phosphor-icons/react";
+import { MagnifyingGlass, ArrowUp, X } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 const DATA_URL = "/data/catechism.json";
@@ -17,7 +16,6 @@ const PARTS = [
 
 export default function Catechism() {
     const { t, lang } = useLang();
-    const navigate = useNavigate();
 
     const [entries, setEntries] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
@@ -134,15 +132,6 @@ export default function Catechism() {
 
     return (
         <div data-testid="catechism-page">
-            <button
-                type="button"
-                onClick={() => navigate("/")}
-                data-testid="catechism-back-btn"
-                className="inline-flex items-center gap-1.5 text-sm text-stoneMuted hover:text-sangre mb-6"
-            >
-                <ArrowLeft size={14} weight="bold" /> {t("common.back_to_menu")}
-            </button>
-
             <p className="label-eyebrow mb-3">{t("nav.catechism")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">
                 {t("nav.catechism")}
