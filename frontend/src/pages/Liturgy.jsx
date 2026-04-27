@@ -4,6 +4,7 @@ import { useLang } from "@/contexts/LangContext";
 import api from "@/lib/api";
 import { localDateISO } from "@/lib/localDate";
 import FavoriteButton from "@/components/FavoriteButton";
+import { ArrowSquareOut } from "@phosphor-icons/react";
 
 export default function Liturgy() {
     const { lang, t } = useLang();
@@ -54,9 +55,18 @@ export default function Liturgy() {
                 {data?.title || t("nav.liturgy")}
             </h1>
             {formattedDate && (
-                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-6"
+                <p className="reading-serif italic text-lg text-stoneMuted mt-2"
                    data-testid="liturgy-date">{formattedDate}</p>
             )}
+            <div className="flex items-center gap-4 mb-10 mt-4">
+                {data?.source_url && (
+                    <a href={data.source_url} target="_blank" rel="noreferrer"
+                        className="text-sm text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
+                        data-testid="liturgy-source-link">
+                        {data.source || "Source"} <ArrowSquareOut size={14} />
+                    </a>
+                )}
+            </div>
 
             <div className="flex flex-wrap gap-2 mb-10">
                 {hours.map((h) => (
@@ -73,8 +83,7 @@ export default function Liturgy() {
 
             {data && (
                 <article className="reading-prose" data-testid="liturgy-content">
-                    <div className="flex items-center justify-between border-b border-sand-300 pb-2 mb-6">
-                        <p className="label-eyebrow m-0">{t("common.source")}: {data.source || "iBreviary"}</p>
+                    <div className="flex items-center justify-end border-b border-sand-300 pb-2 mb-6">
                         <FavoriteButton section="liturgy" title={data.title} content={data.content_text}
                             source_url={data.source_url} metadata={{ hour }} testId="fav-liturgy" />
                     </div>
