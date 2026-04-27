@@ -41,6 +41,7 @@ const STRINGS = {
             search: "Buscar",
             refresh: "Actualizar",
             back_to_menu: "Volver al menú",
+            back_to_top: "Volver arriba",
         },
         sections: {
             readings_desc: "Las lecturas del día con comentario del Evangelio",
@@ -124,6 +125,7 @@ const STRINGS = {
             search: "Search",
             refresh: "Refresh",
             back_to_menu: "Back to menu",
+            back_to_top: "Back to top",
         },
         sections: {
             readings_desc: "Today's readings with Gospel commentary",

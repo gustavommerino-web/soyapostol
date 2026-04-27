@@ -2,13 +2,21 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
 import FavoriteButton from "@/components/FavoriteButton";
-import { MagnifyingGlass, ArrowLeft, X } from "@phosphor-icons/react";
+import { MagnifyingGlass, ArrowLeft, ArrowUp, X } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 const DATA_URL = "/data/catechism.json";
 
+// Canonical CCC part structure (paragraph the Part begins at).
+const PARTS = [
+    { id: 1, start: 26,   es: "La Profesión de la Fe",                   en: "The Profession of Faith" },
+    { id: 2, start: 1066, es: "La Celebración del Misterio Cristiano",   en: "The Celebration of the Christian Mystery" },
+    { id: 3, start: 1691, es: "La Vida en Cristo",                        en: "Life in Christ" },
+    { id: 4, start: 2558, es: "La Oración Cristiana",                     en: "Christian Prayer" },
+];
+
 export default function Catechism() {
-    const { t } = useLang();
+    const { t, lang } = useLang();
     const navigate = useNavigate();
 
     const [entries, setEntries] = React.useState([]);
@@ -16,8 +24,8 @@ export default function Catechism() {
     const [error, setError] = React.useState("");
     const [query, setQuery] = React.useState("");
     const [visible, setVisible] = React.useState(PAGE_SIZE);
+    const [showBackToTop, setShowBackToTop] = React.useState(false);
     const sentinelRef = React.useRef(null);
-    const listRef = React.useRef(null);
 
     // Fetch the catechism file only on entry.
     React.useEffect(() => {
@@ -44,7 +52,7 @@ export default function Catechism() {
         const q = query.trim();
         if (!q) return { results: entries, jumpTarget: null };
 
-        // Pure number → jump-to-entry mode (exact id match + a small window around it).
+        // Pure number → jump mode (target + small contextual window).
         if (/^\d+$/.test(q)) {
             const n = parseInt(q, 10);
             const idx = entries.findIndex((e) => e.id === n);
@@ -66,15 +74,14 @@ export default function Catechism() {
     // Reset pagination whenever the result set changes.
     React.useEffect(() => {
         setVisible(PAGE_SIZE);
-        if (listRef.current) listRef.current.scrollTop = 0;
     }, [query]);
 
     // IntersectionObserver for lazy pagination.
     React.useEffect(() => {
         const node = sentinelRef.current;
         if (!node) return undefined;
-        const observer = new IntersectionObserver((entries_) => {
-            if (entries_.some((e) => e.isIntersecting)) {
+        const observer = new IntersectionObserver((obs) => {
+            if (obs.some((e) => e.isIntersecting)) {
                 setVisible((v) => Math.min(results.length, v + PAGE_SIZE));
             }
         }, { rootMargin: "200px" });
@@ -82,12 +89,31 @@ export default function Catechism() {
         return () => observer.disconnect();
     }, [results.length]);
 
-    // When the user types a number, scroll the matching paragraph into view.
+    // Smooth-scroll to the paragraph when the user typed a number.
     React.useEffect(() => {
         if (jumpTarget == null) return;
         const el = document.querySelector(`[data-ccc-id="${jumpTarget}"]`);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, [jumpTarget, visible]);
+
+    // Toggle the back-to-top button visibility.
+    React.useEffect(() => {
+        const onScroll = () => setShowBackToTop(window.scrollY > 400);
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
+    const jumpToPart = (part) => {
+        // Reuse the jump-to-number behavior so the reader lands on §start and
+        // can keep reading from that section.
+        setQuery(String(part.start));
+    };
+
+    const scrollToTop = () => {
+        setQuery("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
@@ -104,6 +130,8 @@ export default function Catechism() {
         );
     };
 
+    const searching = query.trim().length > 0;
+
     return (
         <div data-testid="catechism-page">
             <button
@@ -119,32 +147,62 @@ export default function Catechism() {
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">
                 {t("nav.catechism")}
             </h1>
-            <p className="text-stoneMuted mb-8">{t("sections.catechism_desc")}</p>
+            <p className="text-stoneMuted mb-6">{t("sections.catechism_desc")}</p>
 
-            {/* Search */}
-            <div className="relative mb-8" data-testid="catechism-search-wrap">
-                <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint" />
-                <input
-                    type="search"
-                    inputMode="search"
-                    placeholder={t("catechism.search_placeholder")}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    data-testid="catechism-search-input"
-                    className="w-full pl-10 pr-10 py-3 bg-sand-100 border border-sand-300 rounded-md focus:outline-none focus:border-sangre transition-colors ui-sans text-sm"
-                />
-                {query && (
-                    <button
-                        type="button"
-                        onClick={() => setQuery("")}
-                        data-testid="catechism-search-clear"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stoneMuted hover:text-sangre"
-                        aria-label="Clear"
-                    >
-                        <X size={16} weight="bold" />
-                    </button>
-                )}
+            {/* Sticky search bar — stays visible under the app header */}
+            <div
+                className="sticky top-[56px] md:top-[72px] z-20 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 py-3 bg-sand-50/95 backdrop-blur-md border-b border-sand-300 mb-8"
+                data-testid="catechism-search-wrap"
+            >
+                <div className="relative max-w-[720px] mx-auto">
+                    <MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint" />
+                    <input
+                        type="search"
+                        inputMode="search"
+                        placeholder={t("catechism.search_placeholder")}
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        data-testid="catechism-search-input"
+                        className="w-full pl-10 pr-10 py-3 bg-white border border-sand-300 rounded-md focus:outline-none focus:border-sangre transition-colors ui-sans text-sm"
+                    />
+                    {query && (
+                        <button
+                            type="button"
+                            onClick={() => setQuery("")}
+                            data-testid="catechism-search-clear"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stoneMuted hover:text-sangre"
+                            aria-label="Clear"
+                        >
+                            <X size={16} weight="bold" />
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Interactive index of the 4 parts (hidden while searching) */}
+            {!searching && !loading && entries.length > 0 && (
+                <section
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-12"
+                    data-testid="catechism-parts-index"
+                >
+                    {PARTS.map((p) => (
+                        <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => jumpToPart(p)}
+                            data-testid={`ccc-part-${p.id}`}
+                            className="surface-card p-5 text-left"
+                        >
+                            <p className="label-eyebrow mb-1.5">
+                                {lang === "es" ? "Parte" : "Part"} {p.id} · §{p.start}
+                            </p>
+                            <p className="reading-serif text-lg leading-snug">
+                                {lang === "es" ? p.es : p.en}
+                            </p>
+                        </button>
+                    ))}
+                </section>
+            )}
 
             {loading && <p className="text-stoneMuted" data-testid="catechism-loading">{t("common.loading")}</p>}
             {error && <p className="text-sangre" data-testid="catechism-error">{error}</p>}
@@ -152,24 +210,24 @@ export default function Catechism() {
             {!loading && !error && (
                 <>
                     <p className="label-eyebrow mb-4" data-testid="catechism-results-meta">
-                        {query.trim()
+                        {searching
                             ? t("catechism.results_count", { count: results.length })
                             : t("catechism.total_count", { count: entries.length })}
                     </p>
 
-                    {results.length === 0 && query && (
+                    {results.length === 0 && searching && (
                         <p className="text-stoneMuted italic" data-testid="catechism-empty">
                             {t("catechism.no_results")}
                         </p>
                     )}
 
-                    <ol ref={listRef} className="reading-prose space-y-7" data-testid="catechism-list">
+                    <ol className="reading-prose space-y-7" data-testid="catechism-list">
                         {shown.map((p) => (
                             <li
                                 key={p.id}
                                 data-ccc-id={p.id}
                                 data-testid={`ccc-para-${p.id}`}
-                                className="group"
+                                className="group scroll-mt-36"
                             >
                                 <div className="flex items-start gap-3">
                                     <span className="text-sangre font-semibold ui-sans text-sm mt-1 shrink-0">
@@ -206,6 +264,20 @@ export default function Catechism() {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Floating back-to-top button */}
+            {showBackToTop && (
+                <button
+                    type="button"
+                    onClick={scrollToTop}
+                    data-testid="catechism-back-to-top"
+                    aria-label={t("common.back_to_top")}
+                    title={t("common.back_to_top")}
+                    className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-30 h-12 w-12 rounded-full bg-sangre text-sand-50 shadow-lg hover:bg-sangre-hover transition-all flex items-center justify-center"
+                >
+                    <ArrowUp size={20} weight="bold" />
+                </button>
             )}
         </div>
     );
