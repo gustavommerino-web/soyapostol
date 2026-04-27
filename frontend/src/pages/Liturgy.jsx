@@ -2,6 +2,7 @@ import React from "react";
 import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
 import api from "@/lib/api";
+import { localDateISO } from "@/lib/localDate";
 import FavoriteButton from "@/components/FavoriteButton";
 
 export default function Liturgy() {
@@ -11,6 +12,15 @@ export default function Liturgy() {
     const [data, setData] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState("");
+    const [localDate, setLocalDate] = React.useState(() => localDateISO());
+
+    React.useEffect(() => {
+        const t = setInterval(() => {
+            const next = localDateISO();
+            setLocalDate((prev) => (prev === next ? prev : next));
+        }, 60_000);
+        return () => clearInterval(t);
+    }, []);
 
     React.useEffect(() => {
         api.get(`/liturgy/hours?lang=${lang}`).then((r) => setHours(r.data)).catch(() => {});
@@ -19,12 +29,12 @@ export default function Liturgy() {
     const load = React.useCallback(async () => {
         setLoading(true); setError("");
         try {
-            const res = await api.get(`/liturgy?hour=${hour}&lang=${lang}`);
+            const res = await api.get(`/liturgy?hour=${hour}&lang=${lang}&date=${localDate}`);
             setData(res.data);
         } catch (e) {
             setError(e.response?.data?.detail || e.message);
         } finally { setLoading(false); }
-    }, [hour, lang]);
+    }, [hour, lang, localDate]);
 
     React.useEffect(() => { load(); }, [load]);
 

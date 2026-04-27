@@ -1,11 +1,14 @@
 """Daily Mass Readings from USCCB (via Playwright, to bypass their WAF).
 - ES  → https://bible.usccb.org/es/lectura-diaria-biblia
 - EN  → https://bible.usccb.org/daily-bible-reading
-USCCB publishes readings on US Eastern time, so the cache key uses that timezone
-(not UTC) to avoid serving yesterday's content during late-night UTC hours.
+The cache key uses the user's local date (passed by the browser as
+`?date=YYYY-MM-DD`). This prevents early switching for users west of US
+Eastern: their readings only roll over at their actual local midnight.
+If no valid date is provided, we fall back to US Eastern as a safe default.
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+import re
 from fastapi import APIRouter, Request, HTTPException, Query
 
 from browser_pool import get_browser
@@ -22,6 +25,22 @@ US_EASTERN_OFFSET = timedelta(hours=-4)  # EDT (April–November)
 
 def _today_us_eastern() -> str:
     return (datetime.now(timezone.utc) + US_EASTERN_OFFSET).date().isoformat()
+
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _resolve_date(date_str: Optional[str]) -> str:
+    """Return a valid YYYY-MM-DD string. Honors the client-provided date when
+    it parses; falls back to US Eastern otherwise."""
+    if date_str and _DATE_RE.match(date_str):
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+            return date_str
+        except ValueError:
+            pass
+    return _today_us_eastern()
+
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
@@ -117,7 +136,7 @@ async def get_readings(request: Request,
         lang = "es"
 
     db = request.app.state.db
-    today = _today_us_eastern()
+    today = _resolve_date(date_str)
     cache_key = f"{today}_{lang}"
 
     if not refresh:

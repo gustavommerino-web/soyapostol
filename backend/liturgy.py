@@ -3,10 +3,14 @@
 - ES (primary): liturgiadelashoras.github.io (GitHub Pages, fast/reliable).
 - Fallback for all: ibreviary.com (ES/EN/IT).
 Caches per (date, lang, hour); serves stale cache if source is unavailable.
+The cache date honors the client-provided `?date=YYYY-MM-DD` (browser local
+date) so the prayer only rolls over at the user's actual midnight.
 """
-from datetime import datetime, timezone
+from datetime import date as date_cls, datetime, timezone
+from typing import Optional
 from urllib.parse import urlparse, parse_qs
 import asyncio
+import re
 import httpx
 import feedparser
 from bs4 import BeautifulSoup
@@ -59,6 +63,19 @@ HEADERS = {
 }
 
 
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _resolve_date(date_str: Optional[str]) -> date_cls:
+    """Return the requested date when valid, otherwise UTC today."""
+    if date_str and _DATE_RE.match(date_str):
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    return datetime.now(timezone.utc).date()
+
+
 async def _fetch_with_retry(url: str, retries: int = 3, timeout: int = 30) -> httpx.Response:
     last_exc: Exception | None = None
     for attempt in range(retries):
@@ -76,11 +93,11 @@ async def _fetch_with_retry(url: str, retries: int = 3, timeout: int = 30) -> ht
 
 # ---------- Divine Office (EN) ----------
 
-async def _fetch_divine_office(hour: str) -> dict:
+async def _fetch_divine_office(hour: str, target_date: date_cls) -> dict:
     prayer_code = DIVINE_OFFICE_CODES.get(hour)
     if not prayer_code:
         raise HTTPException(status_code=400, detail="Unsupported hour for Divine Office")
-    today = datetime.now(timezone.utc).date().strftime("%Y%m%d")
+    today = target_date.strftime("%Y%m%d")
     r = await _fetch_with_retry(DIVINE_OFFICE_FEED)
     feed = feedparser.parse(r.content)
 
@@ -132,11 +149,11 @@ async def _fetch_divine_office(hour: str) -> dict:
 
 # ---------- Liturgia de las Horas (ES - primary) ----------
 
-async def _fetch_ldlh(hour: str) -> dict:
+async def _fetch_ldlh(hour: str, target_date: date_cls) -> dict:
     fname = LDLH_CODES.get(hour)
     if not fname:
         raise HTTPException(status_code=400, detail="Unsupported hour")
-    d = datetime.now(timezone.utc).date()
+    d = target_date
     month_abbr = LDLH_MONTHS[d.month - 1]
     url = f"{LDLH_BASE}/{d.year}/{month_abbr}/{d.day:02d}/{fname}"
     r = await _fetch_with_retry(url)
@@ -176,7 +193,7 @@ async def _fetch_ldlh(hour: str) -> dict:
 
 # ---------- iBreviary (fallback) ----------
 
-async def _fetch_ibreviary(hour: str, lang: str) -> dict:
+async def _fetch_ibreviary(hour: str, lang: str, target_date: date_cls) -> dict:
     hour_code = IBREVIARY_CODES[hour]
     url = f"{IBREVIARY_BASE}/breviario.php?s={hour_code}&lang={lang}"
     r = await _fetch_with_retry(url)
@@ -196,25 +213,25 @@ async def _fetch_ibreviary(hour: str, lang: str) -> dict:
         "content_text": container.get_text("\n", strip=True),
         "source_url": url,
         "source": "iBreviary",
-        "entry_date": datetime.now(timezone.utc).date().isoformat(),
+        "entry_date": target_date.isoformat(),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
-async def _fetch_liturgy(hour: str, lang: str) -> dict:
+async def _fetch_liturgy(hour: str, lang: str, target_date: date_cls) -> dict:
     """Try primary source, fall back to iBreviary if it fails."""
     if lang == "en":
         try:
-            return await _fetch_divine_office(hour)
+            return await _fetch_divine_office(hour, target_date)
         except HTTPException:
-            return await _fetch_ibreviary(hour, "en")
+            return await _fetch_ibreviary(hour, "en", target_date)
     if lang == "es":
         try:
-            return await _fetch_ldlh(hour)
+            return await _fetch_ldlh(hour, target_date)
         except HTTPException:
-            return await _fetch_ibreviary(hour, "es")
+            return await _fetch_ibreviary(hour, "es", target_date)
     # IT or other
-    return await _fetch_ibreviary(hour, lang)
+    return await _fetch_ibreviary(hour, lang, target_date)
 
 
 # ---------- API ----------
@@ -247,6 +264,7 @@ async def list_hours(lang: str = Query("es")):
 async def get_liturgy(request: Request,
                       hour: str = Query("lauds"),
                       lang: str = Query("es"),
+                      date_str: Optional[str] = Query(None, alias="date"),
                       refresh: bool = Query(False)):
     if hour not in IBREVIARY_CODES:
         raise HTTPException(status_code=400, detail="Invalid hour")
@@ -254,7 +272,8 @@ async def get_liturgy(request: Request,
         lang = "es"
 
     db = request.app.state.db
-    today = datetime.now(timezone.utc).date().isoformat()
+    target_date = _resolve_date(date_str)
+    today = target_date.isoformat()
     cache_key = f"{today}_{lang}_{hour}"
 
     if not refresh:
@@ -264,7 +283,7 @@ async def get_liturgy(request: Request,
             return cached
 
     try:
-        data = await _fetch_liturgy(hour, lang)
+        data = await _fetch_liturgy(hour, lang, target_date)
     except HTTPException:
         stale = await db.liturgy_cache.find_one(
             {"hour": hour, "lang": lang},
