@@ -5,86 +5,56 @@ import { MagnifyingGlass, ArrowUp, X, CaretLeft, CaretRight } from "@phosphor-ic
 
 const PAGE_SIZE = 20;
 
-// Per-language data files. Both follow the same shape:
+// Per-language data files. Both ultimately get normalized to:
 //   { translation: string, books: [{ name, chapters: [{ chapter, verses: [{ verse, text }] }] }] }
 const SOURCES = {
-    en: { url: "/data/bible-en.json" },
-    es: { url: "/data/bible-es.json" },
+    en: { url: "/data/bible-en.json", normalize: normalizeStandard },
+    es: { url: "/data/bible-es.json", normalize: normalizeJerusalenES },
 };
 
-// Spanish display overrides — the SpaRV JSON ships with English book names,
-// so we translate them for the UI without touching the data. Reference parsing
-// also accepts these Spanish names (see parseReference below).
-const ES_BOOK_NAMES = {
-    "Genesis": "Génesis",
-    "Exodus": "Éxodo",
-    "Leviticus": "Levítico",
-    "Numbers": "Números",
-    "Deuteronomy": "Deuteronomio",
-    "Joshua": "Josué",
-    "Judges": "Jueces",
-    "Ruth": "Rut",
-    "I Samuel": "1 Samuel",
-    "II Samuel": "2 Samuel",
-    "I Kings": "1 Reyes",
-    "II Kings": "2 Reyes",
-    "I Chronicles": "1 Crónicas",
-    "II Chronicles": "2 Crónicas",
-    "Ezra": "Esdras",
-    "Nehemiah": "Nehemías",
-    "Esther": "Ester",
-    "Job": "Job",
-    "Psalms": "Salmos",
-    "Proverbs": "Proverbios",
-    "Ecclesiastes": "Eclesiastés",
-    "Song of Solomon": "Cantares",
-    "Isaiah": "Isaías",
-    "Jeremiah": "Jeremías",
-    "Lamentations": "Lamentaciones",
-    "Ezekiel": "Ezequiel",
-    "Daniel": "Daniel",
-    "Hosea": "Oseas",
-    "Joel": "Joel",
-    "Amos": "Amós",
-    "Obadiah": "Abdías",
-    "Jonah": "Jonás",
-    "Micah": "Miqueas",
-    "Nahum": "Nahúm",
-    "Habakkuk": "Habacuc",
-    "Zephaniah": "Sofonías",
-    "Haggai": "Hageo",
-    "Zechariah": "Zacarías",
-    "Malachi": "Malaquías",
-    "Matthew": "Mateo",
-    "Mark": "Marcos",
-    "Luke": "Lucas",
-    "John": "Juan",
-    "Acts": "Hechos",
-    "Romans": "Romanos",
-    "I Corinthians": "1 Corintios",
-    "II Corinthians": "2 Corintios",
-    "Galatians": "Gálatas",
-    "Ephesians": "Efesios",
-    "Philippians": "Filipenses",
-    "Colossians": "Colosenses",
-    "I Thessalonians": "1 Tesalonicenses",
-    "II Thessalonians": "2 Tesalonicenses",
-    "I Timothy": "1 Timoteo",
-    "II Timothy": "2 Timoteo",
-    "Titus": "Tito",
-    "Philemon": "Filemón",
-    "Hebrews": "Hebreos",
-    "James": "Santiago",
-    "I Peter": "1 Pedro",
-    "II Peter": "2 Pedro",
-    "I John": "1 Juan",
-    "II John": "2 Juan",
-    "III John": "3 Juan",
-    "Jude": "Judas",
-    "Revelation of John": "Apocalipsis",
-};
+// CPDV / SpaRV-style: already in the canonical shape.
+function normalizeStandard(raw) {
+    return {
+        translation: raw.translation || "",
+        books: (raw.books || []).map((b) => ({
+            name: (b.name || "").trim(),
+            chapters: (b.chapters || []).map((ch) => ({
+                chapter: typeof ch.chapter === "string" ? parseInt(ch.chapter, 10) : ch.chapter,
+                verses: (ch.verses || []).map((v) => ({
+                    verse: typeof v.verse === "string" ? parseInt(v.verse, 10) : v.verse,
+                    text: (v.text || "").trim(),
+                })),
+            })),
+        })),
+    };
+}
 
-// Module-level caches keyed by lang. The 8–10 MB JSONs are fetched + indexed
+// "Biblia de Jerusalén" / bibliacatolica.com.br shape:
+//   { "Génesis": { abreviacion, testamento, chapters: [{ chapter:"1", verses: { "1": "..." }}] }, ... }
+function normalizeJerusalenES(raw) {
+    const books = [];
+    for (const [rawName, info] of Object.entries(raw)) {
+        if (!info || typeof info !== "object" || !Array.isArray(info.chapters)) continue;
+        const chapters = info.chapters.map((ch) => {
+            const versesObj = ch.verses || {};
+            const verses = Object.entries(versesObj)
+                .map(([num, text]) => ({
+                    verse: parseInt(num, 10),
+                    text: (text || "").trim(),
+                }))
+                .filter((v) => Number.isFinite(v.verse))
+                .sort((a, b) => a.verse - b.verse);
+            return {
+                chapter: typeof ch.chapter === "string" ? parseInt(ch.chapter, 10) : ch.chapter,
+                verses,
+            };
+        });
+        books.push({ name: rawName.trim(), chapters });
+    }
+    return { translation: "La Biblia de Jerusalén", books };
+}
+
+// Module-level caches keyed by lang. The 5–10 MB JSONs are fetched + indexed
 // only once per session and survive route changes.
 const _cache = {};      // lang → parsed data
 const _inflight = {};   // lang → Promise
@@ -93,11 +63,16 @@ const _flatIndex = {};  // lang → flat verse index for search
 async function loadBible(lang) {
     if (_cache[lang]) return _cache[lang];
     if (_inflight[lang]) return _inflight[lang];
-    const url = SOURCES[lang]?.url;
-    if (!url) throw new Error(`No bible source for lang ${lang}`);
-    _inflight[lang] = fetch(url, { cache: "force-cache" })
+    const src = SOURCES[lang];
+    if (!src) throw new Error(`No bible source for lang ${lang}`);
+    _inflight[lang] = fetch(src.url, { cache: "force-cache" })
         .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-        .then((data) => { _cache[lang] = data; delete _inflight[lang]; return data; })
+        .then((raw) => {
+            const data = src.normalize(raw);
+            _cache[lang] = data;
+            delete _inflight[lang];
+            return data;
+        })
         .catch((e) => { delete _inflight[lang]; throw e; });
     return _inflight[lang];
 }
@@ -121,16 +96,16 @@ function getFlatIndex(lang, data) {
     return out;
 }
 
-// Display name resolver — Spanish-aware.
-function displayName(rawName, lang) {
-    if (lang === "es") return ES_BOOK_NAMES[rawName] || rawName;
+// Display-name resolver. Both files now ship localized names directly, so this
+// is a passthrough — kept for symmetry and future overrides.
+function displayName(rawName /* , lang */) {
     return rawName;
 }
 
 // Parse "John 3:16" / "Juan 3:16" / "1 Reyes 17:5" / "Genesis 50".
 // Chapter number is required so this never matches arbitrary text the user is
 // mid-typing.
-function parseReference(query, books, lang) {
+function parseReference(query, books) {
     const q = query.trim();
     if (!q) return null;
     const m = q.match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
@@ -139,19 +114,12 @@ function parseReference(query, books, lang) {
     const chap = parseInt(m[2], 10);
     const verse = m[3] ? parseInt(m[3], 10) : null;
 
-    // Try matching against either the raw book name or the localized display name.
-    const candidates = books.map((b) => ({
-        book: b,
-        names: [b.name.toLowerCase(), displayName(b.name, lang).toLowerCase()],
-    }));
-
-    let found =
-        candidates.find((c) => c.names.includes(target))
-        || candidates.find((c) => c.names.some((n) => n.startsWith(target)))
-        || candidates.find((c) => c.names.some((n) => n.includes(target)));
+    const found = books.find((b) => b.name.toLowerCase() === target)
+        || books.find((b) => b.name.toLowerCase().startsWith(target))
+        || books.find((b) => b.name.toLowerCase().includes(target));
 
     if (!found) return null;
-    return { book: found.book, chapter: chap, verse };
+    return { book: found, chapter: chap, verse };
 }
 
 function escapeRegex(str) {
@@ -218,8 +186,8 @@ export default function Bible() {
     }, [query, data, lang]);
 
     const refSuggestion = React.useMemo(
-        () => parseReference(query, books, lang),
-        [query, books, lang],
+        () => parseReference(query, books),
+        [query, books],
     );
 
     const jumpToReference = React.useCallback((book, chap, verse) => {
