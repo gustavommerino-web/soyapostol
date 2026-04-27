@@ -6,6 +6,8 @@ import { LangProvider } from "@/contexts/LangContext";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Readings from "@/pages/Readings";
 import Liturgy from "@/pages/Liturgy";
@@ -31,6 +33,8 @@ function App() {
                     <Routes>
                         <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
                         <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+                        <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
+                        <Route path="/reset-password" element={<PublicOnly><ResetPassword /></PublicOnly>} />
                         <Route element={<Layout />}>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/readings" element={<Readings />} />

@@ -1,14 +1,19 @@
 """JWT email/password authentication."""
 import os
 import bcrypt
+import hashlib
 import jwt
+import logging
+import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from bson import ObjectId
 
 JWT_ALGORITHM = "HS256"
+PASSWORD_RESET_TTL_MINUTES = 60
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -200,6 +205,92 @@ async def ensure_indexes(db):
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("identifier")
     await db.favorites.create_index([("user_id", 1), ("created_at", -1)])
+    await db.password_resets.create_index("token_hash", unique=True)
+    # TTL: MongoDB will auto-delete expired tokens.
+    await db.password_resets.create_index("expires_at", expireAfterSeconds=0)
+
+
+# ---------- Password reset ----------
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(..., min_length=20, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+@router.post("/forgot-password")
+async def forgot_password(data: ForgotPasswordIn, request: Request):
+    """Issue a password-reset token. Demo mode: returns the reset link in the
+    response (and logs it) instead of emailing it. The same response shape is
+    returned whether or not the email exists, but `reset_path` is only present
+    when the user is actually found (acceptable for our demo flow)."""
+    db = request.app.state.db
+    email = data.email.lower()
+    user = await db.users.find_one({"email": email})
+
+    if not user:
+        # Don't leak which emails exist.
+        return {"ok": True, "message": "If the email exists, a reset link has been issued."}
+
+    raw_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES)
+
+    # Invalidate prior tokens for this user, then store the new one (hashed).
+    await db.password_resets.delete_many({"user_id": str(user["_id"])})
+    await db.password_resets.insert_one({
+        "user_id": str(user["_id"]),
+        "token_hash": _hash_token(raw_token),
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc),
+    })
+
+    reset_path = f"/reset-password?token={raw_token}"
+    logger.warning(
+        "[demo] Password reset requested for %s — reset link: %s (expires in %d min)",
+        email, reset_path, PASSWORD_RESET_TTL_MINUTES,
+    )
+    return {
+        "ok": True,
+        "message": "Reset link issued.",
+        "reset_path": reset_path,
+        "expires_in_minutes": PASSWORD_RESET_TTL_MINUTES,
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(data: ResetPasswordIn, request: Request):
+    db = request.app.state.db
+    record = await db.password_resets.find_one({"token_hash": _hash_token(data.token)})
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    expires_at = record.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if not expires_at or expires_at <= datetime.now(timezone.utc):
+        await db.password_resets.delete_one({"_id": record["_id"]})
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    await db.users.update_one(
+        {"_id": ObjectId(record["user_id"])},
+        {"$set": {"password_hash": hash_password(data.new_password)}},
+    )
+    # Single-use: drop the token immediately.
+    await db.password_resets.delete_one({"_id": record["_id"]})
+    # Reset any brute-force counters this user might have accumulated.
+    user = await db.users.find_one({"_id": ObjectId(record["user_id"])})
+    if user:
+        await db.login_attempts.delete_many({"identifier": {"$regex": f":{user['email']}$"}})
+    return {"ok": True}
 
 
 async def seed_admin(db):

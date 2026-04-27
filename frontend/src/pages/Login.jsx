@@ -53,7 +53,14 @@ export default function Login() {
                                 className="w-full px-3 py-3 bg-sand-100 border border-sand-300 rounded-md focus:outline-none focus:border-sangre transition-colors ui-sans" />
                         </div>
                         <div>
-                            <label className="label-eyebrow block mb-2">{t("common.password")}</label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="label-eyebrow">{t("common.password")}</label>
+                                <Link to="/forgot-password"
+                                    data-testid="forgot-password-link"
+                                    className="text-xs text-sangre hover:underline ui-sans">
+                                    {t("auth.forgot_password")}
+                                </Link>
+                            </div>
                             <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                                 data-testid="login-password-input"
                                 className="w-full px-3 py-3 bg-sand-100 border border-sand-300 rounded-md focus:outline-none focus:border-sangre transition-colors ui-sans" />
