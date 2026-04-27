@@ -17,6 +17,7 @@ const STRINGS = {
             login: "Entrar",
             register: "Crear cuenta",
             logout: "Salir",
+            more: "Más",
         },
         common: {
             loading: "Cargando…",
@@ -69,6 +70,7 @@ const STRINGS = {
             login: "Sign in",
             register: "Create account",
             logout: "Sign out",
+            more: "More",
         },
         common: {
             loading: "Loading…",

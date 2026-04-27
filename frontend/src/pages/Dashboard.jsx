@@ -46,12 +46,12 @@ export default function Dashboard() {
             </section>
 
             {/* Bento grid */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {TILES.map((tile, idx) => (
                     <Link key={tile.key} to={tile.to}
                         data-testid={`tile-${tile.key}`}
                         style={{ animationDelay: `${idx * 60}ms` }}
-                        className={`surface-card rounded-md p-7 group flex flex-col justify-between min-h-[180px] animate-fade-up ${tile.key === "bible" ? "lg:col-span-2 lg:row-span-1" : ""}`}>
+                        className={`surface-card rounded-md p-7 group flex flex-col justify-between min-h-[180px] animate-fade-up`}>
                         <div className="flex items-start justify-between">
                             <tile.Icon size={36} weight="duotone" className={accentClass(tile.accent)} />
                             <ArrowRight size={18} weight="bold" className="text-stoneFaint group-hover:text-sangre group-hover:translate-x-1 transition-all" />

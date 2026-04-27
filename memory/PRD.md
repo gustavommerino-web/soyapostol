@@ -43,6 +43,11 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Favorites CRUD (user-scoped, section filter)
 - ✅ 26/26 backend tests passing
 
+## Implemented (2026-04-27)
+- ✅ Responsive web-app shell: sticky translucent header (logo + lang toggle + auth), sticky icon sidebar on desktop (≥lg), fixed mobile bottom nav (5 tabs incl. "Más" sheet), iOS safe-area padding, content constrained to 720px reading width across all routes
+- ✅ Dashboard bento grid simplified to 1/2 cols inside the 720px container
+- ✅ Toaster moved to top-center to avoid colliding with bottom nav
+
 ## Implemented (2026-04-24)
 - ✅ Shared Playwright Chromium pool (`backend/browser_pool.py`) launched on FastAPI startup — removes per-module browser singletons in `readings.py` / `bible.py`, eliminates cold-start timeouts, auto-installs Chromium if missing (runs in worker thread to keep loop responsive)
 - ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
