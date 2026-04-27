@@ -62,6 +62,11 @@ const STRINGS = {
             no_results: "Sin resultados. Prueba otro término o número.",
             load_more: "Cargar más",
         },
+        bible: {
+            search_placeholder: "Buscar (ej. \"Juan 3:16\") o palabra…",
+            results_count: "{count} resultado(s)",
+            no_results: "Sin resultados. Prueba otra palabra o referencia.",
+        },
         auth: {
             forgot_password: "¿Olvidaste tu contraseña?",
             recover_eyebrow: "Recuperar acceso",
@@ -145,6 +150,11 @@ const STRINGS = {
             total_count: "{count} paragraphs",
             no_results: "No results. Try another term or number.",
             load_more: "Load more",
+        },
+        bible: {
+            search_placeholder: "Search (e.g. \"John 3:16\") or any word…",
+            results_count: "{count} result(s)",
+            no_results: "No results. Try another word or reference.",
         },
         auth: {
             forgot_password: "Forgot your password?",
