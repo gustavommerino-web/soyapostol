@@ -3,6 +3,7 @@ import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import FavoriteButton from "@/components/FavoriteButton";
+import BackToTopButton from "@/components/BackToTopButton";
 import PrayersAdmin from "@/components/PrayersAdmin";
 import { CaretLeft, MagnifyingGlass } from "@phosphor-icons/react";
 
@@ -78,6 +79,7 @@ export default function Prayers() {
                         {content.content.split(/\n+/).filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
                     </article>
                 )}
+                <BackToTopButton testId="prayer-detail-back-to-top" />
             </div>
         );
     }
@@ -127,6 +129,7 @@ export default function Prayers() {
                     </section>
                 ))}
             </div>
+            <BackToTopButton testId="prayers-back-to-top" />
         </div>
     );
 }
