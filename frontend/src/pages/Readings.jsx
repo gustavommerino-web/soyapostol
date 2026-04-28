@@ -175,7 +175,7 @@ function EvangelioDelDiaCommentary({ date, lang }) {
     return (
         <section
             ref={ref}
-            className="mt-12 mb-12"
+            className="mt-20 mb-12"
             data-testid="eod-commentary-section"
         >
             <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
@@ -198,20 +198,40 @@ function EvangelioDelDiaCommentary({ date, lang }) {
                 </div>
             )}
 
-            {data && data.text && (
+            {data && (data.paragraphs?.length || data.text) && (
                 <article
-                    className="surface-card p-6 sm:p-7 reading-prose"
+                    className="surface-card p-6 sm:p-7 reading-prose text-justify"
                     data-testid="eod-content"
                 >
                     {data.author && (
-                        <p className="label-eyebrow mb-3 m-0" data-testid="eod-author">
+                        <p
+                            className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1"
+                            data-testid="eod-author"
+                        >
                             {data.author}
                         </p>
                     )}
-                    {data.text.split(/\n+/).map((p, i) => p.trim() && (
-                        <p key={i} className="m-0 mb-4 last:mb-0">{p.trim()}</p>
+                    {data.description && (
+                        <p className="text-sm text-stoneMuted m-0 mb-1">{data.description}</p>
+                    )}
+                    {data.source_line && (
+                        <p className="text-sm text-stoneMuted italic m-0 mb-5">{data.source_line}</p>
+                    )}
+                    {data.title && (
+                        <h3
+                            className="heading-serif text-2xl tracking-tight mb-5"
+                            data-testid="eod-title"
+                        >
+                            {data.title}
+                        </h3>
+                    )}
+                    {(data.paragraphs && data.paragraphs.length
+                        ? data.paragraphs
+                        : (data.text || "").split(/\n+/).filter(Boolean)
+                    ).map((p, i) => (
+                        <p key={i} className="m-0 mb-4 last:mb-0">{p}</p>
                     ))}
-                    <p className="text-xs text-stoneMuted mt-6 m-0">
+                    <p className="text-xs text-stoneMuted not-italic mt-6 m-0 text-left">
                         {t("readings.reflection_credit")}{" "}
                         <a
                             href={data.source_url || "https://evangeliodeldia.org"}

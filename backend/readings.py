@@ -215,18 +215,18 @@ async def _scrape_evangelio_del_dia(lang: str) -> dict:
 
         data = await page.evaluate(r"""
             () => {
-                // Strip script/style/banner/noise from a clone.
-                const cleanup = (root) => {
+                const stripAttrs = (root) => {
                     if (!root) return null;
                     const clone = root.cloneNode(true);
                     clone.querySelectorAll(
-                        'script, style, noscript, iframe, button, nav, header, footer, ' +
-                        'img, svg, [aria-hidden="true"]'
+                        'script, style, noscript, iframe, button, nav, ' +
+                        'header, footer, img, svg, [aria-hidden="true"]'
                     ).forEach(n => n.remove());
                     clone.querySelectorAll('*').forEach(n => {
                         for (const a of [...n.attributes]) {
                             if (a.name === 'style' || a.name.startsWith('on') ||
-                                a.name === 'class' || a.name === 'id') {
+                                a.name === 'class' || a.name === 'id' ||
+                                a.name === 'lang' || a.name === 'dir') {
                                 n.removeAttribute(a.name);
                             }
                         }
@@ -234,47 +234,54 @@ async def _scrape_evangelio_del_dia(lang: str) -> dict:
                     return clone;
                 };
 
-                // The page renders the commentary inside `.GospelCommentary`.
-                let target = document.querySelector('.GospelCommentary');
+                const root = document.querySelector('.GospelCommentary');
+                if (!root) return null;
 
-                // Fallback: largest visible block whose ancestor isn't the
-                // gospel reading area.
-                if (!target) {
-                    const isVisible = (el) => {
-                        const r = el.getBoundingClientRect();
-                        if (r.width === 0 || r.height === 0) return false;
-                        const cs = getComputedStyle(el);
-                        return cs.display !== 'none' && cs.visibility !== 'hidden';
-                    };
-                    const cand = [];
-                    for (const el of document.querySelectorAll('div, section, article')) {
-                        if (!isVisible(el)) continue;
-                        const txt = (el.innerText || '').trim();
-                        if (txt.length < 400 || txt.length > 12000) continue;
-                        const cls = (el.className || '').toString().toLowerCase();
-                        if (cls.includes('gospelreading')) continue; // skip readings
-                        if (/(suscríbete|subscribe|cookies?)/i.test(txt.slice(0, 200))) continue;
-                        cand.push({ el, len: txt.length });
-                    }
-                    cand.sort((a, b) => a.len - b.len); // smallest qualifying block
-                    target = cand[0]?.el || null;
-                }
-                if (!target) return null;
+                const grab = (sel) => {
+                    const el = root.querySelector(sel);
+                    return el ? el.innerText.trim() : '';
+                };
 
-                const cleaned = cleanup(target);
-                const heading = cleaned ? cleaned.querySelector('h1, h2, h3, h4') : null;
-                const title = heading ? heading.innerText.trim() : '';
-                let author = '';
-                if (cleaned) {
-                    const txt = cleaned.innerText || '';
-                    const m = txt.match(/^([^\n]+\([^)]*\d{4}[^)]*\)[^\n]*)/);
-                    if (m) author = m[1].trim();
-                }
+                const author      = grab('.GospelCommentaryAuthor-name');
+                const description = grab('.GospelCommentaryAuthor-description');
+                const sourceLine  = grab('.GospelCommentaryAuthor-source');
+                const title       = grab('.GospelCommentary-title');
+
+                // Body paragraphs come from the description blocks.
+                const paragraphs = [];
+                root.querySelectorAll('.GospelCommentary-description, .commentary-description, .GospelReading-text').forEach((p) => {
+                    const txt = p.innerText.trim();
+                    if (!txt) return;
+                    paragraphs.push(txt);
+                });
+
+                // De-dupe: never emit a paragraph that's identical to title /
+                // author / description / source line.
+                const skip = new Set(
+                    [author, description, sourceLine, title]
+                        .map(s => (s || '').toLowerCase().trim())
+                        .filter(Boolean)
+                );
+                const cleanParagraphs = paragraphs.filter(p => !skip.has(p.toLowerCase().trim()));
+
+                const cleanedHtml = (() => {
+                    const div = document.createElement('div');
+                    cleanParagraphs.forEach((t) => {
+                        const p = document.createElement('p');
+                        p.textContent = t;
+                        div.appendChild(p);
+                    });
+                    return div.innerHTML;
+                })();
+
                 return {
-                    html: cleaned ? cleaned.innerHTML : '',
-                    text: cleaned ? cleaned.innerText.trim() : '',
-                    title,
                     author,
+                    description,
+                    source: sourceLine,
+                    title,
+                    paragraphs: cleanParagraphs,
+                    text: cleanParagraphs.join('\n\n'),
+                    html: cleanedHtml,
                 };
             }
         """)
@@ -328,6 +335,9 @@ async def get_commentary(request: Request,
         "source_url": EVANGELIO_DEL_DIA_URLS[lang],
         "title": data.get("title", ""),
         "author": data.get("author", ""),
+        "description": data.get("description", ""),
+        "source_line": data.get("source", ""),
+        "paragraphs": data.get("paragraphs", []),
         "html": data.get("html", ""),
         "text": data.get("text", ""),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
