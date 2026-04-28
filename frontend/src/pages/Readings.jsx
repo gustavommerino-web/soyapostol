@@ -100,7 +100,17 @@ export default function Readings() {
                     <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
                         {t("readings.reflection_title")}
                     </h2>
-                    <div className="surface-card overflow-hidden p-0">
+                    {/* Evangeli.net widget renders with a small font by default.
+                        We scale the iframe content visually (1.2x) so the text
+                        size matches the rest of the reading prose. The iframe
+                        width is reduced inversely (100% / 1.2) so that, after
+                        scaling, it fills the container exactly. Container
+                        height is enlarged by the same factor to fit the
+                        scaled-up content without inner scrollbars. */}
+                    <div
+                        className="surface-card overflow-hidden p-0 relative w-full"
+                        style={{ height: "660px" }}
+                    >
                         <iframe
                             title={t("readings.reflection_title")}
                             src={lang === "en"
@@ -108,8 +118,15 @@ export default function Readings() {
                                 : "https://evangeli.net/evangelio/widget/web"}
                             loading="lazy"
                             frameBorder="0"
-                            className="block w-full h-[550px] border-0"
                             data-testid="evangeli-iframe"
+                            style={{
+                                display: "block",
+                                width: "83.3333%",
+                                height: "550px",
+                                border: 0,
+                                transform: "scale(1.2)",
+                                transformOrigin: "top left",
+                            }}
                         />
                     </div>
                     <p className="text-xs text-stoneMuted mt-3">
