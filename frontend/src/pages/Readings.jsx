@@ -103,7 +103,9 @@ export default function Readings() {
                     <div className="surface-card overflow-hidden p-0">
                         <iframe
                             title={t("readings.reflection_title")}
-                            src="https://evangeli.net/evangelio/widget/web"
+                            src={lang === "en"
+                                ? "https://evangeli.net/gospel/widget/web"
+                                : "https://evangeli.net/evangelio/widget/web"}
                             loading="lazy"
                             frameBorder="0"
                             className="block w-full h-[550px] border-0"
