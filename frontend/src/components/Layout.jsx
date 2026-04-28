@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLang } from "@/contexts/LangContext";
 import {
     SignOut,
+    SignIn,
     HouseSimple,
     BookOpen,
     Sun,
@@ -93,17 +94,22 @@ export default function Layout() {
                             <button
                                 onClick={onLogout}
                                 data-testid="logout-btn"
+                                aria-label={t("nav.logout")}
+                                title={t("nav.logout")}
                                 className="ui-sans text-sm flex items-center gap-2 px-2.5 sm:px-3 py-2 border border-sand-300 rounded-md hover:border-sangre transition-colors"
                             >
-                                <SignOut size={16} weight="bold" />
-                                <span className="hidden sm:inline">{t("nav.logout")}</span>
+                                <SignOut size={18} weight="duotone" />
                             </button>
                         ) : (
                             <Link
                                 to="/login"
                                 data-testid="header-login-link"
-                                className="ui-sans text-sm px-2.5 sm:px-3 py-2 hover:text-sangre transition-colors"
-                            >{t("nav.login")}</Link>
+                                aria-label={t("nav.login")}
+                                title={t("nav.login")}
+                                className="ui-sans text-sm flex items-center gap-2 px-2.5 sm:px-3 py-2 border border-sand-300 rounded-md hover:border-sangre transition-colors"
+                            >
+                                <SignIn size={18} weight="duotone" />
+                            </Link>
                         )}
                     </div>
                 </div>
