@@ -90,6 +90,38 @@ export default function Readings() {
                     ))}
                 </article>
             ))}
+
+            {/* Evangeli.net daily commentary — appears after the Gospel.
+                Iframe is wrapped in a responsive card and lazy-loaded so it
+                never blocks the initial USCCB readings render. */}
+            {!loading && !error && data?.sections?.length > 0 && (
+                <section className="mt-16 mb-12" data-testid="evangeli-net-section">
+                    <p className="label-eyebrow mb-3">{t("readings.reflection_eyebrow")}</p>
+                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
+                        {t("readings.reflection_title")}
+                    </h2>
+                    <div className="surface-card overflow-hidden p-0">
+                        <iframe
+                            title={t("readings.reflection_title")}
+                            src="https://evangeli.net/evangelio/widget/web"
+                            loading="lazy"
+                            frameBorder="0"
+                            className="block w-full h-[550px] border-0"
+                            data-testid="evangeli-iframe"
+                        />
+                    </div>
+                    <p className="text-xs text-stoneMuted mt-3">
+                        {t("readings.reflection_credit")}{" "}
+                        <a
+                            href="https://evangeli.net/"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="hover:text-sangre"
+                        >evangeli.net <ArrowSquareOut size={11} className="inline" /></a>
+                    </p>
+                </section>
+            )}
+
             <BackToTopButton testId="readings-back-to-top" />
         </div>
     );
