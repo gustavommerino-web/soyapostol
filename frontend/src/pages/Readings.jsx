@@ -122,7 +122,106 @@ export default function Readings() {
                 </section>
             )}
 
+            {/* Second daily commentary — scraped from evangeliodeldia.org.
+                Cached server-side per day; falls back to a discreet card if
+                unavailable. */}
+            {!loading && !error && data?.sections?.length > 0 && lang === "es" && (
+                <EvangelioDelDiaCommentary date={localDate} />
+            )}
+
             <BackToTopButton testId="readings-back-to-top" />
         </div>
+    );
+}
+
+/**
+ * Lazy-loaded commentary scraped from evangeliodeldia.org. Uses an
+ * IntersectionObserver to only fetch when the section enters the viewport so
+ * it never blocks the initial USCCB readings render. Server-side caches the
+ * scrape per day; a soft gray fallback card replaces the section if the
+ * source is unavailable.
+ */
+function EvangelioDelDiaCommentary({ date }) {
+    const { t } = useLang();
+    const ref = React.useRef(null);
+    const [visible, setVisible] = React.useState(false);
+    const [data, setData] = React.useState(null);
+    const [error, setError] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        const node = ref.current;
+        if (!node) return undefined;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((e) => e.isIntersecting)) setVisible(true);
+        }, { rootMargin: "150px" });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, []);
+
+    React.useEffect(() => {
+        if (!visible) return;
+        let cancelled = false;
+        setLoading(true);
+        api.get(`/readings/commentary?lang=es&date=${date}`)
+            .then((res) => { if (!cancelled) { setData(res.data); setError(false); } })
+            .catch(() => { if (!cancelled) setError(true); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, [visible, date]);
+
+    return (
+        <section
+            ref={ref}
+            className="mt-12 mb-12"
+            data-testid="eod-commentary-section"
+        >
+            <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
+            <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
+                {t("readings.eod_title")}
+            </h2>
+
+            {loading && !data && (
+                <div className="surface-card p-6" data-testid="eod-loading">
+                    <p className="text-sm text-stoneMuted m-0">{t("common.loading")}</p>
+                </div>
+            )}
+
+            {error && !data && (
+                <div
+                    className="rounded-[12px] border border-sand-300 bg-sand-100 p-5 text-sm text-stoneMuted"
+                    data-testid="eod-fallback"
+                >
+                    {t("readings.eod_unavailable")}
+                </div>
+            )}
+
+            {data && data.text && (
+                <article
+                    className="surface-card p-6 sm:p-7 reading-prose"
+                    data-testid="eod-content"
+                >
+                    {data.author && (
+                        <p className="label-eyebrow mb-3 m-0" data-testid="eod-author">
+                            {data.author}
+                        </p>
+                    )}
+                    {data.text.split(/\n+/).map((p, i) => p.trim() && (
+                        <p key={i} className="m-0 mb-4 last:mb-0">{p.trim()}</p>
+                    ))}
+                    <p className="text-xs text-stoneMuted mt-6 m-0">
+                        {t("readings.reflection_credit")}{" "}
+                        <a
+                            href={data.source_url || "https://evangeliodeldia.org"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="hover:text-sangre"
+                        >
+                            evangeliodeldia.org <ArrowSquareOut size={11} className="inline" />
+                        </a>
+                    </p>
+                </article>
+            )}
+        </section>
     );
 }

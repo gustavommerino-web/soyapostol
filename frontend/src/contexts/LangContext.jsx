@@ -62,6 +62,9 @@ const STRINGS = {
             reflection_eyebrow: "Comentario al Evangelio",
             reflection_title: "Reflexión del día",
             reflection_credit: "Comentario por gentileza de",
+            eod_eyebrow: "Otra reflexión",
+            eod_title: "Comentario de Evangelio del Día",
+            eod_unavailable: "Comentario de Evangelio del Día no disponible por el momento.",
         },
         examen: { upload: "Subir documento", title: "Título", description: "Descripción", file: "Archivo", admin_only: "Solo el administrador puede subir documentos.", empty: "Aún no hay documentos." },
         catechism: {
@@ -189,6 +192,9 @@ const STRINGS = {
             reflection_eyebrow: "Gospel commentary",
             reflection_title: "Daily reflection",
             reflection_credit: "Commentary courtesy of",
+            eod_eyebrow: "Another reflection",
+            eod_title: "Evangelio del Día commentary",
+            eod_unavailable: "Evangelio del Día commentary is unavailable right now.",
         },
         examen: { upload: "Upload document", title: "Title", description: "Description", file: "File", admin_only: "Only the administrator can upload documents.", empty: "No documents yet." },
         catechism: {

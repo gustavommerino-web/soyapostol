@@ -169,3 +169,160 @@ async def get_readings(request: Request,
     await db.readings_cache.replace_one({"_id": cache_key}, doc, upsert=True)
     doc.pop("_id", None)
     return doc
+
+
+# ---------------------- Evangelio del Día (evangeliodeldia.org) ----------------------
+
+EVANGELIO_DEL_DIA_URL = "https://evangeliodeldia.org/SP/gospel"
+
+
+async def _scrape_evangelio_del_dia() -> dict:
+    """Render evangeliodeldia.org/SP/gospel with a headless browser, click the
+    'Comentario' tab and extract the cleaned commentary text. Returns
+    `{ html, text, author, title }`.
+    """
+    browser = await get_browser()
+    context = await browser.new_context(user_agent=UA, viewport={"width": 1280, "height": 1100})
+    try:
+        page = await context.new_page()
+        resp = await page.goto(EVANGELIO_DEL_DIA_URL, wait_until="networkidle", timeout=45000)
+        if not resp or resp.status >= 400:
+            raise HTTPException(status_code=502, detail=f"evangeliodeldia.org returned status {resp.status if resp else 'n/a'}")
+        try:
+            await page.wait_for_selector(".GospelCommentary", timeout=20000)
+        except Exception:
+            pass
+        # Click the "Comentario" tab; some layouts only render the panel after
+        # the click. Ignored if it isn't there.
+        try:
+            await page.get_by_text("Comentario", exact=True).first.click(timeout=4000)
+        except Exception:
+            pass
+        # Give the SPA a moment to fully populate the commentary block.
+        await page.wait_for_timeout(2000)
+
+        debug = await page.evaluate(
+            "() => ({n: document.querySelectorAll('.GospelCommentary').length,"
+            "       len: (document.querySelector('.GospelCommentary')?.innerText || '').length})"
+        )
+        import logging as _log
+        _log.getLogger(__name__).info("commentary scrape — %s", debug)
+
+        data = await page.evaluate(r"""
+            () => {
+                // Strip script/style/banner/noise from a clone.
+                const cleanup = (root) => {
+                    if (!root) return null;
+                    const clone = root.cloneNode(true);
+                    clone.querySelectorAll(
+                        'script, style, noscript, iframe, button, nav, header, footer, ' +
+                        'img, svg, [aria-hidden="true"]'
+                    ).forEach(n => n.remove());
+                    clone.querySelectorAll('*').forEach(n => {
+                        for (const a of [...n.attributes]) {
+                            if (a.name === 'style' || a.name.startsWith('on') ||
+                                a.name === 'class' || a.name === 'id') {
+                                n.removeAttribute(a.name);
+                            }
+                        }
+                    });
+                    return clone;
+                };
+
+                // The page renders the commentary inside `.GospelCommentary`.
+                let target = document.querySelector('.GospelCommentary');
+
+                // Fallback: largest visible block whose ancestor isn't the
+                // gospel reading area.
+                if (!target) {
+                    const isVisible = (el) => {
+                        const r = el.getBoundingClientRect();
+                        if (r.width === 0 || r.height === 0) return false;
+                        const cs = getComputedStyle(el);
+                        return cs.display !== 'none' && cs.visibility !== 'hidden';
+                    };
+                    const cand = [];
+                    for (const el of document.querySelectorAll('div, section, article')) {
+                        if (!isVisible(el)) continue;
+                        const txt = (el.innerText || '').trim();
+                        if (txt.length < 400 || txt.length > 12000) continue;
+                        const cls = (el.className || '').toString().toLowerCase();
+                        if (cls.includes('gospelreading')) continue; // skip readings
+                        if (/(suscríbete|subscribe|cookies?)/i.test(txt.slice(0, 200))) continue;
+                        cand.push({ el, len: txt.length });
+                    }
+                    cand.sort((a, b) => a.len - b.len); // smallest qualifying block
+                    target = cand[0]?.el || null;
+                }
+                if (!target) return null;
+
+                const cleaned = cleanup(target);
+                const heading = cleaned ? cleaned.querySelector('h1, h2, h3, h4') : null;
+                const title = heading ? heading.innerText.trim() : '';
+                let author = '';
+                if (cleaned) {
+                    const txt = cleaned.innerText || '';
+                    const m = txt.match(/^([^\n]+\([^)]*\d{4}[^)]*\)[^\n]*)/);
+                    if (m) author = m[1].trim();
+                }
+                return {
+                    html: cleaned ? cleaned.innerHTML : '',
+                    text: cleaned ? cleaned.innerText.trim() : '',
+                    title,
+                    author,
+                };
+            }
+        """)
+        if not data or not data.get("text") or len(data["text"]) < 200:
+            raise HTTPException(status_code=502, detail="Commentary not found")
+        return data
+    finally:
+        await context.close()
+
+
+@router.get("/commentary")
+async def get_commentary(request: Request,
+                         lang: str = Query("es"),
+                         date_str: Optional[str] = Query(None, alias="date"),
+                         refresh: bool = Query(False)):
+    """Daily commentary scraped from evangeliodeldia.org. Spanish-only source;
+    `lang` is accepted for symmetry. Cached per (date, source) — first hit of
+    the day scrapes, the rest of the day is served from MongoDB."""
+    db = request.app.state.db
+    today = _resolve_date(date_str)
+    cache_key = f"evangeliodeldia_{today}"
+
+    if not refresh:
+        cached = await db.commentary_cache.find_one({"_id": cache_key})
+        if cached:
+            cached.pop("_id", None)
+            return cached
+
+    try:
+        data = await _scrape_evangelio_del_dia()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("commentary scrape failed: %s", e)
+        # Last-resort: serve any prior cache so we never return a hard error.
+        stale = await db.commentary_cache.find_one(sort=[("fetched_at", -1)])
+        if stale:
+            stale.pop("_id", None)
+            stale["stale"] = True
+            return stale
+        raise HTTPException(status_code=503, detail="Commentary source temporarily unavailable.")
+
+    doc = {
+        "_id": cache_key,
+        "date": today,
+        "lang": lang,
+        "source": "Evangelio del Día",
+        "source_url": EVANGELIO_DEL_DIA_URL,
+        "title": data.get("title", ""),
+        "author": data.get("author", ""),
+        "html": data.get("html", ""),
+        "text": data.get("text", ""),
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.commentary_cache.replace_one({"_id": cache_key}, doc, upsert=True)
+    doc.pop("_id", None)
+    return doc
