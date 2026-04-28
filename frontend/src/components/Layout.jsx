@@ -14,6 +14,7 @@ import {
     Newspaper,
     BookOpenText,
     Books,
+    Cross,
     DotsThreeVertical,
 } from "@phosphor-icons/react";
 import {
@@ -30,6 +31,7 @@ const ALL_NAV = [
     { to: "/readings", key: "readings", Icon: BookOpen },
     { to: "/liturgy", key: "liturgy", Icon: Sun },
     { to: "/prayers", key: "prayers", Icon: HandsPraying },
+    { to: "/rosary", key: "rosary", Icon: Cross },
     { to: "/examen", key: "examen", Icon: BookOpenText },
     { to: "/news", key: "news", Icon: Newspaper },
     { to: "/bible", key: "bible", Icon: BookBookmark },

@@ -2,13 +2,14 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
 import {
-    BookOpen, Sun, HandsPraying, BookOpenText, Newspaper, BookBookmark, Books, Heart, ArrowRight,
+    BookOpen, Sun, HandsPraying, BookOpenText, Newspaper, BookBookmark, Books, Heart, Cross, ArrowRight,
 } from "@phosphor-icons/react";
 
 const TILES = [
     { to: "/readings",  key: "readings",  Icon: BookOpen,     accent: "sangre" },
     { to: "/liturgy",   key: "liturgy",   Icon: Sun,          accent: "gold" },
     { to: "/prayers",   key: "prayers",   Icon: HandsPraying, accent: "sangre" },
+    { to: "/rosary",    key: "rosary",    Icon: Cross,        accent: "gold" },
     { to: "/examen",    key: "examen",    Icon: BookOpenText, accent: "stone" },
     { to: "/news",      key: "news",      Icon: Newspaper,    accent: "stone" },
     { to: "/bible",     key: "bible",     Icon: BookBookmark, accent: "sangre" },

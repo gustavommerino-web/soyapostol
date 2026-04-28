@@ -17,6 +17,7 @@ import News from "@/pages/News";
 import Bible from "@/pages/Bible";
 import Catechism from "@/pages/Catechism";
 import Favorites from "@/pages/Favorites";
+import Rosary from "@/pages/Rosary";
 
 function PublicOnly({ children }) {
     const { user } = useAuth();
@@ -40,6 +41,7 @@ function App() {
                             <Route path="/readings" element={<Readings />} />
                             <Route path="/liturgy" element={<Liturgy />} />
                             <Route path="/prayers" element={<Prayers />} />
+                            <Route path="/rosary" element={<Rosary />} />
                             <Route path="/examen" element={<Examen />} />
                             <Route path="/news" element={<News />} />
                             <Route path="/bible" element={<Bible />} />
