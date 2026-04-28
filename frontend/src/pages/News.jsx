@@ -1,6 +1,7 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import api from "@/lib/api";
+import BackToTopButton from "@/components/BackToTopButton";
 import { ArrowSquareOut, ArrowsClockwise } from "@phosphor-icons/react";
 
 export default function News() {
@@ -72,6 +73,7 @@ export default function News() {
                     </li>
                 ))}
             </ul>
+            <BackToTopButton testId="news-back-to-top" />
         </div>
     );
 }
