@@ -1,40 +1,46 @@
 import React from "react";
 import { toast } from "sonner";
-import { Plus, PencilSimple, Trash, FloppyDisk, X, DownloadSimple } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, FloppyDisk, X, MagnifyingGlass } from "@phosphor-icons/react";
 import { useLang } from "@/contexts/LangContext";
-import * as Custom from "@/lib/customPrayers";
+import api from "@/lib/api";
 
 const NEW_CATEGORY = "__new__";
 const EMPTY = { title: "", categorySelect: "", newCategory: "", content: "", editingId: null };
+const PRAYERS_CHANGED = "soyapostol-prayers-changed";
 
 /**
- * Admin-only management UI for prayers.
- * - Form to add new prayers (title, category dropdown w/ "Nueva" option, textarea).
- * - List of stored custom prayers with Edit / Delete actions.
- * - Export button that downloads a merged JSON.
+ * Admin-only management UI. All operations go through the backend so the
+ * data lives in MongoDB and survives reloads. The component emits a
+ * `soyapostol-prayers-changed` window event after each mutation so the
+ * public list refetches without a page reload.
  */
-export default function PrayersAdmin({ apiCategories, onChange }) {
+export default function PrayersAdmin({ apiCategories }) {
     const { t, lang } = useLang();
-    const [items, setItems] = React.useState(() => Custom.listForLang(lang));
+    const [items, setItems] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
     const [form, setForm] = React.useState(EMPTY);
+    const [submitting, setSubmitting] = React.useState(false);
+    const [filter, setFilter] = React.useState("");
 
-    // Refresh local list when storage changes (e.g. after create/update/delete).
-    React.useEffect(() => {
-        const refresh = () => setItems(Custom.listForLang(lang));
-        refresh();
-        window.addEventListener("custom-prayers-changed", refresh);
-        window.addEventListener("storage", refresh);
-        return () => {
-            window.removeEventListener("custom-prayers-changed", refresh);
-            window.removeEventListener("storage", refresh);
-        };
+    const refresh = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await api.get(`/prayers/admin/all?lang=${lang}`);
+            setItems(res.data || []);
+        } catch (e) {
+            toast.error(e.response?.data?.detail || e.message);
+        } finally {
+            setLoading(false);
+        }
     }, [lang]);
 
+    React.useEffect(() => { refresh(); }, [refresh]);
+
     const apiCategoryNames = (apiCategories || []).map((c) => c.category);
-    const customCategoryNames = Array.from(new Set(items.map((p) => p.category)));
-    const allCategories = Array.from(new Set([...apiCategoryNames, ...customCategoryNames]))
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b, lang === "es" ? "es" : "en"));
+    const allCategories = Array.from(new Set([
+        ...apiCategoryNames,
+        ...items.map((p) => p.category),
+    ])).filter(Boolean).sort((a, b) => a.localeCompare(b, lang === "es" ? "es" : "en"));
 
     const resetForm = () => setForm(EMPTY);
 
@@ -49,15 +55,20 @@ export default function PrayersAdmin({ apiCategories, onChange }) {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const onDelete = (p) => {
+    const onDelete = async (p) => {
         if (!window.confirm(t("admin.confirm_delete", { title: p.title }))) return;
-        Custom.remove(p.id);
-        toast.success(t("admin.deleted"));
-        if (form.editingId === p.id) resetForm();
-        if (onChange) onChange();
+        try {
+            await api.delete(`/prayers/admin/${p.id}`);
+            toast.success(t("admin.deleted"));
+            await refresh();
+            window.dispatchEvent(new Event(PRAYERS_CHANGED));
+            if (form.editingId === p.id) resetForm();
+        } catch (e) {
+            toast.error(e.response?.data?.detail || e.message);
+        }
     };
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         const title = form.title.trim();
         const category = form.categorySelect === NEW_CATEGORY
@@ -68,47 +79,44 @@ export default function PrayersAdmin({ apiCategories, onChange }) {
             toast.error(t("admin.missing_fields"));
             return;
         }
-        if (form.editingId) {
-            Custom.update(form.editingId, { title, category, content });
-            toast.success(t("admin.updated"));
-        } else {
-            Custom.create({ title, category, content, lang });
-            toast.success(t("admin.created"));
+        setSubmitting(true);
+        try {
+            if (form.editingId) {
+                await api.patch(`/prayers/admin/${form.editingId}`, { title, category, content });
+                toast.success(t("admin.updated"));
+            } else {
+                await api.post("/prayers/admin", { title, category, content, lang });
+                toast.success(t("admin.created"));
+            }
+            resetForm();
+            await refresh();
+            window.dispatchEvent(new Event(PRAYERS_CHANGED));
+        } catch (err) {
+            toast.error(err.response?.data?.detail || err.message);
+        } finally {
+            setSubmitting(false);
         }
-        resetForm();
-        if (onChange) onChange();
     };
 
-    const onExport = () => {
-        const data = Custom.buildExport(apiCategories, lang);
-        const filename = `oraciones-${lang}-${new Date().toISOString().slice(0, 10)}.json`;
-        Custom.downloadJSON(filename, data);
-        toast.success(t("admin.exported", { filename }));
-    };
+    const visibleItems = React.useMemo(() => {
+        const q = filter.trim().toLowerCase();
+        if (!q) return items;
+        return items.filter(
+            (p) => p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q),
+        );
+    }, [items, filter]);
 
     return (
         <section
             className="surface-card p-6 sm:p-7 mb-12 border-sangre/30"
             data-testid="prayers-admin-panel"
         >
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-                <p className="label-eyebrow m-0">{t("admin.eyebrow")}</p>
-                <button
-                    type="button"
-                    onClick={onExport}
-                    data-testid="prayers-admin-export"
-                    className="ui-sans text-xs inline-flex items-center gap-1.5 px-3 py-2 border border-sangre text-sangre rounded-md hover:bg-sangre hover:text-sand-50 transition-colors"
-                >
-                    <DownloadSimple size={14} weight="bold" />
-                    {t("admin.export_json")}
-                </button>
-            </div>
-
+            <p className="label-eyebrow mb-3">{t("admin.eyebrow")}</p>
             <h2 className="heading-serif text-2xl tracking-tight mb-1">
                 {form.editingId ? t("admin.edit_prayer") : t("admin.new_prayer")}
             </h2>
             <p className="text-xs text-stoneMuted mb-5">
-                {t("admin.local_hint")}
+                {t("admin.db_hint")}
             </p>
 
             <form
@@ -176,8 +184,9 @@ export default function PrayersAdmin({ apiCategories, onChange }) {
                 <div className="flex items-center gap-3">
                     <button
                         type="submit"
+                        disabled={submitting}
                         data-testid="prayers-admin-submit"
-                        className="btn-primary inline-flex items-center gap-2"
+                        className="btn-primary inline-flex items-center gap-2 disabled:opacity-60"
                     >
                         {form.editingId ? <FloppyDisk size={16} weight="bold" /> : <Plus size={16} weight="bold" />}
                         {form.editingId ? t("admin.save") : t("admin.add")}
@@ -195,16 +204,33 @@ export default function PrayersAdmin({ apiCategories, onChange }) {
                 </div>
             </form>
 
-            {/* Existing custom prayers — control list */}
             <div className="mt-10" data-testid="prayers-admin-list-wrap">
-                <p className="label-eyebrow mb-3">
-                    {t("admin.stored_count", { count: items.length })}
-                </p>
-                {items.length === 0 ? (
-                    <p className="text-sm text-stoneMuted italic">{t("admin.empty")}</p>
+                <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+                    <p className="label-eyebrow m-0">
+                        {t("admin.stored_count", { count: items.length })}
+                    </p>
+                    <div className="relative w-full sm:w-64">
+                        <MagnifyingGlass size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stoneFaint" />
+                        <input
+                            type="search"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            placeholder={t("admin.filter_placeholder")}
+                            data-testid="prayers-admin-filter"
+                            className="w-full pl-7 pr-2.5 py-2 bg-white border border-sand-300 rounded-md ui-sans text-xs focus:outline-none focus:border-sangre"
+                        />
+                    </div>
+                </div>
+
+                {loading ? (
+                    <p className="text-sm text-stoneMuted">{t("common.loading")}</p>
+                ) : visibleItems.length === 0 ? (
+                    <p className="text-sm text-stoneMuted italic">
+                        {filter ? t("admin.no_filter_matches") : t("admin.empty")}
+                    </p>
                 ) : (
-                    <ul className="divide-y divide-sand-300 border border-sand-300 rounded-md overflow-hidden">
-                        {items.map((p) => (
+                    <ul className="divide-y divide-sand-300 border border-sand-300 rounded-md overflow-hidden max-h-[420px] overflow-y-auto">
+                        {visibleItems.map((p) => (
                             <li
                                 key={p.id}
                                 data-testid={`prayers-admin-row-${p.id}`}
@@ -213,7 +239,12 @@ export default function PrayersAdmin({ apiCategories, onChange }) {
                                 <div className="min-w-0 flex-1">
                                     <p className="reading-serif text-base m-0 truncate" title={p.title}>{p.title}</p>
                                     <p className="text-xs text-stoneMuted mt-0.5 truncate">
-                                        {p.category} · {new Date(p.created_at).toLocaleDateString(lang === "es" ? "es-ES" : "en-US")}
+                                        {p.category}
+                                        {p.source === "scraped" && (
+                                            <span className="ml-2 ui-sans uppercase tracking-widest text-[10px] text-stoneFaint">
+                                                {t("admin.imported_badge")}
+                                            </span>
+                                        )}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
