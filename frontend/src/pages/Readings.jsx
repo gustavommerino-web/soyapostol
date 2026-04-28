@@ -125,10 +125,10 @@ export default function Readings() {
             )}
 
             {/* Second daily commentary — scraped from evangeliodeldia.org.
-                Cached server-side per day; falls back to a discreet card if
-                unavailable. */}
-            {!loading && !error && data?.sections?.length > 0 && lang === "es" && (
-                <EvangelioDelDiaCommentary date={localDate} />
+                Cached server-side per (lang, date); falls back to a discreet
+                card if unavailable. */}
+            {!loading && !error && data?.sections?.length > 0 && (
+                <EvangelioDelDiaCommentary date={localDate} lang={lang} />
             )}
 
             <BackToTopButton testId="readings-back-to-top" />
@@ -143,7 +143,7 @@ export default function Readings() {
  * scrape per day; a soft gray fallback card replaces the section if the
  * source is unavailable.
  */
-function EvangelioDelDiaCommentary({ date }) {
+function EvangelioDelDiaCommentary({ date, lang }) {
     const { t } = useLang();
     const ref = React.useRef(null);
     const [visible, setVisible] = React.useState(false);
@@ -164,13 +164,13 @@ function EvangelioDelDiaCommentary({ date }) {
     React.useEffect(() => {
         if (!visible) return;
         let cancelled = false;
-        setLoading(true);
-        api.get(`/readings/commentary?lang=es&date=${date}`)
+        setData(null); setError(false); setLoading(true);
+        api.get(`/readings/commentary?lang=${lang}&date=${date}`)
             .then((res) => { if (!cancelled) { setData(res.data); setError(false); } })
             .catch(() => { if (!cancelled) setError(true); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, [visible, date]);
+    }, [visible, date, lang]);
 
     return (
         <section

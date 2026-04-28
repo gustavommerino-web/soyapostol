@@ -173,32 +173,37 @@ async def get_readings(request: Request,
 
 # ---------------------- Evangelio del Día (evangeliodeldia.org) ----------------------
 
-EVANGELIO_DEL_DIA_URL = "https://evangeliodeldia.org/SP/gospel"
+EVANGELIO_DEL_DIA_URLS = {
+    "es": "https://evangeliodeldia.org/SP/gospel",
+    "en": "https://evangeliodeldia.org/am/gospel",
+}
 
 
-async def _scrape_evangelio_del_dia() -> dict:
-    """Render evangeliodeldia.org/SP/gospel with a headless browser, click the
-    'Comentario' tab and extract the cleaned commentary text. Returns
-    `{ html, text, author, title }`.
+async def _scrape_evangelio_del_dia(lang: str) -> dict:
+    """Render evangeliodeldia.org with a headless browser, click the
+    'Comentario' / 'Commentary' tab and extract the cleaned commentary text.
+    Returns ``{ html, text, author, title }``.
     """
+    url = EVANGELIO_DEL_DIA_URLS.get(lang)
+    if not url:
+        raise HTTPException(status_code=400, detail=f"No commentary source for lang={lang}")
     browser = await get_browser()
     context = await browser.new_context(user_agent=UA, viewport={"width": 1280, "height": 1100})
     try:
         page = await context.new_page()
-        resp = await page.goto(EVANGELIO_DEL_DIA_URL, wait_until="networkidle", timeout=45000)
+        resp = await page.goto(url, wait_until="networkidle", timeout=45000)
         if not resp or resp.status >= 400:
             raise HTTPException(status_code=502, detail=f"evangeliodeldia.org returned status {resp.status if resp else 'n/a'}")
         try:
             await page.wait_for_selector(".GospelCommentary", timeout=20000)
         except Exception:
             pass
-        # Click the "Comentario" tab; some layouts only render the panel after
-        # the click. Ignored if it isn't there.
+        # Click the Comentario / Commentary tab if it exists.
+        tab_label = "Commentary" if lang == "en" else "Comentario"
         try:
-            await page.get_by_text("Comentario", exact=True).first.click(timeout=4000)
+            await page.get_by_text(tab_label, exact=True).first.click(timeout=4000)
         except Exception:
             pass
-        # Give the SPA a moment to fully populate the commentary block.
         await page.wait_for_timeout(2000)
 
         debug = await page.evaluate(
@@ -285,12 +290,14 @@ async def get_commentary(request: Request,
                          lang: str = Query("es"),
                          date_str: Optional[str] = Query(None, alias="date"),
                          refresh: bool = Query(False)):
-    """Daily commentary scraped from evangeliodeldia.org. Spanish-only source;
-    `lang` is accepted for symmetry. Cached per (date, source) — first hit of
-    the day scrapes, the rest of the day is served from MongoDB."""
+    """Daily commentary scraped from evangeliodeldia.org. Cached per
+    (lang, date) — first hit of the day scrapes, the rest of the day is
+    served from MongoDB."""
+    if lang not in EVANGELIO_DEL_DIA_URLS:
+        raise HTTPException(status_code=400, detail=f"Unsupported lang {lang}")
     db = request.app.state.db
     today = _resolve_date(date_str)
-    cache_key = f"evangeliodeldia_{today}"
+    cache_key = f"evangeliodeldia_{lang}_{today}"
 
     if not refresh:
         cached = await db.commentary_cache.find_one({"_id": cache_key})
@@ -299,12 +306,14 @@ async def get_commentary(request: Request,
             return cached
 
     try:
-        data = await _scrape_evangelio_del_dia()
+        data = await _scrape_evangelio_del_dia(lang)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("commentary scrape failed: %s", e)
-        # Last-resort: serve any prior cache so we never return a hard error.
-        stale = await db.commentary_cache.find_one(sort=[("fetched_at", -1)])
+        # Last-resort: serve any prior cache for this lang so we never return a hard error.
+        stale = await db.commentary_cache.find_one(
+            {"lang": lang}, sort=[("fetched_at", -1)],
+        )
         if stale:
             stale.pop("_id", None)
             stale["stale"] = True
@@ -316,7 +325,7 @@ async def get_commentary(request: Request,
         "date": today,
         "lang": lang,
         "source": "Evangelio del Día",
-        "source_url": EVANGELIO_DEL_DIA_URL,
+        "source_url": EVANGELIO_DEL_DIA_URLS[lang],
         "title": data.get("title", ""),
         "author": data.get("author", ""),
         "html": data.get("html", ""),
