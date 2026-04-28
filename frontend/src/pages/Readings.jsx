@@ -4,7 +4,8 @@ import api from "@/lib/api";
 import { localDateISO } from "@/lib/localDate";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
-import { ArrowSquareOut } from "@phosphor-icons/react";
+import UsccbBrowser from "@/components/UsccbBrowser";
+import { ArrowSquareOut, BookOpen } from "@phosphor-icons/react";
 
 export default function Readings() {
     const { lang, t } = useLang();
@@ -12,6 +13,7 @@ export default function Readings() {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
     const [localDate, setLocalDate] = React.useState(() => localDateISO());
+    const [usccbOpen, setUsccbOpen] = React.useState(false);
 
     // Re-evaluate the user's local date once a minute. When the calendar
     // ticks past local midnight, the change triggers a fresh fetch through
@@ -61,18 +63,42 @@ export default function Readings() {
                 <p className="reading-serif italic text-lg text-stoneMuted mt-2"
                    data-testid="readings-date">{formattedDate}</p>
             )}
-            <div className="flex items-center gap-4 mb-10 mt-4">
+            <div className="flex items-center gap-3 mb-10 mt-4 flex-wrap">
+                <button
+                    type="button"
+                    onClick={() => setUsccbOpen(true)}
+                    data-testid="readings-open-usccb-btn"
+                    className="ui-sans inline-flex items-center gap-1.5 px-3 py-2 border border-sand-300 rounded-md text-sm hover:border-sangre transition-colors"
+                >
+                    <BookOpen size={14} weight="duotone" />
+                    {t("readings.view_usccb")}
+                </button>
                 {data?.source_url && (
                     <a href={data.source_url} target="_blank" rel="noreferrer"
                         className="text-sm text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
                         data-testid="readings-source-link">
-                        USCCB <ArrowSquareOut size={14} />
+                        USCCB.org <ArrowSquareOut size={14} />
                     </a>
                 )}
             </div>
 
             {loading && <p className="text-stoneMuted" data-testid="readings-loading">{t("common.loading")}</p>}
-            {error && <p className="text-sangre" data-testid="readings-error">{error}</p>}
+            {error && (
+                <div className="surface-card p-5 sm:p-6 mb-8 border-l-4 border-l-sangre"
+                     data-testid="readings-error-fallback">
+                    <p className="label-eyebrow mb-2 text-sangre">{t("readings.error_eyebrow")}</p>
+                    <p className="reading-serif text-stone900 mb-4">{t("readings.error_fallback_msg")}</p>
+                    <button
+                        type="button"
+                        onClick={() => setUsccbOpen(true)}
+                        data-testid="readings-error-open-usccb"
+                        className="ui-sans inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors"
+                    >
+                        <BookOpen size={16} weight="duotone" />
+                        {t("readings.view_usccb")}
+                    </button>
+                </div>
+            )}
 
             {!loading && data?.sections?.length === 0 && (
                 <p className="text-stoneMuted" data-testid="readings-empty">No readings found.</p>
@@ -149,6 +175,12 @@ export default function Readings() {
             )}
 
             <BackToTopButton testId="readings-back-to-top" />
+
+            <UsccbBrowser
+                open={usccbOpen}
+                onClose={() => setUsccbOpen(false)}
+                lang={lang}
+            />
         </div>
     );
 }
