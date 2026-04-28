@@ -39,6 +39,15 @@ export const COMMON = {
             title: "Oración de Fátima",
             text: "Oh Jesús mío, perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.",
         },
+        mariaMadreGracia: {
+            title: "María, Madre de Gracia",
+            text: "María, Madre de gracia, Madre de misericordia, defiéndenos de nuestros enemigos y ampáranos ahora y en la hora de nuestra muerte. Amén.",
+        },
+        stJoseph: {
+            title: "Castísimo San José",
+            versicle: "Castísimo San José",
+            response: "R. Ruega por nosotros.",
+        },
         hailHolyQueen: {
             title: "Salve",
             text: "Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A ti llamamos los desterrados hijos de Eva; a ti suspiramos, gimiendo y llorando, en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre. ¡Oh clementísima, oh piadosa, oh dulce siempre Virgen María! Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.",
@@ -77,6 +86,15 @@ export const COMMON = {
         fatima: {
             title: "Fatima Prayer",
             text: "O my Jesus, forgive us our sins, save us from the fires of hell. Lead all souls to heaven, especially those most in need of thy mercy.",
+        },
+        mariaMadreGracia: {
+            title: "Mary, Mother of Grace",
+            text: "Mary, Mother of grace, Mother of mercy, defend us from our enemies and protect us now and at the hour of our death. Amen.",
+        },
+        stJoseph: {
+            title: "Most Chaste Saint Joseph",
+            versicle: "Most chaste Saint Joseph",
+            response: "R. Pray for us.",
         },
         hailHolyQueen: {
             title: "Hail Holy Queen",
@@ -235,9 +253,17 @@ export function buildSlides(mysteryKey, lang) {
             decade: idx + 1,
         });
         slides.push({
-            kind: "prayer",
-            title: `${c.gloryBe.title} · ${c.fatima.title}`,
-            text: `${c.gloryBe.text}\n\n${c.fatima.text}`,
+            kind: "postDecade",
+            items: [
+                { title: c.gloryBe.title, text: c.gloryBe.text },
+                { title: c.fatima.title, text: c.fatima.text },
+                { title: c.mariaMadreGracia.title, text: c.mariaMadreGracia.text },
+                {
+                    title: c.stJoseph.title,
+                    versicle: c.stJoseph.versicle,
+                    response: c.stJoseph.response,
+                },
+            ],
         });
     });
 

@@ -269,6 +269,49 @@ function SlideBody({ slide, lang, accent, mysteryKey, setMysteryKey, onBegin, on
         return <HailMaryRepeatSlide slide={slide} accent={accent} />;
     }
 
+    if (slide.kind === "postDecade") {
+        return (
+            <div className="flex-1 flex flex-col" data-testid="rosary-post-decade-body">
+                <p className="label-eyebrow mb-3" style={{ color: accent.ring }}>
+                    {t("rosary.after_decade_label")}
+                </p>
+                <h2 className="heading-serif text-3xl sm:text-4xl tracking-tight mb-6"
+                    data-testid="rosary-post-decade-title">
+                    {t("rosary.after_decade_title")}
+                </h2>
+                <div className="flex flex-col gap-5">
+                    {slide.items.map((it, i) => (
+                        <div
+                            key={i}
+                            className="border-l-2 pl-4 sm:pl-5"
+                            style={{ borderColor: accent.ring }}
+                            data-testid={`rosary-post-decade-item-${i}`}
+                        >
+                            <p className="ui-sans text-xs uppercase tracking-widest font-semibold mb-2"
+                               style={{ color: accent.ring }}>
+                                {it.title}
+                            </p>
+                            {it.versicle ? (
+                                <>
+                                    <p className="reading-serif text-base sm:text-lg leading-relaxed text-stone900 m-0">
+                                        {it.versicle}
+                                    </p>
+                                    <p className="reading-serif italic text-base sm:text-lg leading-relaxed text-stoneMuted m-0 mt-1">
+                                        {it.response}
+                                    </p>
+                                </>
+                            ) : (
+                                <p className="reading-serif text-base sm:text-lg leading-relaxed text-stone900 m-0">
+                                    {it.text}
+                                </p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     // Default: prayer slide.
     return (
         <div className="flex-1 flex flex-col" data-testid="rosary-prayer-body">
