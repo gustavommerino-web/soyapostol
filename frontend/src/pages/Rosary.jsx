@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 const MYSTERY_ACCENT = {
     joyful:    { ring: "#E1B12C", soft: "rgba(225,177,44,0.10)" },   // gold
     sorrowful: { ring: "#B33A3A", soft: "rgba(179,58,58,0.10)" },    // sangre
-    glorious:  { ring: "#0984E3", soft: "rgba(9,132,227,0.10)" },    // primary blue
+    glorious:  { ring: "#FFD700", soft: "rgba(255,215,0,0.12)" },   // gold
     luminous:  { ring: "#1E88E5", soft: "rgba(30,136,229,0.10)" },   // bright blue
 };
 
