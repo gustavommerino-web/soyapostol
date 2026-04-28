@@ -37,6 +37,19 @@ export default function Rosary() {
     const total = slides.length;
     const slide = slides[idx];
 
+    // Bead counter for hailMaryRepeat slides — lifted to the parent so that
+    // tapping anywhere on the slide card (not just on the bead dots) advances
+    // the count. Reset whenever the active slide changes.
+    const [beadCount, setBeadCount] = React.useState(0);
+    React.useEffect(() => { setBeadCount(0); }, [idx]);
+
+    const isCounterSlide = slide.kind === "hailMaryRepeat";
+    const beadMax = isCounterSlide ? slide.count : 0;
+    const incrementBead = React.useCallback(() => {
+        setBeadCount((c) => Math.min(beadMax, c + 1));
+    }, [beadMax]);
+    const resetBead = React.useCallback(() => setBeadCount(0), []);
+
     // Reset to start when mystery or language changes.
     React.useEffect(() => { setIdx(0); }, [mysteryKey, lang]);
 
@@ -54,9 +67,11 @@ export default function Rosary() {
         return () => window.removeEventListener("keydown", onKey);
     }, [next, prev]);
 
-    // Swipe (touch)
+    // Swipe (touch) — disabled on counter slides so taps anywhere on the card
+    // increment the bead instead of triggering navigation.
     const touch = React.useRef({ x: 0, y: 0, active: false });
     const onTouchStart = (e) => {
+        if (isCounterSlide) return;
         const t0 = e.touches[0];
         touch.current = { x: t0.clientX, y: t0.clientY, active: true };
     };
@@ -100,10 +115,11 @@ export default function Rosary() {
 
             {/* Slide */}
             <div
-                className="surface-card relative overflow-hidden"
+                className={`surface-card relative overflow-hidden ${isCounterSlide ? "cursor-pointer select-none" : ""}`}
                 style={{ borderColor: accent.ring + "55" }}
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEnd}
+                onClick={isCounterSlide ? incrementBead : undefined}
                 data-testid="rosary-slide"
                 data-slide-kind={slide.kind}
             >
@@ -119,30 +135,37 @@ export default function Rosary() {
                         setMysteryKey={setMysteryKey}
                         onBegin={next}
                         onRestart={() => setIdx(0)}
+                        beadCount={beadCount}
+                        onBeadReset={resetBead}
                     />
                 </div>
 
-                {/* Tap zones (mobile-friendly) */}
-                <button
-                    type="button"
-                    aria-label={t("rosary.previous")}
-                    onClick={prev}
-                    disabled={idx === 0}
-                    data-testid="rosary-tap-prev"
-                    className="absolute left-0 top-0 h-full w-1/4 sm:w-16 disabled:opacity-30 group focus:outline-none"
-                >
-                    <span className="sr-only">{t("rosary.previous")}</span>
-                </button>
-                <button
-                    type="button"
-                    aria-label={t("rosary.next")}
-                    onClick={next}
-                    disabled={idx === total - 1}
-                    data-testid="rosary-tap-next"
-                    className="absolute right-0 top-0 h-full w-1/4 sm:w-16 disabled:opacity-30 group focus:outline-none"
-                >
-                    <span className="sr-only">{t("rosary.next")}</span>
-                </button>
+                {/* Tap zones (mobile-friendly) — hidden on counter slides so the
+                    whole card becomes a tap target for the bead counter. */}
+                {!isCounterSlide && (
+                    <>
+                        <button
+                            type="button"
+                            aria-label={t("rosary.previous")}
+                            onClick={prev}
+                            disabled={idx === 0}
+                            data-testid="rosary-tap-prev"
+                            className="absolute left-0 top-0 h-full w-1/4 sm:w-16 disabled:opacity-30 group focus:outline-none"
+                        >
+                            <span className="sr-only">{t("rosary.previous")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            aria-label={t("rosary.next")}
+                            onClick={next}
+                            disabled={idx === total - 1}
+                            data-testid="rosary-tap-next"
+                            className="absolute right-0 top-0 h-full w-1/4 sm:w-16 disabled:opacity-30 group focus:outline-none"
+                        >
+                            <span className="sr-only">{t("rosary.next")}</span>
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* Controls */}
@@ -193,7 +216,7 @@ export default function Rosary() {
 
 /* --------------------------------------------------------------------- */
 
-function SlideBody({ slide, lang, accent, mysteryKey, setMysteryKey, onBegin, onRestart }) {
+function SlideBody({ slide, lang, accent, mysteryKey, setMysteryKey, onBegin, onRestart, beadCount, onBeadReset }) {
     const { t } = useLang();
 
     if (slide.kind === "cover") {
@@ -266,7 +289,7 @@ function SlideBody({ slide, lang, accent, mysteryKey, setMysteryKey, onBegin, on
     }
 
     if (slide.kind === "hailMaryRepeat") {
-        return <HailMaryRepeatSlide slide={slide} accent={accent} />;
+        return <HailMaryRepeatSlide slide={slide} accent={accent} count={beadCount} onReset={onBeadReset} />;
     }
 
     if (slide.kind === "postDecade") {
@@ -398,19 +421,14 @@ function CoverSlide({ lang, accent, mysteryKey, setMysteryKey, onBegin }) {
     );
 }
 
-function HailMaryRepeatSlide({ slide, accent }) {
+function HailMaryRepeatSlide({ slide, accent, count, onReset }) {
     const { t } = useLang();
-    // Internal bead counter — resets when slide changes (key in parent ensures
-    // remount on slide index change is unnecessary because we reset via effect).
-    const [count, setCount] = React.useState(0);
+    // Bead count is owned by the parent (Rosary) so taps anywhere on the card
+    // can advance it. We just render its current value.
 
-    // Reset counter whenever the slide identity changes (we use slide.text +
-    // slide.count + decade as a cheap identity).
-    const sig = `${slide.title}|${slide.count}|${slide.decade ?? "intro"}`;
-    React.useEffect(() => { setCount(0); }, [sig]);
-
-    const tapBead = () => setCount((c) => Math.min(slide.count, c + 1));
-    const reset = () => setCount(0);
+    // Reset / increment buttons need to stop propagation so they don't double-
+    // fire the parent's "tap anywhere on card" handler.
+    const stop = (fn) => (e) => { e.stopPropagation(); fn?.(); };
 
     return (
         <div className="flex-1 flex flex-col" data-testid="rosary-decade-body">
@@ -439,7 +457,7 @@ function HailMaryRepeatSlide({ slide, accent }) {
                     {count > 0 && (
                         <button
                             type="button"
-                            onClick={reset}
+                            onClick={stop(onReset)}
                             data-testid="rosary-bead-reset"
                             className="ui-sans text-xs text-stoneMuted hover:text-sangre underline-offset-2 hover:underline"
                         >
@@ -448,17 +466,15 @@ function HailMaryRepeatSlide({ slide, accent }) {
                     )}
                 </div>
                 <div
-                    className="flex items-center justify-center gap-2 flex-wrap"
+                    className="flex items-center justify-center gap-2 flex-wrap pointer-events-none"
+                    aria-hidden="true"
                     data-testid="rosary-bead-row"
                 >
                     {Array.from({ length: slide.count }).map((_, i) => {
                         const filled = i < count;
                         return (
-                            <button
+                            <span
                                 key={i}
-                                type="button"
-                                onClick={tapBead}
-                                aria-label={`Bead ${i + 1}`}
                                 data-testid={`rosary-bead-${i}`}
                                 className="rounded-full transition-all"
                                 style={{
@@ -467,23 +483,16 @@ function HailMaryRepeatSlide({ slide, accent }) {
                                     backgroundColor: filled ? accent.ring : "transparent",
                                     border: `2px solid ${filled ? accent.ring : "#B2BEC3"}`,
                                     transform: filled ? "scale(1.05)" : "scale(1)",
+                                    display: "inline-block",
                                 }}
                             />
                         );
                     })}
                 </div>
-                <p className="text-center mt-3">
-                    <button
-                        type="button"
-                        onClick={tapBead}
-                        disabled={count >= slide.count}
-                        data-testid="rosary-bead-tap"
-                        className="ui-sans text-xs text-stoneMuted hover:text-stone900 disabled:opacity-40"
-                    >
-                        {count >= slide.count
-                            ? t("rosary.decade_done")
-                            : t("rosary.tap_bead")}
-                    </button>
+                <p className="text-center mt-3 ui-sans text-xs text-stoneMuted">
+                    {count >= slide.count
+                        ? t("rosary.decade_done_hint")
+                        : t("rosary.tap_anywhere")}
                 </p>
             </div>
         </div>
