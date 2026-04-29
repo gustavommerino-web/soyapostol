@@ -85,6 +85,8 @@ const STRINGS = {
         news: {
             source_credit: "Fuente:",
             empty: "No hay noticias por el momento.",
+            tab_all: "Todas",
+            tabs_label: "Fuentes de noticias",
         },
         rosary: {
             title: "Santo Rosario",
@@ -265,6 +267,8 @@ const STRINGS = {
         news: {
             source_credit: "Source:",
             empty: "No news at the moment.",
+            tab_all: "All",
+            tabs_label: "News sources",
         },
         rosary: {
             title: "Holy Rosary",
