@@ -5,6 +5,7 @@ import { localDateISO } from "@/lib/localDate";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
 import UsccbBrowser from "@/components/UsccbBrowser";
+import UniversalisReadings from "@/components/UniversalisReadings";
 import { ArrowSquareOut, BookOpen } from "@phosphor-icons/react";
 
 export default function Readings() {
@@ -27,6 +28,15 @@ export default function Readings() {
     }, []);
 
     const load = React.useCallback(async () => {
+        // For English we use Universalis directly (JSONP), so skip the backend
+        // USCCB scraper. The Universalis component owns its own loading/error
+        // state and date formatting.
+        if (lang === "en") {
+            setData(null);
+            setError("");
+            setLoading(false);
+            return;
+        }
         setLoading(true); setError("");
         try {
             const res = await api.get(`/readings?lang=${lang}&date=${localDate}`);
@@ -38,26 +48,27 @@ export default function Readings() {
 
     React.useEffect(() => { load(); }, [load]);
 
-    // Format the cache date (YYYY-MM-DD) into a localized long date.
+    // Format the date used as a subtitle. For Spanish we trust the cache
+    // value coming back from the backend; for English we always format the
+    // local-browser date directly because we no longer hit the backend.
     const formattedDate = React.useMemo(() => {
-        if (!data) return "";
-        if (data.date) {
-            try {
-                // Parse as local-noon to avoid TZ off-by-one
-                const d = new Date(`${data.date}T12:00:00`);
-                return new Intl.DateTimeFormat(lang === "es" ? "es-ES" : "en-US",
-                    { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(d);
-            } catch { /* fall through */ }
+        const sourceDate = lang === "en" ? localDate : data?.date;
+        if (!sourceDate) return data?.date_text || "";
+        try {
+            const d = new Date(`${sourceDate}T12:00:00`);
+            return new Intl.DateTimeFormat(lang === "es" ? "es-ES" : "en-US",
+                { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(d);
+        } catch {
+            return data?.date_text || "";
         }
-        return data.date_text || "";
-    }, [data, lang]);
+    }, [data, lang, localDate]);
 
     return (
         <div className="max-w-3xl mx-auto" data-testid="readings-page">
             <p className="label-eyebrow mb-3">{t("nav.readings")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2"
                 data-testid="readings-title">
-                {data?.title || t("common.today")}
+                {lang === "en" ? t("common.today") : (data?.title || t("common.today"))}
             </h1>
             {formattedDate && (
                 <p className="reading-serif italic text-lg text-stoneMuted mt-2"
@@ -100,27 +111,33 @@ export default function Readings() {
                 </div>
             )}
 
-            {!loading && data?.sections?.length === 0 && (
+            {!loading && lang !== "en" && data?.sections?.length === 0 && (
                 <p className="text-stoneMuted" data-testid="readings-empty">No readings found.</p>
             )}
 
-            {data?.sections?.map((sec, idx) => (
-                <article key={`${sec.label}-${sec.citation || idx}`} className="mb-14 reading-prose" data-testid={`reading-section-${idx}`}>
-                    <div className="flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
-                        <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">{sec.title}</h2>
-                        <FavoriteButton section="readings" title={sec.title} content={sec.content}
-                            source_url={data.source_url} testId={`fav-reading-${idx}`} />
-                    </div>
-                    {sec.content.split(/\n+/).filter(Boolean).map((p, i) => (
-                        <p key={i}>{p}</p>
-                    ))}
-                </article>
-            ))}
+            {/* English readings come from Universalis (JSONP, cached locally).
+                Spanish readings keep the existing USCCB scraper-backed render. */}
+            {lang === "en" ? (
+                <UniversalisReadings date={localDate} />
+            ) : (
+                data?.sections?.map((sec, idx) => (
+                    <article key={`${sec.label}-${sec.citation || idx}`} className="mb-14 reading-prose" data-testid={`reading-section-${idx}`}>
+                        <div className="flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
+                            <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">{sec.title}</h2>
+                            <FavoriteButton section="readings" title={sec.title} content={sec.content}
+                                source_url={data.source_url} testId={`fav-reading-${idx}`} />
+                        </div>
+                        {sec.content.split(/\n+/).filter(Boolean).map((p, i) => (
+                            <p key={i}>{p}</p>
+                        ))}
+                    </article>
+                ))
+            )}
 
             {/* Evangeli.net daily commentary — appears after the Gospel.
                 Iframe is wrapped in a responsive card and lazy-loaded so it
                 never blocks the initial USCCB readings render. */}
-            {!loading && !error && data?.sections?.length > 0 && (
+            {!loading && !error && (lang === "en" || data?.sections?.length > 0) && (
                 <section className="mt-16 mb-12" data-testid="evangeli-net-section">
                     <p className="label-eyebrow mb-3">{t("readings.reflection_eyebrow")}</p>
                     <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
@@ -170,7 +187,7 @@ export default function Readings() {
             {/* Second daily commentary — scraped from evangeliodeldia.org.
                 Cached server-side per (lang, date); falls back to a discreet
                 card if unavailable. */}
-            {!loading && !error && data?.sections?.length > 0 && (
+            {!loading && !error && (lang === "en" || data?.sections?.length > 0) && (
                 <EvangelioDelDiaCommentary date={localDate} lang={lang} />
             )}
 
