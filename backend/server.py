@@ -12,13 +12,10 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from auth import router as auth_router, seed_admin, ensure_indexes
-from browser_pool import start_browser, stop_browser
-from readings import router as readings_router
 from liturgy import router as liturgy_router
 from prayers import router as prayers_router, seed_prayers_if_empty
 from examen import router as examen_router
 from news import router as news_router
-from bible import router as bible_router
 from catechism import router as catechism_router
 from favorites import router as favorites_router
 
@@ -38,12 +35,10 @@ async def root():
 
 # Mount sub-routers under /api
 api_router.include_router(auth_router)
-api_router.include_router(readings_router)
 api_router.include_router(liturgy_router)
 api_router.include_router(prayers_router)
 api_router.include_router(examen_router)
 api_router.include_router(news_router)
-api_router.include_router(bible_router)
 api_router.include_router(catechism_router)
 api_router.include_router(favorites_router)
 
@@ -90,12 +85,6 @@ async def on_startup():
     # Indexes for the prayers collection
     await db.prayers.create_index([("lang", 1), ("slug", 1)], unique=True)
     await db.prayers.create_index([("lang", 1), ("category", 1)])
-    # Launch the shared Chromium browser in the background so the FastAPI
-    # app can start accepting traffic immediately. If the install step is
-    # needed, it will happen inside this task (max ~300 s) and requests that
-    # need scraping during that window will wait for the browser via
-    # `browser_pool.get_browser()`.
-    asyncio.create_task(start_browser())
     # One-time prayer seed from aciprensa. Runs in the background so it never
     # blocks startup; subsequent boots find a non-empty collection and skip.
     asyncio.create_task(seed_prayers_if_empty(db))
@@ -104,5 +93,4 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    await stop_browser()
     client.close()
