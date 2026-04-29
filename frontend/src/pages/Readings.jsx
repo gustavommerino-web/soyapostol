@@ -1,74 +1,48 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
-import api from "@/lib/api";
 import { localDateISO } from "@/lib/localDate";
-import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
 import UsccbBrowser from "@/components/UsccbBrowser";
 import UniversalisReadings from "@/components/UniversalisReadings";
-import { ArrowSquareOut, BookOpen } from "@phosphor-icons/react";
+import EvangelizoReadings from "@/components/EvangelizoReadings";
+import { BookOpen } from "@phosphor-icons/react";
 
 export default function Readings() {
     const { lang, t } = useLang();
-    const [data, setData] = React.useState(null);
-    const [loading, setLoading] = React.useState(true);
-    const [error, setError] = React.useState("");
     const [localDate, setLocalDate] = React.useState(() => localDateISO());
     const [usccbOpen, setUsccbOpen] = React.useState(false);
 
     // Re-evaluate the user's local date once a minute. When the calendar
-    // ticks past local midnight, the change triggers a fresh fetch through
-    // the `load` callback below.
+    // ticks past local midnight the readings refresh through the language-
+    // specific source components (each owns its own fetch + cache).
     React.useEffect(() => {
-        const t = setInterval(() => {
+        const tick = setInterval(() => {
             const next = localDateISO();
             setLocalDate((prev) => (prev === next ? prev : next));
         }, 60_000);
-        return () => clearInterval(t);
+        return () => clearInterval(tick);
     }, []);
 
-    const load = React.useCallback(async () => {
-        // For English we use Universalis directly (JSONP), so skip the backend
-        // USCCB scraper. The Universalis component owns its own loading/error
-        // state and date formatting.
-        if (lang === "en") {
-            setData(null);
-            setError("");
-            setLoading(false);
-            return;
-        }
-        setLoading(true); setError("");
-        try {
-            const res = await api.get(`/readings?lang=${lang}&date=${localDate}`);
-            setData(res.data);
-        } catch (e) {
-            setError(e.response?.data?.detail || e.message);
-        } finally { setLoading(false); }
-    }, [lang, localDate]);
-
-    React.useEffect(() => { load(); }, [load]);
-
-    // Format the date used as a subtitle. For Spanish we trust the cache
-    // value coming back from the backend; for English we always format the
-    // local-browser date directly because we no longer hit the backend.
+    // Format the local date as a localized long subtitle. Both source
+    // components also surface their own day descriptors ("Wednesday of the
+    // 4th week of Eastertide", "Miércoles de la 4ª semana de Pascua"), so
+    // we keep the page-level subtitle a clean human date.
     const formattedDate = React.useMemo(() => {
-        const sourceDate = lang === "en" ? localDate : data?.date;
-        if (!sourceDate) return data?.date_text || "";
         try {
-            const d = new Date(`${sourceDate}T12:00:00`);
+            const d = new Date(`${localDate}T12:00:00`);
             return new Intl.DateTimeFormat(lang === "es" ? "es-ES" : "en-US",
                 { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(d);
         } catch {
-            return data?.date_text || "";
+            return "";
         }
-    }, [data, lang, localDate]);
+    }, [localDate, lang]);
 
     return (
         <div className="max-w-3xl mx-auto" data-testid="readings-page">
             <p className="label-eyebrow mb-3">{t("nav.readings")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2"
                 data-testid="readings-title">
-                {lang === "en" ? t("common.today") : (data?.title || t("common.today"))}
+                {t("common.today")}
             </h1>
             {formattedDate && (
                 <p className="reading-serif italic text-lg text-stoneMuted mt-2"
@@ -84,112 +58,63 @@ export default function Readings() {
                     <BookOpen size={14} weight="duotone" />
                     {t("readings.view_usccb")}
                 </button>
-                {data?.source_url && (
-                    <a href={data.source_url} target="_blank" rel="noreferrer"
-                        className="text-sm text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
-                        data-testid="readings-source-link">
-                        USCCB.org <ArrowSquareOut size={14} />
-                    </a>
-                )}
             </div>
 
-            {loading && <p className="text-stoneMuted" data-testid="readings-loading">{t("common.loading")}</p>}
-            {error && (
-                <div className="surface-card p-5 sm:p-6 mb-8 border-l-4 border-l-sangre"
-                     data-testid="readings-error-fallback">
-                    <p className="label-eyebrow mb-2 text-sangre">{t("readings.error_eyebrow")}</p>
-                    <p className="reading-serif text-stone900 mb-4">{t("readings.error_fallback_msg")}</p>
-                    <button
-                        type="button"
-                        onClick={() => setUsccbOpen(true)}
-                        data-testid="readings-error-open-usccb"
-                        className="ui-sans inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors"
-                    >
-                        <BookOpen size={16} weight="duotone" />
-                        {t("readings.view_usccb")}
-                    </button>
-                </div>
-            )}
-
-            {!loading && lang !== "en" && data?.sections?.length === 0 && (
-                <p className="text-stoneMuted" data-testid="readings-empty">No readings found.</p>
-            )}
-
-            {/* English readings come from Universalis (JSONP, cached locally).
-                Spanish readings keep the existing USCCB scraper-backed render. */}
+            {/* Language-specific readings source. Each component owns its own
+                fetch + localStorage cache + error fallback. */}
             {lang === "en" ? (
                 <UniversalisReadings date={localDate} />
             ) : (
-                data?.sections?.map((sec, idx) => (
-                    <article key={`${sec.label}-${sec.citation || idx}`} className="mb-14 reading-prose" data-testid={`reading-section-${idx}`}>
-                        <div className="flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
-                            <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">{sec.title}</h2>
-                            <FavoriteButton section="readings" title={sec.title} content={sec.content}
-                                source_url={data.source_url} testId={`fav-reading-${idx}`} />
-                        </div>
-                        {sec.content.split(/\n+/).filter(Boolean).map((p, i) => (
-                            <p key={i}>{p}</p>
-                        ))}
-                    </article>
-                ))
+                <EvangelizoReadings date={localDate} />
             )}
 
             {/* Evangeli.net daily commentary — appears after the Gospel.
                 Iframe is wrapped in a responsive card and lazy-loaded so it
-                never blocks the initial USCCB readings render. */}
-            {!loading && !error && (lang === "en" || data?.sections?.length > 0) && (
-                <section className="mt-16 mb-12" data-testid="evangeli-net-section">
-                    <p className="label-eyebrow mb-3">{t("readings.reflection_eyebrow")}</p>
-                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
-                        {t("readings.reflection_title")}
-                    </h2>
-                    {/* Evangeli.net widget renders with a small font by default.
-                        We scale the iframe content visually (1.2x) so the text
-                        size matches the rest of the reading prose. The iframe
-                        width is reduced inversely (100% / 1.2) so that, after
-                        scaling, it fills the container exactly. Container
-                        height is enlarged by the same factor to fit the
-                        scaled-up content without inner scrollbars. */}
-                    <div
-                        className="surface-card overflow-hidden p-0 relative w-full"
-                        style={{ height: "660px" }}
-                    >
-                        <iframe
-                            title={t("readings.reflection_title")}
-                            src={lang === "en"
-                                ? "https://evangeli.net/gospel/widget/web"
-                                : "https://evangeli.net/evangelio/widget/web"}
-                            loading="lazy"
-                            frameBorder="0"
-                            data-testid="evangeli-iframe"
-                            style={{
-                                display: "block",
-                                width: "83.3333%",
-                                height: "550px",
-                                border: 0,
-                                transform: "scale(1.2)",
-                                transformOrigin: "top left",
-                            }}
-                        />
-                    </div>
-                    <p className="text-xs text-stoneMuted mt-3">
-                        {t("readings.reflection_credit")}{" "}
-                        <a
-                            href="https://evangeli.net/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="hover:text-sangre"
-                        >evangeli.net <ArrowSquareOut size={11} className="inline" /></a>
-                    </p>
-                </section>
-            )}
-
-            {/* Second daily commentary — scraped from evangeliodeldia.org.
-                Cached server-side per (lang, date); falls back to a discreet
-                card if unavailable. */}
-            {!loading && !error && (lang === "en" || data?.sections?.length > 0) && (
-                <EvangelioDelDiaCommentary date={localDate} lang={lang} />
-            )}
+                never blocks the readings render. */}
+            <section className="mt-16 mb-12" data-testid="evangeli-net-section">
+                <p className="label-eyebrow mb-3">{t("readings.reflection_eyebrow")}</p>
+                <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
+                    {t("readings.reflection_title")}
+                </h2>
+                {/* Evangeli.net widget renders with a small font by default.
+                    We scale the iframe content visually (1.2x) so the text
+                    size matches the rest of the reading prose. The iframe
+                    width is reduced inversely (100% / 1.2) so that, after
+                    scaling, it fills the container exactly. Container
+                    height is enlarged by the same factor to fit the
+                    scaled-up content without inner scrollbars. */}
+                <div
+                    className="surface-card overflow-hidden p-0 relative w-full"
+                    style={{ height: "660px" }}
+                >
+                    <iframe
+                        title={t("readings.reflection_title")}
+                        src={lang === "en"
+                            ? "https://evangeli.net/gospel/widget/web"
+                            : "https://evangeli.net/evangelio/widget/web"}
+                        loading="lazy"
+                        frameBorder="0"
+                        data-testid="evangeli-iframe"
+                        style={{
+                            display: "block",
+                            width: "83.3333%",
+                            height: "550px",
+                            border: 0,
+                            transform: "scale(1.2)",
+                            transformOrigin: "top left",
+                        }}
+                    />
+                </div>
+                <p className="text-xs text-stoneMuted mt-3">
+                    {t("readings.reflection_credit")}{" "}
+                    <a
+                        href="https://evangeli.net/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:text-sangre"
+                    >evangeli.net</a>
+                </p>
+            </section>
 
             <BackToTopButton testId="readings-back-to-top" />
 
@@ -199,117 +124,5 @@ export default function Readings() {
                 lang={lang}
             />
         </div>
-    );
-}
-
-/**
- * Lazy-loaded commentary scraped from evangeliodeldia.org. Uses an
- * IntersectionObserver to only fetch when the section enters the viewport so
- * it never blocks the initial USCCB readings render. Server-side caches the
- * scrape per day; a soft gray fallback card replaces the section if the
- * source is unavailable.
- */
-function EvangelioDelDiaCommentary({ date, lang }) {
-    const { t } = useLang();
-    const ref = React.useRef(null);
-    const [visible, setVisible] = React.useState(false);
-    const [data, setData] = React.useState(null);
-    const [error, setError] = React.useState(false);
-    const [loading, setLoading] = React.useState(false);
-
-    React.useEffect(() => {
-        const node = ref.current;
-        if (!node) return undefined;
-        const observer = new IntersectionObserver((entries) => {
-            if (entries.some((e) => e.isIntersecting)) setVisible(true);
-        }, { rootMargin: "150px" });
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, []);
-
-    React.useEffect(() => {
-        if (!visible) return;
-        let cancelled = false;
-        setData(null); setError(false); setLoading(true);
-        api.get(`/readings/commentary?lang=${lang}&date=${date}`)
-            .then((res) => { if (!cancelled) { setData(res.data); setError(false); } })
-            .catch(() => { if (!cancelled) setError(true); })
-            .finally(() => { if (!cancelled) setLoading(false); });
-        return () => { cancelled = true; };
-    }, [visible, date, lang]);
-
-    return (
-        <section
-            ref={ref}
-            className="mt-20 mb-12"
-            data-testid="eod-commentary-section"
-        >
-            <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
-            <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
-                {t("readings.eod_title")}
-            </h2>
-
-            {loading && !data && (
-                <div className="surface-card p-6" data-testid="eod-loading">
-                    <p className="text-sm text-stoneMuted m-0">{t("common.loading")}</p>
-                </div>
-            )}
-
-            {error && !data && (
-                <div
-                    className="rounded-[12px] border border-sand-300 bg-sand-100 p-5 text-sm text-stoneMuted"
-                    data-testid="eod-fallback"
-                >
-                    {t("readings.eod_unavailable")}
-                </div>
-            )}
-
-            {data && (data.paragraphs?.length || data.text) && (
-                <article
-                    className="surface-card p-6 sm:p-7 reading-prose text-justify"
-                    data-testid="eod-content"
-                >
-                    {data.author && (
-                        <p
-                            className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1"
-                            data-testid="eod-author"
-                        >
-                            {data.author}
-                        </p>
-                    )}
-                    {data.description && (
-                        <p className="text-sm text-stoneMuted m-0 mb-1">{data.description}</p>
-                    )}
-                    {data.source_line && (
-                        <p className="text-sm text-stoneMuted italic m-0 mb-5">{data.source_line}</p>
-                    )}
-                    {data.title && (
-                        <h3
-                            className="heading-serif text-2xl tracking-tight mb-5"
-                            data-testid="eod-title"
-                        >
-                            {data.title}
-                        </h3>
-                    )}
-                    {(data.paragraphs && data.paragraphs.length
-                        ? data.paragraphs
-                        : (data.text || "").split(/\n+/).filter(Boolean)
-                    ).map((p, i) => (
-                        <p key={i} className="m-0 mb-4 last:mb-0">{p}</p>
-                    ))}
-                    <p className="text-xs text-stoneMuted not-italic mt-6 m-0 text-left">
-                        {t("readings.reflection_credit")}{" "}
-                        <a
-                            href={data.source_url || "https://evangeliodeldia.org"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="hover:text-sangre"
-                        >
-                            evangeliodeldia.org <ArrowSquareOut size={11} className="inline" />
-                        </a>
-                    </p>
-                </article>
-            )}
-        </section>
     );
 }
