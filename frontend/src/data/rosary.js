@@ -17,7 +17,16 @@ export const COMMON = {
         },
         offering: {
             title: "Ofrecimiento",
-            text: "Señor mío Jesucristo, te ofrezco este Santo Rosario en honor de tu Madre Santísima, la Virgen María, por mis intenciones y por las necesidades de la Iglesia y del mundo.",
+            intro: "Señor mío Jesucristo, te ofrezco este Santo Rosario por las siguientes intenciones:",
+            intentions: [
+                "Por el Santo Padre, sus intenciones y la unidad de toda la Iglesia.",
+                "Por la Fe, la Esperanza y la Caridad en nosotros y nuestras familias.",
+                "Por nuestros proyectos personales y profesionales, para que provean con dignidad el sustento de nuestros hogares.",
+                "Por el fin del aborto y la eutanasia, y por el consuelo de quienes sufren persecución o tortura por su fe.",
+                "Por nuestras familias, para que en ellas reinen siempre la paz, la unidad y el amor cristiano.",
+                "Por la salud de los enfermos, especialmente por aquellos con enfermedades graves o terminales.",
+                "Por el descanso eterno de las almas del Purgatorio; que brille para ellas la luz eterna de tu Gloria.",
+            ],
         },
         creed: {
             title: "Credo de los Apóstoles",
@@ -65,7 +74,16 @@ export const COMMON = {
         },
         offering: {
             title: "Offering",
-            text: "Lord Jesus Christ, I offer you this Holy Rosary in honor of your most holy Mother, the Virgin Mary, for my intentions and for the needs of the Church and the world.",
+            intro: "Lord Jesus Christ, I offer you this Holy Rosary for the following intentions:",
+            intentions: [
+                "For the Holy Father, his intentions, and the unity of the whole Church.",
+                "For the increase of Faith, Hope, and Charity within ourselves and our families.",
+                "For our personal and professional projects, that they may worthily provide for the sustenance of our families.",
+                "For the end of abortion and euthanasia, and for the comfort of those suffering persecution or torture for their faith.",
+                "For our families, that peace, unity, and Christian love may always reign within them.",
+                "For the health of the sick, especially those suffering from severe illnesses.",
+                "For the eternal rest of the souls in Purgatory; let perpetual light shine upon them in your Glory.",
+            ],
         },
         creed: {
             title: "Apostles' Creed",
@@ -223,7 +241,12 @@ export function buildSlides(mysteryKey, lang) {
 
     slides.push({ kind: "cover", mysteryKey, label: set.label });
     slides.push({ kind: "prayer", title: c.signCross.title, text: c.signCross.text });
-    slides.push({ kind: "prayer", title: c.offering.title, text: c.offering.text });
+    slides.push({
+        kind: "offering",
+        title: c.offering.title,
+        intro: c.offering.intro,
+        intentions: c.offering.intentions,
+    });
     slides.push({ kind: "prayer", title: c.creed.title, text: c.creed.text });
     slides.push({ kind: "prayer", title: c.ourFather.title, text: c.ourFather.text });
     slides.push({

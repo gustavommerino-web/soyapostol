@@ -326,6 +326,43 @@ function SlideBody({ slide, lang, accent, mysteryKey, setMysteryKey, onBegin, on
         );
     }
 
+    if (slide.kind === "offering") {
+        return (
+            <div className="flex-1 flex flex-col" data-testid="rosary-offering-body">
+                <p className="label-eyebrow mb-3" style={{ color: accent.ring }}>
+                    {t("rosary.offering_eyebrow")}
+                </p>
+                <h2 className="heading-serif text-3xl sm:text-4xl tracking-tight mb-5"
+                    data-testid="rosary-offering-title">
+                    {slide.title}
+                </h2>
+                {slide.intro && (
+                    <p className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 mb-5">
+                        {slide.intro}
+                    </p>
+                )}
+                <ol className="flex flex-col gap-3" data-testid="rosary-offering-list">
+                    {(slide.intentions || []).map((it, i) => (
+                        <li
+                            key={i}
+                            className="reading-serif text-base sm:text-lg leading-relaxed text-stone900 flex gap-3"
+                            data-testid={`rosary-offering-item-${i}`}
+                        >
+                            <span
+                                className="ui-sans font-semibold tabular-nums shrink-0 min-w-[1.75rem]"
+                                style={{ color: accent.ring }}
+                                aria-hidden="true"
+                            >
+                                {i + 1}.
+                            </span>
+                            <span className="flex-1">{it}</span>
+                        </li>
+                    ))}
+                </ol>
+            </div>
+        );
+    }
+
     if (slide.kind === "hailMaryRepeat") {
         return <HailMaryRepeatSlide slide={slide} accent={accent} count={beadCount} onReset={onBeadReset} />;
     }
