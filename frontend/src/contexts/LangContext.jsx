@@ -50,7 +50,7 @@ const STRINGS = {
             prayers_desc: "Compendio de oraciones católicas",
             rosary_desc: "Reza el Santo Rosario, día por día",
             examen_desc: "Recursos para tu examen de conciencia",
-            news_desc: "EWTN, ACI Prensa y Vatican News",
+            news_desc: "Las últimas noticias del Vaticano",
             bible_desc: "La Sagrada Biblia católica completa",
             catechism_desc: "Catecismo de la Iglesia Católica",
             favorites_desc: "Tus textos guardados",
@@ -70,8 +70,6 @@ const STRINGS = {
             eod_title: "Comentario de Evangelio del Día",
             eod_unavailable: "Comentario de Evangelio del Día no disponible por el momento.",
             view_usccb: "Lecturas oficiales (USCCB)",
-            error_eyebrow: "No pudimos cargar las lecturas",
-            error_fallback_msg: "Puedes consultar las lecturas oficiales del día directamente desde el sitio de la USCCB sin salir de la app.",
         },
         usccb: {
             title: "Lecturas Oficiales (USCCB)",
@@ -83,6 +81,10 @@ const STRINGS = {
             blocked_title: "USCCB no permite mostrar su sitio dentro de la app",
             blocked_subtitle: "Por políticas de seguridad del propio sitio (X-Frame-Options), el contenido no puede embeberse. Ábrelo en una pestaña nueva para leerlo.",
             try_again: "Intentar de nuevo",
+        },
+        news: {
+            source_credit: "Fuente:",
+            empty: "No hay noticias por el momento.",
         },
         rosary: {
             title: "Santo Rosario",
@@ -228,7 +230,7 @@ const STRINGS = {
             prayers_desc: "Compendium of Catholic prayers",
             rosary_desc: "Pray the Holy Rosary, day by day",
             examen_desc: "Resources for your examination of conscience",
-            news_desc: "EWTN, ACI Prensa and Vatican News",
+            news_desc: "The latest news from the Vatican",
             bible_desc: "The complete Catholic Holy Bible",
             catechism_desc: "Catechism of the Catholic Church",
             favorites_desc: "Your saved passages",
@@ -248,8 +250,6 @@ const STRINGS = {
             eod_title: "Evangelio del Día commentary",
             eod_unavailable: "Evangelio del Día commentary is unavailable right now.",
             view_usccb: "Official readings (USCCB)",
-            error_eyebrow: "We couldn't load today's readings",
-            error_fallback_msg: "You can read the official readings directly from the USCCB site without leaving the app.",
         },
         usccb: {
             title: "Official Readings (USCCB)",
@@ -261,6 +261,10 @@ const STRINGS = {
             blocked_title: "USCCB does not allow its site to be shown inside the app",
             blocked_subtitle: "Because of the site's own security policies (X-Frame-Options), the content cannot be embedded. Open it in a new tab to read it.",
             try_again: "Try again",
+        },
+        news: {
+            source_credit: "Source:",
+            empty: "No news at the moment.",
         },
         rosary: {
             title: "Holy Rosary",
