@@ -273,17 +273,55 @@ function SlideBody({ slide, lang, accent, mysteryKey, setMysteryKey, onBegin, on
                 <p className="label-eyebrow mb-3" style={{ color: accent.ring }}>
                     {t("rosary.mystery_n", { n: slide.ordinal })} · {slide.label}
                 </p>
-                <h2 className="heading-serif text-3xl sm:text-4xl tracking-tight mb-3"
+                <h2 className="heading-serif text-3xl sm:text-4xl tracking-tight mb-4"
                     data-testid="rosary-mystery-title">
                     {slide.title}
                 </h2>
-                <p className="ui-sans text-sm font-semibold mb-5" style={{ color: accent.ring }}>
-                    {slide.scripture}
-                </p>
-                <p className="reading-serif text-base sm:text-lg leading-relaxed text-stone900"
-                   data-testid="rosary-mystery-meditation">
-                    {slide.meditation}
-                </p>
+
+                {slide.verse && (
+                    <blockquote
+                        className="border-l-2 pl-4 sm:pl-5 mb-5"
+                        style={{ borderColor: accent.ring }}
+                        data-testid="rosary-mystery-verse"
+                    >
+                        <p className="reading-serif italic text-base sm:text-lg leading-relaxed text-stone900 m-0">
+                            {slide.verse}
+                        </p>
+                        {slide.scripture && (
+                            <p className="ui-sans text-xs uppercase tracking-widest font-semibold mt-2 m-0"
+                               style={{ color: accent.ring }}>
+                                {slide.scripture}
+                            </p>
+                        )}
+                    </blockquote>
+                )}
+                {!slide.verse && slide.scripture && (
+                    <p className="ui-sans text-sm font-semibold mb-5" style={{ color: accent.ring }}>
+                        {slide.scripture}
+                    </p>
+                )}
+
+                {slide.fruit && (
+                    <p className="reading-serif text-base sm:text-lg leading-relaxed text-stone900 mb-3"
+                       data-testid="rosary-mystery-fruit">
+                        <span className="ui-sans text-xs uppercase tracking-widest font-semibold mr-2"
+                              style={{ color: accent.ring }}>
+                            {t("rosary.fruit_label")}
+                        </span>
+                        {slide.fruit}
+                    </p>
+                )}
+
+                {slide.meditation && (
+                    <p className="reading-serif text-base sm:text-lg leading-relaxed text-stone900 m-0"
+                       data-testid="rosary-mystery-meditation">
+                        <span className="ui-sans text-xs uppercase tracking-widest font-semibold mr-2"
+                              style={{ color: accent.ring }}>
+                            {t("rosary.meditation_label")}
+                        </span>
+                        {slide.meditation}
+                    </p>
+                )}
             </div>
         );
     }
