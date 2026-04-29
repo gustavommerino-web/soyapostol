@@ -2,15 +2,12 @@ import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import { localDateISO } from "@/lib/localDate";
 import BackToTopButton from "@/components/BackToTopButton";
-import UsccbBrowser from "@/components/UsccbBrowser";
 import UniversalisReadings from "@/components/UniversalisReadings";
 import EvangelizoReadings from "@/components/EvangelizoReadings";
-import { BookOpen } from "@phosphor-icons/react";
 
 export default function Readings() {
     const { lang, t } = useLang();
     const [localDate, setLocalDate] = React.useState(() => localDateISO());
-    const [usccbOpen, setUsccbOpen] = React.useState(false);
 
     // Re-evaluate the user's local date once a minute. When the calendar
     // ticks past local midnight the readings refresh through the language-
@@ -45,20 +42,9 @@ export default function Readings() {
                 {t("common.today")}
             </h1>
             {formattedDate && (
-                <p className="reading-serif italic text-lg text-stoneMuted mt-2"
+                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-10"
                    data-testid="readings-date">{formattedDate}</p>
             )}
-            <div className="flex items-center gap-3 mb-10 mt-4 flex-wrap">
-                <button
-                    type="button"
-                    onClick={() => setUsccbOpen(true)}
-                    data-testid="readings-open-usccb-btn"
-                    className="ui-sans inline-flex items-center gap-1.5 px-3 py-2 border border-sand-300 rounded-md text-sm hover:border-sangre transition-colors"
-                >
-                    <BookOpen size={14} weight="duotone" />
-                    {t("readings.view_usccb")}
-                </button>
-            </div>
 
             {/* Language-specific readings source. Each component owns its own
                 fetch + localStorage cache + error fallback. */}
@@ -117,12 +103,6 @@ export default function Readings() {
             </section>
 
             <BackToTopButton testId="readings-back-to-top" />
-
-            <UsccbBrowser
-                open={usccbOpen}
-                onClose={() => setUsccbOpen(false)}
-                lang={lang}
-            />
         </div>
     );
 }
