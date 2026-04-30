@@ -120,6 +120,12 @@
         padding: 0 0.12em;
     }
 
+    /* Long-press selection highlight on a Bible verse. */
+    .verse-active {
+        background-color: rgba(107, 70, 193, 0.20);
+        box-shadow: 0 0 0 1px rgba(107, 70, 193, 0.35);
+    }
+
     .btn-primary {
         background-color: #0984E3;
         color: #FDFDFD;

@@ -1,9 +1,16 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import api from "@/lib/api";
+import { toast } from "sonner";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
 import { idbGet, idbSet } from "@/lib/idb";
-import { MagnifyingGlass, X, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import {
+    MagnifyingGlass, X, CaretLeft, CaretRight,
+    Heart, HeartBreak, Copy, ShareNetwork,
+} from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 
@@ -161,6 +168,8 @@ function highlightText(text, query) {
 
 export default function Bible() {
     const { t, lang } = useLang();
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
     const [data, setData] = React.useState(_cache[lang] || null);
     const [loading, setLoading] = React.useState(!_cache[lang]);
@@ -169,6 +178,12 @@ export default function Bible() {
     const [chapter, setChapter] = React.useState(1);
     const [query, setQuery] = React.useState("");
     const [visible, setVisible] = React.useState(PAGE_SIZE);
+    // Long-press selection state — only one verse can be "active" at a time.
+    const [activeKey, setActiveKey] = React.useState(null);
+    // Map of bible-verse favorites: "book|chapter|verse" → favorite id.
+    // Populated once on mount per language so every verse row can flag
+    // itself as "already saved" with a subtle side bar.
+    const [savedVerses, setSavedVerses] = React.useState(() => new Map());
     const sentinelRef = React.useRef(null);
 
     // Load (or swap) the JSON whenever the language changes.
@@ -191,6 +206,66 @@ export default function Bible() {
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [lang]);
+
+    // One-shot fetch of the user's existing bible-verse favorites so each
+    // row can light up its "saved" indicator right after data is loaded.
+    React.useEffect(() => {
+        if (!user) { setSavedVerses(new Map()); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const r = await api.get("/favorites");
+                if (cancelled) return;
+                const map = new Map();
+                for (const f of r.data || []) {
+                    if (f.section !== "bible") continue;
+                    const meta = f.metadata || {};
+                    if (meta.kind !== "verse") continue;
+                    if (meta.lang && meta.lang !== lang) continue;
+                    const k = `${meta.book}|${meta.chapter}|${meta.verse}`;
+                    map.set(k, f.id);
+                }
+                setSavedVerses(map);
+            } catch { /* silent — UI just won't show indicators */ }
+        })();
+        return () => { cancelled = true; };
+    }, [user, lang]);
+
+    // Add / remove a verse favorite, updating the local map optimistically.
+    const toggleVerseFavorite = React.useCallback(async (verseInfo) => {
+        if (!user) { navigate("/login"); return; }
+        const k = `${verseInfo.book}|${verseInfo.chapter}|${verseInfo.verse}`;
+        const existingId = savedVerses.get(k);
+        try {
+            if (existingId) {
+                await api.delete(`/favorites/${existingId}`);
+                setSavedVerses((m) => { const n = new Map(m); n.delete(k); return n; });
+                toast.success(t("common.remove"));
+            } else {
+                const payload = {
+                    section: "bible",
+                    title: `${verseInfo.bookDisplay} ${verseInfo.chapter}:${verseInfo.verse}`,
+                    content: verseInfo.text,
+                    metadata: {
+                        kind: "verse",
+                        book: verseInfo.book,
+                        chapter: verseInfo.chapter,
+                        verse: verseInfo.verse,
+                        lang,
+                    },
+                    lang,
+                };
+                const r = await api.post("/favorites", payload);
+                const newId = r.data?.id;
+                if (newId) {
+                    setSavedVerses((m) => { const n = new Map(m); n.set(k, newId); return n; });
+                }
+                toast.success(t("common.saved"));
+            }
+        } catch {
+            toast.error(t("common.error"));
+        }
+    }, [user, savedVerses, lang, navigate, t]);
 
     const books = data?.books || [];
     const currentBook = books[bookIdx] || null;
@@ -362,13 +437,24 @@ export default function Bible() {
                                 {currentBookDisplay} {chapter}
                             </h2>
 
-                            <div className="reading-prose" data-testid="bible-verses">
-                                {currentChapterVerses.map((v) => (
-                                    <p key={v.verse} data-bible-verse={v.verse} className="scroll-mt-36">
-                                        <sup className="text-sangre text-xs mr-1 font-semibold">{v.verse}</sup>
-                                        {v.text}
-                                    </p>
-                                ))}
+                            <div className="reading-prose" data-testid="bible-verses" onClick={() => setActiveKey(null)}>
+                                {currentChapterVerses.map((v) => {
+                                    const k = currentBook ? `${currentBook.name}|${chapter}|${v.verse}` : "";
+                                    return (
+                                        <VerseRow
+                                            key={v.verse}
+                                            verse={v}
+                                            book={currentBook?.name}
+                                            bookDisplay={currentBookDisplay}
+                                            chapter={chapter}
+                                            isActive={activeKey === k}
+                                            isSaved={savedVerses.has(k)}
+                                            onActivate={() => setActiveKey(k)}
+                                            onDismiss={() => setActiveKey(null)}
+                                            onToggleFavorite={toggleVerseFavorite}
+                                        />
+                                    );
+                                })}
                                 {currentChapterVerses.length === 0 && (
                                     <p className="text-stoneMuted">{t("common.loading")}</p>
                                 )}
@@ -444,5 +530,237 @@ export default function Bible() {
 
             <BackToTopButton onClick={onResetTop} testId="bible-back-to-top" />
         </div>
+    );
+}
+
+/* ================================================================== */
+/* Long-press context menu for individual verses                       */
+/* ================================================================== */
+
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_PX = 10;
+
+// Fires `callback` when the user holds a pointer down on the element for
+// at least `ms` milliseconds without moving more than 10 px. Also
+// intercepts right-click (`contextmenu`) as an alias so desktop users
+// have an obvious way to open the menu.
+function useLongPress(callback, ms = LONG_PRESS_MS) {
+    const timer = React.useRef(null);
+    const start = React.useRef({ x: 0, y: 0 });
+    const fired = React.useRef(false);
+
+    const clear = React.useCallback(() => {
+        if (timer.current) {
+            clearTimeout(timer.current);
+            timer.current = null;
+        }
+    }, []);
+
+    const onPointerDown = React.useCallback((e) => {
+        // Ignore multi-touch / non-primary buttons.
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        fired.current = false;
+        start.current = { x: e.clientX, y: e.clientY };
+        clear();
+        timer.current = setTimeout(() => {
+            fired.current = true;
+            callback(e);
+        }, ms);
+    }, [callback, ms, clear]);
+
+    const onPointerMove = React.useCallback((e) => {
+        if (!timer.current) return;
+        const dx = (e.clientX ?? 0) - start.current.x;
+        const dy = (e.clientY ?? 0) - start.current.y;
+        if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_PX) clear();
+    }, [clear]);
+
+    const onPointerUp = React.useCallback((e) => {
+        clear();
+        // If the long press already fired, swallow the synthetic click that
+        // follows so the verse link / other handlers don't also react.
+        if (fired.current) {
+            e.stopPropagation();
+            fired.current = false;
+        }
+    }, [clear]);
+
+    const onContextMenu = React.useCallback((e) => {
+        // Desktop: right-click alias. Mobile: iOS long-press callout — block
+        // both so only our menu appears.
+        e.preventDefault();
+        callback(e);
+    }, [callback]);
+
+    return {
+        onPointerDown,
+        onPointerMove,
+        onPointerUp,
+        onPointerLeave: onPointerUp,
+        onPointerCancel: onPointerUp,
+        onContextMenu,
+    };
+}
+
+function VerseRow({
+    verse, book, bookDisplay, chapter,
+    isActive, isSaved,
+    onActivate, onDismiss, onToggleFavorite,
+}) {
+    const handlers = useLongPress(() => onActivate());
+    const k = `${book}|${chapter}|${verse.verse}`;
+
+    return (
+        <p
+            key={verse.verse}
+            data-bible-verse={verse.verse}
+            data-testid={`bible-verse-${verse.verse}`}
+            className={[
+                "scroll-mt-36 relative rounded-md transition-colors duration-150",
+                "px-3 py-2 -mx-3",
+                isSaved ? "border-l-2 border-sangre/50 pl-4" : "",
+                isActive ? "verse-active" : "",
+            ].filter(Boolean).join(" ")}
+            {...handlers}
+            style={{
+                WebkitTouchCallout: "none",
+                WebkitUserSelect: isActive ? "none" : "auto",
+            }}
+        >
+            <sup className="text-sangre text-xs mr-1 font-semibold">{verse.verse}</sup>
+            {verse.text}
+            {isSaved && !isActive && (
+                <span className="sr-only" data-testid={`bible-verse-saved-${verse.verse}`}>
+                    saved
+                </span>
+            )}
+            {isActive && (
+                <VersePopover
+                    verseKey={k}
+                    verseInfo={{
+                        book, bookDisplay, chapter,
+                        verse: verse.verse, text: verse.text,
+                    }}
+                    isSaved={isSaved}
+                    onToggleFavorite={onToggleFavorite}
+                    onDismiss={onDismiss}
+                />
+            )}
+        </p>
+    );
+}
+
+function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismiss }) {
+    const { t } = useLang();
+    const ref = React.useRef(null);
+
+    // Dismiss when clicking anywhere outside the popover.
+    React.useEffect(() => {
+        const onDown = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) onDismiss();
+        };
+        const onKey = (e) => { if (e.key === "Escape") onDismiss(); };
+        // Defer the listener one frame so the same pointer event that opened
+        // the popover doesn't close it instantly on touch devices.
+        const id = setTimeout(() => {
+            document.addEventListener("pointerdown", onDown, true);
+            document.addEventListener("keydown", onKey);
+        }, 0);
+        return () => {
+            clearTimeout(id);
+            document.removeEventListener("pointerdown", onDown, true);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [onDismiss]);
+
+    const formattedText = `"${verseInfo.text}" — ${verseInfo.bookDisplay} ${verseInfo.chapter}:${verseInfo.verse}`;
+
+    const doCopy = async (e) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(formattedText);
+            toast.success(t("bible.verse_copied"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+        onDismiss();
+    };
+
+    const doShare = async (e) => {
+        e.stopPropagation();
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: t("bible.share_title"),
+                    text: formattedText,
+                });
+            } catch { /* user cancelled — ignore */ }
+        } else {
+            // Desktop Chromium without WebShare: gracefully fall back to copy.
+            try {
+                await navigator.clipboard.writeText(formattedText);
+                toast.success(t("bible.verse_copied"));
+            } catch {
+                toast.error(t("common.error"));
+            }
+        }
+        onDismiss();
+    };
+
+    const doFavorite = (e) => {
+        e.stopPropagation();
+        onToggleFavorite({
+            book: verseInfo.book,
+            bookDisplay: verseInfo.bookDisplay,
+            chapter: verseInfo.chapter,
+            verse: verseInfo.verse,
+            text: verseInfo.text,
+        });
+        onDismiss();
+    };
+
+    return (
+        <span
+            ref={ref}
+            role="menu"
+            data-testid={`bible-verse-menu-${verseInfo.verse}`}
+            data-verse-key={verseKey}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 z-30 inline-flex items-center gap-1 bg-white border border-sand-300 shadow-lg rounded-lg px-1 py-1 ui-sans text-sm whitespace-nowrap"
+        >
+            <button
+                type="button"
+                onClick={doFavorite}
+                data-testid={`bible-verse-fav-${verseInfo.verse}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
+            >
+                {isSaved
+                    ? <HeartBreak size={14} weight="duotone" />
+                    : <Heart size={14} weight="duotone" />}
+                <span>{isSaved ? t("bible.remove_favorite") : t("common.save_favorite")}</span>
+            </button>
+            <span className="w-px h-5 bg-sand-300" aria-hidden="true" />
+            <button
+                type="button"
+                onClick={doCopy}
+                data-testid={`bible-verse-copy-${verseInfo.verse}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
+            >
+                <Copy size={14} weight="duotone" />
+                <span>{t("bible.copy_verse")}</span>
+            </button>
+            <span className="w-px h-5 bg-sand-300" aria-hidden="true" />
+            <button
+                type="button"
+                onClick={doShare}
+                data-testid={`bible-verse-share-${verseInfo.verse}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
+            >
+                <ShareNetwork size={14} weight="duotone" />
+                <span>{t("bible.share_verse")}</span>
+            </button>
+        </span>
     );
 }
