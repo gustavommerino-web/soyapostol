@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
 import InstallPwaBanner from "@/components/InstallPwaBanner";
+import VerseOfTheDay from "@/components/VerseOfTheDay";
 import {
     BookOpen, Sun, HandsPraying, BookOpenText, Newspaper, BookBookmark, Books, Heart, Cross, ArrowRight,
 } from "@phosphor-icons/react";
@@ -39,19 +40,9 @@ export default function Dashboard() {
 
             <InstallPwaBanner />
 
-            {/* Verse of the day — moved to the top */}
+            {/* Verse of the day — interactive card, rotated daily */}
             <section className="mb-12 max-w-3xl" data-testid="verse-of-the-day">
-                <div className="border-l-2 border-sangre pl-6">
-                    <p className="label-eyebrow mb-3">{lang === "es" ? "Versículo del día" : "Verse of the day"}</p>
-                    <p className="reading-serif italic text-2xl leading-relaxed text-stone900">
-                        {lang === "es"
-                            ? '"Yo soy el camino, la verdad y la vida; nadie va al Padre sino por mí."'
-                            : '"I am the way, and the truth, and the life. No one comes to the Father except through me."'}
-                    </p>
-                    <p className="ui-sans text-sm text-stoneMuted mt-3">
-                        {lang === "es" ? "Juan 14, 6" : "John 14:6"}
-                    </p>
-                </div>
+                <VerseOfTheDay />
             </section>
 
             {/* Bento grid */}

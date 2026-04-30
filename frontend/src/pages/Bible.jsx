@@ -1,7 +1,7 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -74,7 +74,7 @@ const _cache = {};      // lang → parsed data
 const _inflight = {};   // lang → Promise
 const _flatIndex = {};  // lang → flat verse index for search
 
-async function loadBible(lang) {
+export async function loadBible(lang) {
     if (_cache[lang]) return _cache[lang];
     if (_inflight[lang]) return _inflight[lang];
     const src = SOURCES[lang];
@@ -170,6 +170,7 @@ export default function Bible() {
     const { t, lang } = useLang();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [data, setData] = React.useState(_cache[lang] || null);
     const [loading, setLoading] = React.useState(!_cache[lang]);
@@ -308,6 +309,28 @@ export default function Bible() {
             jumpToReference(refSuggestion.book, refSuggestion.chapter, refSuggestion.verse);
         }
     };
+
+    // Deep-link handler — ?ref=Book|Chapter|Verse (from Verse of the Day
+    // card on the Dashboard). Runs once the Bible data is ready, then
+    // strips the param from the URL so a user reload doesn't re-scroll.
+    React.useEffect(() => {
+        if (!data) return;
+        const params = new URLSearchParams(location.search);
+        const ref = params.get("ref");
+        if (!ref) return;
+        const parts = ref.split("|");
+        if (parts.length < 2) return;
+        const [bookName, chapStr, verseStr] = parts;
+        const book = books.find((b) => b.name === bookName);
+        if (!book) return;
+        const chap = parseInt(chapStr, 10);
+        const verse = verseStr ? parseInt(verseStr, 10) : null;
+        if (!Number.isFinite(chap)) return;
+        jumpToReference(book, chap, verse);
+        // Strip the query so a refresh lands on the current chapter, not
+        // an endless re-scroll loop.
+        navigate(location.pathname, { replace: true });
+    }, [data, books, location.search, location.pathname, jumpToReference, navigate]);
 
     React.useEffect(() => { setVisible(PAGE_SIZE); }, [query]);
 

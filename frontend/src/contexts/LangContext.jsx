@@ -224,6 +224,10 @@ const STRINGS = {
             share_title: "Versículo de la Biblia",
             saved_hint: "Guardado en favoritos",
         },
+        votd: {
+            title: "Versículo del día",
+            open_bible: "Ir a la Biblia",
+        },
         admin: {
             eyebrow: "Panel de administrador",
             new_prayer: "Nueva oración",
@@ -500,6 +504,10 @@ const STRINGS = {
             verse_copied: "Verse copied",
             share_title: "Bible verse",
             saved_hint: "Saved to favorites",
+        },
+        votd: {
+            title: "Verse of the day",
+            open_bible: "Open Bible",
         },
         admin: {
             eyebrow: "Admin panel",
