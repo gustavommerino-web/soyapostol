@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
+import InstallPwaBanner from "@/components/InstallPwaBanner";
 import {
     BookOpen, Sun, HandsPraying, BookOpenText, Newspaper, BookBookmark, Books, Heart, Cross, ArrowRight,
 } from "@phosphor-icons/react";
@@ -35,6 +36,8 @@ export default function Dashboard() {
             <section className="mb-10">
                 <p className="label-eyebrow mb-4">{today}</p>
             </section>
+
+            <InstallPwaBanner />
 
             {/* Verse of the day — moved to the top */}
             <section className="mb-12 max-w-3xl" data-testid="verse-of-the-day">
