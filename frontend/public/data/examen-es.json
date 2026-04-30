@@ -744,6 +744,36 @@
           ]
         }
       ]
+    },
+    {
+      "id": "digital_world_exam",
+      "title": "Examen de Vida Digital",
+      "target": "Todos los usuarios de tecnología",
+      "description": "Evaluación del uso de redes sociales, internet y dispositivos móviles a la luz de la fe.",
+      "categories": [
+        {
+          "id": "digital_charity",
+          "name": "Caridad en la Red",
+          "focus": "Nuestras palabras en el mundo virtual.",
+          "questions": [
+            "¿He escrito comentarios con odio, sarcasmo o crueldad en redes sociales?",
+            "¿He compartido noticias falsas o rumores sin verificar si eran verdad?",
+            "¿Uso mis redes para dar testimonio de mi fe o solo para presumir mi vida?",
+            "¿He bloqueado o ignorado a personas por intolerancia o soberbia?"
+          ]
+        },
+        {
+          "id": "digital_purity_time",
+          "name": "Pureza y Tiempo",
+          "focus": "Cuidar la mirada y el corazón.",
+          "questions": [
+            "¿He buscado contenido impuro o pornográfico en internet?",
+            "¿Siento ansiedad si no reviso el celular constantemente, olvidando mi oración?",
+            "¿He descuidado a las personas que tengo enfrente por estar pegado a la pantalla?",
+            "¿Comparo mi vida con la de otros en Instagram, cayendo en la envidia o la tristeza?"
+          ]
+        }
+      ]
     }
   ],
   "closing": {

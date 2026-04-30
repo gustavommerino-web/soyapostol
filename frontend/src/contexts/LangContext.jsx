@@ -177,6 +177,7 @@ const STRINGS = {
                 youth: "Jóvenes",
                 work: "Trabajo profesional",
                 family: "Matrimonio y familia",
+                digital: "Vida digital",
             },
             profile_desc: {
                 adults: "Examen general con los Diez Mandamientos.",
@@ -194,6 +195,7 @@ const STRINGS = {
                 youth: "Guía práctica para jóvenes: casa, escuela y amigos.",
                 work: "Para profesionales: integridad, excelencia y liderazgo cristiano.",
                 family: "Para esposos y padres: vivir la vocación del hogar cristiano.",
+                digital: "Uso de redes, internet y pantallas a la luz de la fe.",
             },
         },
         catechism: {
@@ -439,6 +441,7 @@ const STRINGS = {
                 youth: "Young people",
                 work: "Professional work",
                 family: "Marriage and family",
+                digital: "Digital life",
             },
             profile_desc: {
                 adults: "General examen on the Ten Commandments.",
@@ -456,6 +459,7 @@ const STRINGS = {
                 youth: "A practical guide for young people: home, school, and friends.",
                 work: "For professionals: integrity, excellence, and Christian leadership.",
                 family: "For spouses and parents: living the vocation of the Christian home.",
+                digital: "Our use of social media, the internet, and screens in the light of the faith.",
             },
         },
         catechism: {

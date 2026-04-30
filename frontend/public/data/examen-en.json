@@ -744,6 +744,36 @@
           ]
         }
       ]
+    },
+    {
+      "id": "digital_world_exam",
+      "title": "Examen of Digital Life",
+      "target": "All users of technology",
+      "description": "An evaluation of our use of social media, the internet, and mobile devices in the light of the faith.",
+      "categories": [
+        {
+          "id": "digital_charity",
+          "name": "Charity Online",
+          "focus": "Our words in the virtual world.",
+          "questions": [
+            "Have I written comments filled with hatred, sarcasm, or cruelty on social media?",
+            "Have I shared fake news or rumors without checking whether they were true?",
+            "Do I use my networks to witness to my faith, or only to show off my life?",
+            "Have I blocked or ignored people out of intolerance or pride?"
+          ]
+        },
+        {
+          "id": "digital_purity_time",
+          "name": "Purity and Time",
+          "focus": "Guarding the gaze and the heart.",
+          "questions": [
+            "Have I searched for impure or pornographic content online?",
+            "Do I feel anxious when I don't check my phone constantly, neglecting my prayer?",
+            "Have I neglected the people right in front of me because I was glued to my screen?",
+            "Do I compare my life to others' on Instagram, falling into envy or sadness?"
+          ]
+        }
+      ]
     }
   ],
   "closing": {

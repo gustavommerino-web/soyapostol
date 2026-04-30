@@ -5,7 +5,7 @@ import {
     CaretDown, CheckCircle, ArrowLeft, TrashSimple, CheckSquareOffset,
     Heart, UserCircle, Lightning, UserFocus, Moon, Sparkle, ArrowCounterClockwise,
     HandHeart, HeartStraight, Clock, Flame, Leaf, HandsPraying,
-    Wind, GraduationCap, Scroll, Briefcase, House,
+    Wind, GraduationCap, Scroll, Briefcase, House, DeviceMobile,
 } from "@phosphor-icons/react";
 
 const DATA_URL = (lang) => `/data/examen-${lang}.json`;
@@ -30,6 +30,7 @@ const PROFILES = [
     { id: "youth",           icon: GraduationCap, kind: "alt_exam", target: "youth_exam" },
     { id: "work",            icon: Briefcase,     kind: "alt_exam", target: "professional_ethics_work_exam" },
     { id: "family",          icon: House,         kind: "alt_exam", target: "marriage_family_exam" },
+    { id: "digital",         icon: DeviceMobile,  kind: "alt_exam", target: "digital_world_exam" },
 ];
 
 // -------- State shape --------
