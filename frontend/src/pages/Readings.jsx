@@ -2,7 +2,6 @@ import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import { localDateISO } from "@/lib/localDate";
 import BackToTopButton from "@/components/BackToTopButton";
-import UniversalisReadings from "@/components/UniversalisReadings";
 import EvangelizoReadings from "@/components/EvangelizoReadings";
 
 export default function Readings() {
@@ -46,13 +45,9 @@ export default function Readings() {
                    data-testid="readings-date">{formattedDate}</p>
             )}
 
-            {/* Language-specific readings source. Each component owns its own
-                fetch + localStorage cache + error fallback. */}
-            {lang === "en" ? (
-                <UniversalisReadings date={localDate} />
-            ) : (
-                <EvangelizoReadings date={localDate} />
-            )}
+            {/* Daily Mass readings — Evangelizo JSON API for both languages.
+                Component owns its own fetch + localStorage cache + error fallback. */}
+            <EvangelizoReadings date={localDate} />
 
             {/* Evangeli.net daily commentary — appears after the Gospel.
                 Iframe is wrapped in a responsive card and lazy-loaded so it

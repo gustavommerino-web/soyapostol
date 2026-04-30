@@ -4,29 +4,36 @@ import FavoriteButton from "@/components/FavoriteButton";
 import { ArrowSquareOut } from "@phosphor-icons/react";
 
 /**
- * Daily Mass readings for Spanish, served by Evangelizo (the team behind
+ * Daily Mass readings served by Evangelizo (the team behind
  * evangeliodeldia.org). The site's Angular front-end fetches its data from a
  * public JSON API which we hit directly — same endpoint, no scraping.
  *
- *   https://publication.evangelizo.ws/SP/days/{YYYY-MM-DD}
+ *   Spanish: https://publication.evangelizo.ws/SP/days/{YYYY-MM-DD}
+ *   English: https://publication.evangelizo.ws/AM/days/{YYYY-MM-DD}  (American English)
  *
  * The response includes readings, psalm (with chorus), gospel and a daily
  * commentary. Per Evangelizo's terms we surface the attribution + link.
  */
 
-const ENDPOINT = (date) => `https://publication.evangelizo.ws/SP/days/${date}`;
+const LANG_CODE = { es: "SP", en: "AM" };
+const SITE_URL = {
+    es: "https://evangeliodeldia.org/",
+    en: "https://evangeliodeldia.org/am/",
+};
+const ENDPOINT = (date, lang) =>
+    `https://publication.evangelizo.ws/${LANG_CODE[lang] || "SP"}/days/${date}`;
 const CACHE_PREFIX = "soyapostol:evangelizo:";
 const CACHE_TTL_DAYS = 7;
 const FETCH_TIMEOUT_MS = 9000;
 
-function readCache(date) {
+function readCache(date, lang) {
     try {
-        const raw = localStorage.getItem(CACHE_PREFIX + date);
+        const raw = localStorage.getItem(`${CACHE_PREFIX}${lang}:${date}`);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         if (!parsed || !parsed.data) return null;
         if (parsed.savedAt && Date.now() - parsed.savedAt > CACHE_TTL_DAYS * 86400000) {
-            localStorage.removeItem(CACHE_PREFIX + date);
+            localStorage.removeItem(`${CACHE_PREFIX}${lang}:${date}`);
             return null;
         }
         return parsed.data;
@@ -35,17 +42,20 @@ function readCache(date) {
     }
 }
 
-function writeCache(date, data) {
+function writeCache(date, lang, data) {
     try {
-        localStorage.setItem(CACHE_PREFIX + date, JSON.stringify({ savedAt: Date.now(), data }));
+        localStorage.setItem(
+            `${CACHE_PREFIX}${lang}:${date}`,
+            JSON.stringify({ savedAt: Date.now(), data }),
+        );
     } catch { /* storage full or disabled */ }
 }
 
-async function fetchEvangelizo(date) {
+async function fetchEvangelizo(date, lang) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
     try {
-        const res = await fetch(ENDPOINT(date), {
+        const res = await fetch(ENDPOINT(date, lang), {
             signal: ctrl.signal,
             headers: { Accept: "application/json" },
         });
@@ -80,14 +90,14 @@ function splitPsalmStanzas(text) {
 }
 
 export default function EvangelizoReadings({ date }) {
-    const { t } = useLang();
-    const [data, setData] = React.useState(() => readCache(date));
+    const { lang, t } = useLang();
+    const [data, setData] = React.useState(() => readCache(date, lang));
     const [loading, setLoading] = React.useState(!data);
     const [error, setError] = React.useState(false);
 
     React.useEffect(() => {
         let cancelled = false;
-        const cached = readCache(date);
+        const cached = readCache(date, lang);
         if (cached) {
             setData(cached);
             setLoading(false);
@@ -97,11 +107,11 @@ export default function EvangelizoReadings({ date }) {
         setData(null);
         setLoading(true);
         setError(false);
-        fetchEvangelizo(date)
+        fetchEvangelizo(date, lang)
             .then((res) => {
                 if (cancelled) return;
                 if (!res) { setError(true); return; }
-                writeCache(date, res);
+                writeCache(date, lang, res);
                 setData(res);
                 setError(false);
             })
@@ -113,7 +123,7 @@ export default function EvangelizoReadings({ date }) {
                 if (!cancelled) setLoading(false);
             });
         return () => { cancelled = true; };
-    }, [date]);
+    }, [date, lang]);
 
     if (loading) {
         return (
@@ -178,7 +188,7 @@ export default function EvangelizoReadings({ date }) {
             <p className="text-xs text-stoneMuted mt-12 italic" data-testid="evangelizo-copyright">
                 Copyright © Evangelizo · Used with permission.{" "}
                 <a
-                    href="https://evangeliodeldia.org/"
+                    href={SITE_URL[lang] || SITE_URL.es}
                     target="_blank"
                     rel="noreferrer"
                     className="hover:text-sangre inline-flex items-center gap-1"
