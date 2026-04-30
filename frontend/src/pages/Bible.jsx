@@ -2,9 +2,15 @@ import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
+import { idbGet, idbSet } from "@/lib/idb";
 import { MagnifyingGlass, X, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
+
+// Bump when the bundled JSON files change so all users get the fresh
+// normalized data on their next visit (invalidates stale IDB entries).
+const BIBLE_DATA_VERSION = 1;
+const IDB_KEY = (lang) => `bible:${lang}`;
 
 // Per-language data files. Both ultimately get normalized to:
 //   { translation: string, books: [{ name, chapters: [{ chapter, verses: [{ verse, text }] }] }] }
@@ -66,15 +72,29 @@ async function loadBible(lang) {
     if (_inflight[lang]) return _inflight[lang];
     const src = SOURCES[lang];
     if (!src) throw new Error(`No bible source for lang ${lang}`);
-    _inflight[lang] = fetch(src.url, { cache: "force-cache" })
-        .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-        .then((raw) => {
-            const data = src.normalize(raw);
-            _cache[lang] = data;
-            delete _inflight[lang];
-            return data;
-        })
-        .catch((e) => { delete _inflight[lang]; throw e; });
+
+    // 1) Try IDB first — instant hydration with no JSON.parse + no normalize.
+    //    If the stored version doesn't match BIBLE_DATA_VERSION we fall through
+    //    to the network fetch and overwrite the entry.
+    _inflight[lang] = (async () => {
+        try {
+            const cached = await idbGet(IDB_KEY(lang));
+            if (cached && cached.version === BIBLE_DATA_VERSION && cached.payload) {
+                _cache[lang] = cached.payload;
+                return cached.payload;
+            }
+        } catch { /* fall through to fetch */ }
+
+        // 2) Network fetch → normalize → memoize in-memory + IDB.
+        const res = await fetch(src.url, { cache: "force-cache" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.json();
+        const data = src.normalize(raw);
+        _cache[lang] = data;
+        // Store asynchronously — don't block UI on the IDB write.
+        idbSet(IDB_KEY(lang), BIBLE_DATA_VERSION, data).catch(() => {});
+        return data;
+    })().finally(() => { delete _inflight[lang]; });
     return _inflight[lang];
 }
 

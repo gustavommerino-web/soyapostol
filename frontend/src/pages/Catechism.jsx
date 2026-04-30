@@ -2,10 +2,13 @@ import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
+import { idbGet, idbSet } from "@/lib/idb";
 import { MagnifyingGlass, X } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 const DATA_URL = "/data/catechism.json";
+const CATECHISM_DATA_VERSION = 1;
+const IDB_KEY = "catechism:ccc";
 
 // Canonical CCC part structure (paragraph the Part begins at).
 const PARTS = [
@@ -25,17 +28,30 @@ export default function Catechism() {
     const [visible, setVisible] = React.useState(PAGE_SIZE);
     const sentinelRef = React.useRef(null);
 
-    // Fetch the catechism file only on entry.
+    // Fetch the catechism file only on entry. IDB hydrates instantly on
+    // repeat visits; the network fetch only runs the first time (or after a
+    // data version bump).
     React.useEffect(() => {
         let cancelled = false;
         (async () => {
             setLoading(true);
             setError("");
             try {
+                const cached = await idbGet(IDB_KEY);
+                if (!cancelled && cached
+                    && cached.version === CATECHISM_DATA_VERSION
+                    && Array.isArray(cached.payload)) {
+                    setEntries(cached.payload);
+                    setLoading(false);
+                    return;
+                }
                 const res = await fetch(DATA_URL, { cache: "force-cache" });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                if (!cancelled) setEntries(Array.isArray(data) ? data : []);
+                if (cancelled) return;
+                const arr = Array.isArray(data) ? data : [];
+                setEntries(arr);
+                idbSet(IDB_KEY, CATECHISM_DATA_VERSION, arr).catch(() => {});
             } catch (e) {
                 if (!cancelled) setError(e.message || "Failed to load");
             } finally {
