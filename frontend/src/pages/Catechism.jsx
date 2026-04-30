@@ -1,9 +1,15 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
-import FavoriteButton from "@/components/FavoriteButton";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import api from "@/lib/api";
 import BackToTopButton from "@/components/BackToTopButton";
+import { useLongPress, ContextMenu } from "@/components/LongPressMenu";
 import { idbGet, idbSet } from "@/lib/idb";
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import {
+    MagnifyingGlass, X, Heart, HeartBreak, Copy, ShareNetwork,
+} from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 const DATA_URL = "/data/catechism.json";
@@ -20,17 +26,21 @@ const PARTS = [
 
 export default function Catechism() {
     const { t, lang } = useLang();
+    const { user } = useAuth();
+    const navigate = useNavigate();
 
     const [entries, setEntries] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
     const [query, setQuery] = React.useState("");
     const [visible, setVisible] = React.useState(PAGE_SIZE);
+    const [activeId, setActiveId] = React.useState(null);
+    // Map: paragraph number → favorite id. Used to show the saved-indicator
+    // on already-favorited paragraphs and to toggle remove/save in the menu.
+    const [savedParas, setSavedParas] = React.useState(() => new Map());
     const sentinelRef = React.useRef(null);
 
-    // Fetch the catechism file only on entry. IDB hydrates instantly on
-    // repeat visits; the network fetch only runs the first time (or after a
-    // data version bump).
+    // Load the catechism file (IDB + network, same pattern as Bible).
     React.useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -61,12 +71,59 @@ export default function Catechism() {
         return () => { cancelled = true; };
     }, []);
 
+    // One-shot fetch of the user's existing catechism favorites so each
+    // paragraph can light up its "saved" indicator on load.
+    React.useEffect(() => {
+        if (!user) { setSavedParas(new Map()); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const r = await api.get("/favorites");
+                if (cancelled) return;
+                const map = new Map();
+                for (const f of r.data || []) {
+                    if (f.section !== "catechism") continue;
+                    const p = f.metadata?.paragraph;
+                    if (typeof p === "number") map.set(p, f.id);
+                }
+                setSavedParas(map);
+            } catch { /* silent */ }
+        })();
+        return () => { cancelled = true; };
+    }, [user]);
+
+    const toggleParaFavorite = React.useCallback(async (paragraph, text) => {
+        if (!user) { navigate("/login"); return; }
+        const existingId = savedParas.get(paragraph);
+        try {
+            if (existingId) {
+                await api.delete(`/favorites/${existingId}`);
+                setSavedParas((m) => { const n = new Map(m); n.delete(paragraph); return n; });
+                toast.success(t("common.remove"));
+            } else {
+                const r = await api.post("/favorites", {
+                    section: "catechism",
+                    title: `CCC §${paragraph}`,
+                    content: text,
+                    metadata: { paragraph },
+                    lang,
+                });
+                const newId = r.data?.id;
+                if (newId) {
+                    setSavedParas((m) => { const n = new Map(m); n.set(paragraph, newId); return n; });
+                }
+                toast.success(t("common.saved"));
+            }
+        } catch {
+            toast.error(t("common.error"));
+        }
+    }, [user, savedParas, lang, navigate, t]);
+
     // Derive the filtered / jumped list + mode flag.
     const { results, jumpTarget } = React.useMemo(() => {
         const q = query.trim();
         if (!q) return { results: entries, jumpTarget: null };
 
-        // Pure number → jump mode (target + small contextual window).
         if (/^\d+$/.test(q)) {
             const n = parseInt(q, 10);
             const idx = entries.findIndex((e) => e.id === n);
@@ -79,18 +136,13 @@ export default function Catechism() {
             return { results: [], jumpTarget: n };
         }
 
-        // Text mode → case-insensitive contains filter.
         const needle = q.toLowerCase();
         const filtered = entries.filter((e) => e.text && e.text.toLowerCase().includes(needle));
         return { results: filtered, jumpTarget: null };
     }, [query, entries]);
 
-    // Reset pagination whenever the result set changes.
-    React.useEffect(() => {
-        setVisible(PAGE_SIZE);
-    }, [query]);
+    React.useEffect(() => { setVisible(PAGE_SIZE); }, [query]);
 
-    // IntersectionObserver for lazy pagination.
     React.useEffect(() => {
         const node = sentinelRef.current;
         if (!node) return undefined;
@@ -103,19 +155,13 @@ export default function Catechism() {
         return () => observer.disconnect();
     }, [results.length]);
 
-    // Smooth-scroll to the paragraph when the user typed a number.
     React.useEffect(() => {
         if (jumpTarget == null) return;
         const el = document.querySelector(`[data-ccc-id="${jumpTarget}"]`);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, [jumpTarget, visible]);
 
-    const jumpToPart = (part) => {
-        // Reuse the jump-to-number behavior so the reader lands on §start and
-        // can keep reading from that section.
-        setQuery(String(part.start));
-    };
-
+    const jumpToPart = (part) => { setQuery(String(part.start)); };
     const onResetTop = () => setQuery("");
 
     const shown = results.slice(0, visible);
@@ -136,14 +182,13 @@ export default function Catechism() {
     const searching = query.trim().length > 0;
 
     return (
-        <div data-testid="catechism-page">
+        <div data-testid="catechism-page" onClick={() => setActiveId(null)}>
             <p className="label-eyebrow mb-3">{t("nav.catechism")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">
                 {t("nav.catechism")}
             </h1>
             <p className="text-stoneMuted mb-6">{t("sections.catechism_desc")}</p>
 
-            {/* Sticky search bar — stays visible under the app header */}
             <div
                 className="sticky top-[56px] md:top-[72px] z-20 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 py-3 bg-sand-50/95 backdrop-blur-md border-b border-sand-300 mb-8"
                 data-testid="catechism-search-wrap"
@@ -173,7 +218,6 @@ export default function Catechism() {
                 </div>
             </div>
 
-            {/* Interactive index of the 4 parts (hidden while searching) */}
             {!searching && !loading && entries.length > 0 && (
                 <section
                     className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-12"
@@ -217,34 +261,19 @@ export default function Catechism() {
 
                     <ol className="reading-prose space-y-7" data-testid="catechism-list">
                         {shown.map((p) => (
-                            <li
+                            <ParagraphRow
                                 key={p.id}
-                                data-ccc-id={p.id}
-                                data-testid={`ccc-para-${p.id}`}
-                                className="group scroll-mt-36"
-                            >
-                                <div className="flex items-start gap-3">
-                                    <span className="text-sangre font-semibold ui-sans text-sm mt-1 shrink-0">
-                                        §{p.id}
-                                    </span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="m-0 whitespace-pre-line">{highlightText(p.text)}</p>
-                                        <div className="mt-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                            <FavoriteButton
-                                                section="catechism"
-                                                title={`CCC §${p.id}`}
-                                                content={p.text}
-                                                metadata={{ paragraph: p.id }}
-                                                testId={`fav-ccc-${p.id}`}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>
+                                paragraph={p}
+                                renderText={() => highlightText(p.text)}
+                                isActive={activeId === p.id}
+                                isSaved={savedParas.has(p.id)}
+                                onActivate={() => setActiveId(p.id)}
+                                onDismiss={() => setActiveId(null)}
+                                onToggleFavorite={toggleParaFavorite}
+                            />
                         ))}
                     </ol>
 
-                    {/* Sentinel + manual load-more fallback */}
                     {hasMore && (
                         <div ref={sentinelRef} className="mt-10 flex justify-center">
                             <button
@@ -260,8 +289,104 @@ export default function Catechism() {
                 </>
             )}
 
-            {/* Floating back-to-top button */}
             <BackToTopButton onClick={onResetTop} testId="catechism-back-to-top" />
         </div>
+    );
+}
+
+/* ================================================================== */
+/* Long-press paragraph with context menu                             */
+/* ================================================================== */
+
+function ParagraphRow({ paragraph, renderText, isActive, isSaved, onActivate, onDismiss, onToggleFavorite }) {
+    const handlers = useLongPress(() => onActivate());
+    return (
+        <li
+            data-ccc-id={paragraph.id}
+            data-testid={`ccc-para-${paragraph.id}`}
+            className={[
+                "ccc-row group scroll-mt-36 relative rounded-md transition-colors duration-150",
+                "px-3 py-3 -mx-3",
+                isSaved ? "border-l-2 border-sangre/50 pl-4" : "",
+                isActive ? "verse-active" : "",
+            ].filter(Boolean).join(" ")}
+            {...handlers}
+        >
+            <div className="flex items-start gap-3">
+                <span className="text-sangre font-semibold ui-sans text-sm mt-1 shrink-0">
+                    §{paragraph.id}
+                </span>
+                <div className="flex-1 min-w-0">
+                    <p className="m-0 whitespace-pre-line">{renderText()}</p>
+                    {isSaved && !isActive && (
+                        <span className="sr-only" data-testid={`ccc-saved-${paragraph.id}`}>saved</span>
+                    )}
+                </div>
+            </div>
+            {isActive && (
+                <ParagraphPopover
+                    paragraph={paragraph}
+                    isSaved={isSaved}
+                    onToggleFavorite={onToggleFavorite}
+                    onDismiss={onDismiss}
+                />
+            )}
+        </li>
+    );
+}
+
+function ParagraphPopover({ paragraph, isSaved, onToggleFavorite, onDismiss }) {
+    const { t } = useLang();
+    const reference = `CCC §${paragraph.id}`;
+    const formatted = `${paragraph.text}\n\n— ${reference}`;
+
+    const doCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(formatted);
+            toast.success(t("catechism.paragraph_copied"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+    };
+    const doShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: t("catechism.share_title"), text: formatted });
+                return;
+            } catch { /* cancelled — fall through to copy */ }
+        }
+        await doCopy();
+    };
+    const doFavorite = () => { onToggleFavorite(paragraph.id, paragraph.text); };
+
+    const items = [
+        {
+            id: "fav",
+            label: isSaved ? t("catechism.remove_favorite") : t("common.save_favorite"),
+            icon: isSaved
+                ? <HeartBreak size={16} weight="duotone" />
+                : <Heart size={16} weight="duotone" />,
+            onSelect: doFavorite,
+        },
+        {
+            id: "copy",
+            label: t("catechism.copy_paragraph"),
+            icon: <Copy size={16} weight="duotone" />,
+            onSelect: doCopy,
+        },
+        {
+            id: "share",
+            label: t("catechism.share_paragraph"),
+            icon: <ShareNetwork size={16} weight="duotone" />,
+            onSelect: doShare,
+        },
+    ];
+
+    return (
+        <ContextMenu
+            items={items}
+            onDismiss={onDismiss}
+            testId={`ccc-menu-${paragraph.id}`}
+        />
     );
 }

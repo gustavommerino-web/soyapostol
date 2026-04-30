@@ -211,6 +211,11 @@ const STRINGS = {
             total_count: "{count} párrafos",
             no_results: "Sin resultados. Prueba otro término o número.",
             load_more: "Cargar más",
+            copy_paragraph: "Copiar párrafo",
+            share_paragraph: "Compartir",
+            remove_favorite: "Quitar de favoritos",
+            paragraph_copied: "Párrafo copiado",
+            share_title: "Catecismo de la Iglesia Católica",
         },
         bible: {
             search_placeholder: "Buscar palabra clave o referencia (ej. \"Juan 3:16\"). Pulsa Enter para saltar.",
@@ -492,6 +497,11 @@ const STRINGS = {
             total_count: "{count} paragraphs",
             no_results: "No results. Try another term or number.",
             load_more: "Load more",
+            copy_paragraph: "Copy paragraph",
+            share_paragraph: "Share",
+            remove_favorite: "Remove from favorites",
+            paragraph_copied: "Paragraph copied",
+            share_title: "Catechism of the Catholic Church",
         },
         bible: {
             search_placeholder: "Search keyword or reference (e.g. \"John 3:16\"). Press Enter to jump.",

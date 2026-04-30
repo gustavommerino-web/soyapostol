@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
+import { useLongPress, ContextMenu } from "@/components/LongPressMenu";
 import { idbGet, idbSet } from "@/lib/idb";
 import {
     MagnifyingGlass, X, CaretLeft, CaretRight,
@@ -560,71 +561,6 @@ export default function Bible() {
 /* Long-press context menu for individual verses                       */
 /* ================================================================== */
 
-const LONG_PRESS_MS = 500;
-const LONG_PRESS_MOVE_PX = 10;
-
-// Fires `callback` when the user holds a pointer down on the element for
-// at least `ms` milliseconds without moving more than 10 px. Also
-// intercepts right-click (`contextmenu`) as an alias so desktop users
-// have an obvious way to open the menu.
-function useLongPress(callback, ms = LONG_PRESS_MS) {
-    const timer = React.useRef(null);
-    const start = React.useRef({ x: 0, y: 0 });
-    const fired = React.useRef(false);
-
-    const clear = React.useCallback(() => {
-        if (timer.current) {
-            clearTimeout(timer.current);
-            timer.current = null;
-        }
-    }, []);
-
-    const onPointerDown = React.useCallback((e) => {
-        // Ignore multi-touch / non-primary buttons.
-        if (e.pointerType === "mouse" && e.button !== 0) return;
-        fired.current = false;
-        start.current = { x: e.clientX, y: e.clientY };
-        clear();
-        timer.current = setTimeout(() => {
-            fired.current = true;
-            callback(e);
-        }, ms);
-    }, [callback, ms, clear]);
-
-    const onPointerMove = React.useCallback((e) => {
-        if (!timer.current) return;
-        const dx = (e.clientX ?? 0) - start.current.x;
-        const dy = (e.clientY ?? 0) - start.current.y;
-        if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_PX) clear();
-    }, [clear]);
-
-    const onPointerUp = React.useCallback((e) => {
-        clear();
-        // If the long press already fired, swallow the synthetic click that
-        // follows so the verse link / other handlers don't also react.
-        if (fired.current) {
-            e.stopPropagation();
-            fired.current = false;
-        }
-    }, [clear]);
-
-    const onContextMenu = React.useCallback((e) => {
-        // Desktop: right-click alias. Mobile: iOS long-press callout — block
-        // both so only our menu appears.
-        e.preventDefault();
-        callback(e);
-    }, [callback]);
-
-    return {
-        onPointerDown,
-        onPointerMove,
-        onPointerUp,
-        onPointerLeave: onPointerUp,
-        onPointerCancel: onPointerUp,
-        onContextMenu,
-    };
-}
-
 function VerseRow({
     verse, book, bookDisplay, chapter,
     isActive, isSaved,
@@ -671,93 +607,26 @@ function VerseRow({
 
 function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismiss }) {
     const { t } = useLang();
-    const ref = React.useRef(null);
-    // "below" by default; flips to "above" when rendering below would push the
-    // menu off the bottom edge of the viewport. Measured on mount so it reflects
-    // the real rendered height of the popover (3 buttons + dividers ≈ 150 px).
-    const [placement, setPlacement] = React.useState("below");
+    const formatted = `"${verseInfo.text}" — ${verseInfo.bookDisplay} ${verseInfo.chapter}:${verseInfo.verse}`;
 
-    React.useLayoutEffect(() => {
-        if (!ref.current) return;
-        const menuEl = ref.current;
-        const verseEl = menuEl.parentElement; // the <p> verse row
-        if (!verseEl) return;
-        const verseRect = verseEl.getBoundingClientRect();
-        const menuHeight = menuEl.offsetHeight;
-        const margin = 16;
-        const spaceBelow = window.innerHeight - verseRect.bottom;
-        const spaceAbove = verseRect.top;
-        // Prefer "below" when it fits. Fall back to "above" only when below
-        // overflows AND above has clearly more room.
-        if (spaceBelow < menuHeight + margin && spaceAbove > spaceBelow) {
-            setPlacement("above");
-        } else {
-            setPlacement("below");
-        }
-    }, []);
-
-    // Close on any scroll so the menu never drifts out of alignment with its verse.
-    React.useEffect(() => {
-        const onScroll = () => onDismiss();
-        window.addEventListener("scroll", onScroll, { passive: true, capture: true });
-        return () => window.removeEventListener("scroll", onScroll, { capture: true });
-    }, [onDismiss]);
-
-    // Dismiss when clicking anywhere outside the popover.
-    React.useEffect(() => {
-        const onDown = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) onDismiss();
-        };
-        const onKey = (e) => { if (e.key === "Escape") onDismiss(); };
-        // Defer the listener one frame so the same pointer event that opened
-        // the popover doesn't close it instantly on touch devices.
-        const id = setTimeout(() => {
-            document.addEventListener("pointerdown", onDown, true);
-            document.addEventListener("keydown", onKey);
-        }, 0);
-        return () => {
-            clearTimeout(id);
-            document.removeEventListener("pointerdown", onDown, true);
-            document.removeEventListener("keydown", onKey);
-        };
-    }, [onDismiss]);
-
-    const formattedText = `"${verseInfo.text}" — ${verseInfo.bookDisplay} ${verseInfo.chapter}:${verseInfo.verse}`;
-
-    const doCopy = async (e) => {
-        e.stopPropagation();
+    const doCopy = async () => {
         try {
-            await navigator.clipboard.writeText(formattedText);
+            await navigator.clipboard.writeText(formatted);
             toast.success(t("bible.verse_copied"));
         } catch {
             toast.error(t("common.error"));
         }
-        onDismiss();
     };
-
-    const doShare = async (e) => {
-        e.stopPropagation();
+    const doShare = async () => {
         if (navigator.share) {
             try {
-                await navigator.share({
-                    title: t("bible.share_title"),
-                    text: formattedText,
-                });
+                await navigator.share({ title: t("bible.share_title"), text: formatted });
+                return;
             } catch { /* user cancelled — ignore */ }
-        } else {
-            // Desktop Chromium without WebShare: gracefully fall back to copy.
-            try {
-                await navigator.clipboard.writeText(formattedText);
-                toast.success(t("bible.verse_copied"));
-            } catch {
-                toast.error(t("common.error"));
-            }
         }
-        onDismiss();
+        await doCopy();
     };
-
-    const doFavorite = (e) => {
-        e.stopPropagation();
+    const doFavorite = () => {
         onToggleFavorite({
             book: verseInfo.book,
             bookDisplay: verseInfo.bookDisplay,
@@ -765,55 +634,37 @@ function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismis
             verse: verseInfo.verse,
             text: verseInfo.text,
         });
-        onDismiss();
     };
 
+    const items = [
+        {
+            id: "fav",
+            label: isSaved ? t("bible.remove_favorite") : t("common.save_favorite"),
+            icon: isSaved
+                ? <HeartBreak size={16} weight="duotone" />
+                : <Heart size={16} weight="duotone" />,
+            onSelect: doFavorite,
+        },
+        {
+            id: "copy",
+            label: t("bible.copy_verse"),
+            icon: <Copy size={16} weight="duotone" />,
+            onSelect: doCopy,
+        },
+        {
+            id: "share",
+            label: t("bible.share_verse"),
+            icon: <ShareNetwork size={16} weight="duotone" />,
+            onSelect: doShare,
+        },
+    ];
+
     return (
-        <span
-            ref={ref}
-            role="menu"
-            data-testid={`bible-verse-menu-${verseInfo.verse}`}
-            data-verse-key={verseKey}
-            data-placement={placement}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            className={[
-                "absolute left-3 z-30 flex flex-col bg-white border border-sand-300 shadow-lg rounded-lg py-1 ui-sans text-sm min-w-[220px] max-w-[90vw]",
-                placement === "above" ? "bottom-full mb-2" : "top-full mt-2",
-            ].join(" ")}
-        >
-            <button
-                type="button"
-                onClick={doFavorite}
-                data-testid={`bible-verse-fav-${verseInfo.verse}`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-left hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
-            >
-                {isSaved
-                    ? <HeartBreak size={16} weight="duotone" />
-                    : <Heart size={16} weight="duotone" />}
-                <span>{isSaved ? t("bible.remove_favorite") : t("common.save_favorite")}</span>
-            </button>
-            <span className="h-px bg-sand-300 mx-2" aria-hidden="true" />
-            <button
-                type="button"
-                onClick={doCopy}
-                data-testid={`bible-verse-copy-${verseInfo.verse}`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-left hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
-            >
-                <Copy size={16} weight="duotone" />
-                <span>{t("bible.copy_verse")}</span>
-            </button>
-            <span className="h-px bg-sand-300 mx-2" aria-hidden="true" />
-            <button
-                type="button"
-                onClick={doShare}
-                data-testid={`bible-verse-share-${verseInfo.verse}`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-left hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
-            >
-                <ShareNetwork size={16} weight="duotone" />
-                <span>{t("bible.share_verse")}</span>
-            </button>
-        </span>
+        <ContextMenu
+            items={items}
+            onDismiss={onDismiss}
+            testId={`bible-verse-menu-${verseInfo.verse}`}
+        />
     );
 }
+
