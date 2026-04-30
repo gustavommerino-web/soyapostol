@@ -1,8 +1,12 @@
 """Catholic prayers stored in MongoDB.
 
 Source-of-truth is the ``prayers`` collection. On first run we seed it once
-from aciprensa.com (Spanish catalog). After that, scraping never runs again
-and all changes — admin add / edit / delete — persist directly in MongoDB.
+for each language:
+  * Spanish — scraped from aciprensa.com
+  * English — loaded from a bundled curated JSON file
+
+After that, scraping never runs again and all changes — admin add / edit /
+delete — persist directly in MongoDB.
 
 Document shape:
     {
@@ -19,9 +23,11 @@ Document shape:
     }
 """
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 import asyncio
 import hashlib
+import json
 import logging
 import re
 
@@ -37,6 +43,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/prayers", tags=["prayers"])
 
 ACI_INDEX_ES = "https://www.aciprensa.com/recursos/20/oraciones"
+PRAYERS_EN_SEED_FILE = Path(__file__).parent / "data" / "prayers_en.json"
 HEADERS = {"User-Agent": "Mozilla/5.0 (ApostolApp)"}
 
 
@@ -125,8 +132,58 @@ async def _scrape_aci_content(url: str) -> str:
     return "\n\n".join(paragraphs)
 
 
+async def _seed_english_from_bundle(db) -> None:
+    """Load curated English prayers from the bundled JSON file."""
+    count = await db.prayers.count_documents({"lang": "en"})
+    if count > 0:
+        return
+    if not PRAYERS_EN_SEED_FILE.exists():
+        logger.warning("English prayer seed file missing: %s", PRAYERS_EN_SEED_FILE)
+        return
+    try:
+        payload = json.loads(PRAYERS_EN_SEED_FILE.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.error("English prayer seed: failed to parse %s: %s", PRAYERS_EN_SEED_FILE, e)
+        return
+    raw = payload.get("prayers") if isinstance(payload, dict) else payload
+    if not isinstance(raw, list):
+        logger.warning("English prayer seed: unexpected JSON shape")
+        return
+    now = _now()
+    docs = []
+    for it in raw:
+        title = (it.get("title") or "").strip()
+        content = (it.get("text") or "").strip()
+        if not title or not content:
+            continue
+        slug_base = it.get("id") or _slugify(title)
+        docs.append({
+            "lang": "en",
+            "slug": _slugify(slug_base),
+            "title": title,
+            "category": it.get("category") or "General",
+            "content": content,
+            "source": "scraped",  # treated as read-only seed in the admin UI
+            "source_url": None,
+            "created_at": now,
+            "updated_at": now,
+        })
+    if not docs:
+        logger.warning("English prayer seed: no valid entries in %s", PRAYERS_EN_SEED_FILE)
+        return
+    try:
+        await db.prayers.insert_many(docs, ordered=False)
+    except Exception as e:
+        # Unique-index collisions may happen on restart races — log and continue.
+        logger.warning("English prayer seed: partial insert error: %s", e)
+    logger.info("English prayer seed: inserted %d prayers", len(docs))
+
+
 async def seed_prayers_if_empty(db) -> None:
     """Populate the prayers collection on first run. Idempotent."""
+    # English seed is fast (bundled file) — run first.
+    await _seed_english_from_bundle(db)
+
     count = await db.prayers.count_documents({"lang": "es"})
     if count > 0:
         return
