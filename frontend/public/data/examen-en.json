@@ -139,6 +139,96 @@
       ]
     }
   ],
+  "alternative_exams": [
+    {
+      "id": "beatitudes_exam",
+      "title": "Examen based on the Beatitudes",
+      "target": "Adults / Spiritual Growth",
+      "description": "A deeper examen that measures the disposition of the heart toward holiness and the love of God.",
+      "categories": [
+        {
+          "id": "beatitude_1",
+          "name": "The poor in spirit",
+          "focus": "Blessed are the poor in spirit, for theirs is the kingdom of heaven.",
+          "questions": [
+            "Do I recognize my total need for God, or do I rely only on my own strength and successes?",
+            "Have I let pride or self-sufficiency pull me away from prayer?",
+            "Am I detached from material goods, or does my happiness depend on what I own?"
+          ]
+        },
+        {
+          "id": "beatitude_2",
+          "name": "Those who mourn",
+          "focus": "Blessed are those who mourn, for they shall be comforted.",
+          "questions": [
+            "Do I grieve my sin and the harm I cause others, or am I indifferent?",
+            "Have I sought comfort in vices or worldly distractions instead of seeking peace in God?",
+            "Am I able to accompany and console those who suffer around me?"
+          ]
+        },
+        {
+          "id": "beatitude_3",
+          "name": "The meek",
+          "focus": "Blessed are the meek, for they shall inherit the earth.",
+          "questions": [
+            "Have I been arrogant or impatient with those I considered 'beneath' me?",
+            "Do I try to impose my will at all costs in my family or at work?",
+            "Do I accept criticism with humility, or do I react with anger and defensiveness?"
+          ]
+        },
+        {
+          "id": "beatitude_4",
+          "name": "Hunger and thirst for righteousness",
+          "focus": "Blessed are those who hunger and thirst for righteousness, for they shall be satisfied.",
+          "questions": [
+            "Do I seek God's will first in my daily decisions?",
+            "Do I make an effort to grow in my faith and in my knowledge of the Word of God?",
+            "Am I indifferent to social injustice or to the poverty of others?"
+          ]
+        },
+        {
+          "id": "beatitude_5",
+          "name": "The merciful",
+          "focus": "Blessed are the merciful, for they shall obtain mercy.",
+          "questions": [
+            "Do I hold grudges, or do I find it hard to forgive those who have offended me?",
+            "Have I judged others harshly without knowing their struggles?",
+            "Do I carry out works of mercy (feeding the hungry, visiting the sick, consoling)?"
+          ]
+        },
+        {
+          "id": "beatitude_6",
+          "name": "The pure in heart",
+          "focus": "Blessed are the pure in heart, for they shall see God.",
+          "questions": [
+            "Have I consented to impure thoughts, words, or acts?",
+            "Are my intentions upright, or do I seek recognition for myself in my good works?",
+            "Do I guard what I see and hear so as to keep my mind focused on what is holy?"
+          ]
+        },
+        {
+          "id": "beatitude_7",
+          "name": "The peacemakers",
+          "focus": "Blessed are the peacemakers, for they shall be called children of God.",
+          "questions": [
+            "Have I caused divisions, gossip, or conflicts in my home or community?",
+            "Do I seek to reconcile people, or do I enjoy arguments?",
+            "Do I have peace in my heart, or do I live in a constant state of anxiety and distrust?"
+          ]
+        },
+        {
+          "id": "beatitude_8",
+          "name": "Those persecuted",
+          "focus": "Blessed are those who are persecuted for the sake of righteousness, for theirs is the kingdom of heaven.",
+          "questions": [
+            "Am I ashamed of my faith or of my Christian values in front of my friends or colleagues?",
+            "Have I stopped doing what is right out of fear of 'what others will say'?",
+            "Am I willing to sacrifice my comfort to defend the truth and the Gospel?"
+          ]
+        }
+      ]
+    }
+  ],
   "closing": {
     "act_of_contrition": "O my God, I am heartily sorry for having offended Thee, and I detest all my sins because of thy just punishments, but most of all because they offend Thee, my God, who art all good and deserving of all my love. I firmly resolve with the help of Thy grace to sin no more and to avoid the near occasion of sin. Amen."
   }

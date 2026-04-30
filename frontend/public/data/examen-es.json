@@ -139,6 +139,96 @@
       ]
     }
   ],
+  "alternative_exams": [
+    {
+      "id": "beatitudes_exam",
+      "title": "Examen basado en las Bienaventuranzas",
+      "target": "Adultos / Crecimiento Espiritual",
+      "description": "Un examen profundo que mide la disposición del corazón hacia la santidad y el amor de Dios.",
+      "categories": [
+        {
+          "id": "beatitude_1",
+          "name": "Pobres de espíritu",
+          "focus": "Bienaventurados los pobres en espíritu, porque de ellos es el reino de los cielos.",
+          "questions": [
+            "¿Reconozco mi necesidad total de Dios o confío solo en mis propias fuerzas y éxitos?",
+            "¿He permitido que el orgullo o la autosuficiencia me alejen de la oración?",
+            "¿Soy desapegado de los bienes materiales o mi felicidad depende de lo que poseo?"
+          ]
+        },
+        {
+          "id": "beatitude_2",
+          "name": "Los que lloran",
+          "focus": "Bienaventurados los que lloran, porque ellos recibirán consolación.",
+          "questions": [
+            "¿Me duele mi pecado y el daño que causo a otros, o soy indiferente?",
+            "¿He buscado consuelo en vicios o distracciones mundanas en lugar de buscar la paz en Dios?",
+            "¿Soy capaz de acompañar y consolar a los que sufren a mi alrededor?"
+          ]
+        },
+        {
+          "id": "beatitude_3",
+          "name": "Los humildes",
+          "focus": "Bienaventurados los humildes, porque ellos heredarán la tierra.",
+          "questions": [
+            "¿He sido arrogante o impaciente con los que considero 'inferiores' a mí?",
+            "¿Trato de imponer mi voluntad a toda costa en mi familia o trabajo?",
+            "¿Acepto las críticas con humildad o reacciono con ira y defensa?"
+          ]
+        },
+        {
+          "id": "beatitude_4",
+          "name": "Hambre y sed de justicia",
+          "focus": "Bienaventurados los que tienen hambre y sed de justicia, porque ellos serán saciados.",
+          "questions": [
+            "¿Busco primero la voluntad de Dios en mis decisiones diarias?",
+            "¿Me esfuerzo por crecer en mi fe y conocimiento de la Palabra de Dios?",
+            "¿Soy indiferente ante las injusticias sociales o la pobreza de los demás?"
+          ]
+        },
+        {
+          "id": "beatitude_5",
+          "name": "Los misericordiosos",
+          "focus": "Bienaventurados los misericordiosos, porque ellos alcanzarán misericordia.",
+          "questions": [
+            "¿Guardo rencores o me cuesta perdonar a quienes me han ofendido?",
+            "¿He juzgado severamente a los demás sin conocer sus luchas?",
+            "¿Realizo obras de misericordia (dar de comer, visitar enfermos, consolar)?"
+          ]
+        },
+        {
+          "id": "beatitude_6",
+          "name": "Limpios de corazón",
+          "focus": "Bienaventurados los limpios de corazón, porque ellos verán a Dios.",
+          "questions": [
+            "¿He consentido pensamientos, palabras o actos impuros?",
+            "¿Mis intenciones son rectas o busco el reconocimiento propio en mis buenas obras?",
+            "¿Cuido lo que veo y escucho para mantener mi mente enfocada en lo que es santo?"
+          ]
+        },
+        {
+          "id": "beatitude_7",
+          "name": "Los que trabajan por la paz",
+          "focus": "Bienaventurados los que trabajan por la paz, porque ellos serán llamados hijos de Dios.",
+          "questions": [
+            "¿He causado divisiones, chismes o conflictos en mi hogar o comunidad?",
+            "¿Busco reconciliar a las personas o disfruto de las discusiones?",
+            "¿Tengo paz en mi corazón o vivo en un estado constante de ansiedad y desconfianza?"
+          ]
+        },
+        {
+          "id": "beatitude_8",
+          "name": "Los perseguidos",
+          "focus": "Bienaventurados los perseguidos por causa de la justicia, porque de ellos es el reino de los cielos.",
+          "questions": [
+            "¿Me avergüenzo de mi fe o de mis valores cristianos frente a mis amigos o colegas?",
+            "¿He dejado de hacer lo correcto por miedo al 'qué dirán'?",
+            "¿Soy capaz de sacrificar mi comodidad por defender la verdad y el Evangelio?"
+          ]
+        }
+      ]
+    }
+  ],
   "closing": {
     "act_of_contrition": "Dios mío, me arrepiento de todo corazón de haberte ofendido, y aborrezco todos mis pecados por temor a perder el cielo y merecer el infierno, pero sobre todo porque te ofenden a Ti, mi Dios, que eres todo bondad y digno de todo mi amor. Propongo firmemente, con el auxilio de tu gracia, no pecar más y evitar las ocasiones próximas de pecado. Amén."
   }

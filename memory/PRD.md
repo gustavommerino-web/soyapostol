@@ -53,19 +53,23 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
 - ✅ 29/29 backend tests + frontend Examen flow passing (`iteration_2.json`)
 
+## Implemented (2026-04-30) — Examen Privacy & Beatitudes
+
+- ✅ **Beatitudes examen** added as a 5th profile on `Examen.jsx` (ES + EN). Sourced from user-provided JSON; renders each Beatitude as its own accordion section with the biblical quote as italic blockquote + 3 introspection questions.
+- ✅ **Privacy fixes (state management)** in `Examen.jsx`:
+  - "Cambiar estado / Change state" now wipes every mark via inline confirm → `resetAll()` before returning to the profile cover.
+  - New **"Empezar de nuevo / Start over"** button (keeps profile, clears marks) surfaces only when at least one mark exists.
+  - New **"Terminar confesión / Finish confession"** button in summary → confirm → full wipe (localStorage + state) → transitions to a "Paz sea contigo / Peace be with you" peace screen that gracefully returns to cover.
+- ✅ New translations added to `LangContext.jsx`: `change_profile_confirm`, `start_over`, `start_over_confirm`, `finish_confession`, `finish_confession_confirm`, `finish_done_title`, `finish_done_subtitle`, `return_home`, `beatitude_n`, and `profile.beatitudes` / `profile_desc.beatitudes`.
+- ✅ Tested end-to-end with screenshot tool: cover (5 profiles), Beatitudes accordion with focus quote, start-over visibility, summary, finish-confession flow, peace screen, and cross-profile wipe.
+
 ## Backlog (P0/P1/P2)
-### P1
-- Verify custom-domain deployment on `soyapostol.org` once user redeploys (CORS + SameSite=none cookies already configured)
-- Date selection for Readings (scrape archived pages or switch to an API with date support)
-- English prayer catalog (CNA resources index)
-- Highlight-to-favorite on Bible/CCC paragraphs (select text → save)
+### P1 (active)
+- Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
+
 ### P2
-- Forgot password flow (backend handler exists; frontend form pending)
-- Offline reading / PWA manifest
-- Reading plans (year A/B/C tracker, chapter-a-day)
-- Audio liturgy & daily gospel TTS
-- Freemium / donation model
-- Pre-scrape ES+EN readings on startup once browser pool is warm (avoid first-user 1–2 s latency)
+- Reading plans / Freemium model.
+- Highlight-to-favorite on Bible/CCC paragraphs.
 
 ## Credentials
 See `/app/memory/test_credentials.md`
