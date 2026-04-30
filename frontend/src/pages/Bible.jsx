@@ -649,6 +649,36 @@ function VerseRow({
 function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismiss }) {
     const { t } = useLang();
     const ref = React.useRef(null);
+    // "below" by default; flips to "above" when rendering below would push the
+    // menu off the bottom edge of the viewport. Measured on mount so it reflects
+    // the real rendered height of the popover (3 buttons + dividers ≈ 150 px).
+    const [placement, setPlacement] = React.useState("below");
+
+    React.useLayoutEffect(() => {
+        if (!ref.current) return;
+        const menuEl = ref.current;
+        const verseEl = menuEl.parentElement; // the <p> verse row
+        if (!verseEl) return;
+        const verseRect = verseEl.getBoundingClientRect();
+        const menuHeight = menuEl.offsetHeight;
+        const margin = 16;
+        const spaceBelow = window.innerHeight - verseRect.bottom;
+        const spaceAbove = verseRect.top;
+        // Prefer "below" when it fits. Fall back to "above" only when below
+        // overflows AND above has clearly more room.
+        if (spaceBelow < menuHeight + margin && spaceAbove > spaceBelow) {
+            setPlacement("above");
+        } else {
+            setPlacement("below");
+        }
+    }, []);
+
+    // Close on any scroll so the menu never drifts out of alignment with its verse.
+    React.useEffect(() => {
+        const onScroll = () => onDismiss();
+        window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+        return () => window.removeEventListener("scroll", onScroll, { capture: true });
+    }, [onDismiss]);
 
     // Dismiss when clicking anywhere outside the popover.
     React.useEffect(() => {
@@ -721,10 +751,14 @@ function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismis
             role="menu"
             data-testid={`bible-verse-menu-${verseInfo.verse}`}
             data-verse-key={verseKey}
+            data-placement={placement}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            className="absolute left-3 top-full mt-2 z-30 flex flex-col bg-white border border-sand-300 shadow-lg rounded-lg py-1 ui-sans text-sm min-w-[220px] max-w-[90vw]"
+            className={[
+                "absolute left-3 z-30 flex flex-col bg-white border border-sand-300 shadow-lg rounded-lg py-1 ui-sans text-sm min-w-[220px] max-w-[90vw]",
+                placement === "above" ? "bottom-full mb-2" : "top-full mt-2",
+            ].join(" ")}
         >
             <button
                 type="button"
