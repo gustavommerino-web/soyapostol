@@ -214,6 +214,7 @@ async def ensure_indexes(db):
 
 class ForgotPasswordIn(BaseModel):
     email: EmailStr
+    lang: Optional[str] = "es"
 
 
 class ResetPasswordIn(BaseModel):
@@ -227,17 +228,20 @@ def _hash_token(token: str) -> str:
 
 @router.post("/forgot-password")
 async def forgot_password(data: ForgotPasswordIn, request: Request):
-    """Issue a password-reset token. Demo mode: returns the reset link in the
-    response (and logs it) instead of emailing it. The same response shape is
-    returned whether or not the email exists, but `reset_path` is only present
-    when the user is actually found (acceptable for our demo flow)."""
+    """Issue a password-reset token and email the link via Resend. The
+    response is deliberately uniform whether or not the email exists so we
+    don't leak account existence to attackers."""
+    from email_service import send_password_reset_email  # local import avoids cycles
     db = request.app.state.db
     email = data.email.lower()
+    lang = data.lang if data.lang in ("es", "en") else "es"
     user = await db.users.find_one({"email": email})
 
+    generic_ok = {"ok": True,
+                  "message": "If the email exists, a reset link has been issued."}
+
     if not user:
-        # Don't leak which emails exist.
-        return {"ok": True, "message": "If the email exists, a reset link has been issued."}
+        return generic_ok
 
     raw_token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES)
@@ -251,17 +255,30 @@ async def forgot_password(data: ForgotPasswordIn, request: Request):
         "created_at": datetime.now(timezone.utc),
     })
 
-    reset_path = f"/reset-password?token={raw_token}"
-    logger.warning(
-        "[demo] Password reset requested for %s — reset link: %s (expires in %d min)",
-        email, reset_path, PASSWORD_RESET_TTL_MINUTES,
+    # Build the public reset URL — prefer the caller's origin so the link
+    # works correctly whether the request came from preview, prod, or a
+    # local dev host. Fall back to an env-configured APP_PUBLIC_URL.
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    if origin:
+        # Strip trailing path from referer to keep just the host.
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        base = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else origin
+    else:
+        base = os.environ.get("APP_PUBLIC_URL", "https://soyapostol.org")
+    reset_url = f"{base.rstrip('/')}/reset-password?token={raw_token}"
+
+    # Send via Resend (non-blocking). Failures are logged but the endpoint
+    # still succeeds — the token is persisted, so retries / alternative
+    # channels (e.g. SMS) can reuse it.
+    await send_password_reset_email(
+        to_email=email,
+        reset_url=reset_url,
+        ttl_minutes=PASSWORD_RESET_TTL_MINUTES,
+        lang=lang,
     )
-    return {
-        "ok": True,
-        "message": "Reset link issued.",
-        "reset_path": reset_path,
-        "expires_in_minutes": PASSWORD_RESET_TTL_MINUTES,
-    }
+
+    return generic_ok
 
 
 @router.post("/reset-password")
