@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import {
     Trash, ArrowSquareOut, HeartBreak, CaretDown, CaretUp,
+    MagnifyingGlass, X,
 } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ export default function Favorites() {
     const [items, setItems] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [filter, setFilter] = React.useState("all");
+    const [query, setQuery] = React.useState("");
 
     const load = React.useCallback(async () => {
         setLoading(true);
@@ -55,13 +57,53 @@ export default function Favorites() {
     }
 
     const sections = Array.from(new Set(items.map((i) => i.section)));
-    const filtered = filter === "all" ? items : items.filter((i) => i.section === filter);
+    const q = query.trim().toLowerCase();
+    const filtered = items.filter((i) => {
+        if (filter !== "all" && i.section !== filter) return false;
+        if (!q) return true;
+        const hay = `${i.title || ""}\n${i.content || ""}`.toLowerCase();
+        return hay.includes(q);
+    });
 
     return (
         <div className="max-w-4xl mx-auto" data-testid="favorites-page">
             <p className="label-eyebrow mb-3">{t("nav.favorites")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">{t("nav.favorites")}</h1>
             <p className="text-stoneMuted mb-10 max-w-2xl">{t("sections.favorites_desc")}</p>
+
+            {items.length > 0 && (
+                <div className="mb-6" data-testid="favorites-search-wrap">
+                    <label htmlFor="fav-search" className="relative block">
+                        <MagnifyingGlass
+                            size={16}
+                            weight="bold"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint pointer-events-none"
+                            aria-hidden="true"
+                        />
+                        <input
+                            id="fav-search"
+                            type="search"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder={t("favorites.search_placeholder")}
+                            data-testid="favorites-search-input"
+                            className="w-full pl-10 pr-10 py-3 ui-sans text-sm text-stone900 bg-white border border-sand-300 rounded-md focus:outline-none focus:border-sangre placeholder:text-stoneFaint"
+                            aria-label={t("favorites.search_placeholder")}
+                        />
+                        {query && (
+                            <button
+                                type="button"
+                                onClick={() => setQuery("")}
+                                data-testid="favorites-search-clear"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-stoneFaint hover:text-sangre hover:bg-sangre/5"
+                                aria-label={t("common.cancel")}
+                            >
+                                <X size={14} weight="bold" />
+                            </button>
+                        )}
+                    </label>
+                </div>
+            )}
 
             {items.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-10" data-testid="favorites-filter">
@@ -82,6 +124,11 @@ export default function Favorites() {
             {!loading && items.length === 0 && (
                 <p className="text-stoneMuted" data-testid="favorites-empty">
                     {lang === "es" ? "Aún no has guardado nada." : "You haven't saved anything yet."}
+                </p>
+            )}
+            {!loading && items.length > 0 && filtered.length === 0 && (
+                <p className="text-stoneMuted" data-testid="favorites-empty-search">
+                    {t("favorites.no_results", { q: query })}
                 </p>
             )}
 

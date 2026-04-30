@@ -48,6 +48,10 @@ const STRINGS = {
             show_more: "Leer más",
             show_less: "Cerrar",
         },
+        favorites: {
+            search_placeholder: "Buscar entre mis favoritos…",
+            no_results: 'Sin resultados para "{q}".',
+        },
         sections: {
             readings_desc: "Las lecturas del día con comentario del Evangelio",
             liturgy_desc: "Oración litúrgica de las Horas",
@@ -314,6 +318,10 @@ const STRINGS = {
             cancel: "Cancel",
             show_more: "Read more",
             show_less: "Show less",
+        },
+        favorites: {
+            search_placeholder: "Search my favorites…",
+            no_results: 'No results for "{q}".',
         },
         sections: {
             readings_desc: "Today's readings with Gospel commentary",
