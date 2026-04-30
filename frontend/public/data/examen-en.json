@@ -530,6 +530,220 @@
       "closing": {
         "prayer": "Our Father, who art in heaven... (Pray an Our Father to close the day)."
       }
+    },
+    {
+      "id": "charity_hymn_exam",
+      "title": "Examen of Love (1 Corinthians 13)",
+      "target": "Couples, Families and Community",
+      "description": "A deep reflection based on the qualities of true love described by Saint Paul.",
+      "categories": [
+        {
+          "id": "patience_kindness",
+          "name": "Patience and Kindness",
+          "focus": "Love is patient, love is kind.",
+          "questions": [
+            "Have I lost patience with the weaknesses of those around me?",
+            "Am I attentive and anticipate others' needs, or do I wait until they ask for help?",
+            "Have I been rude or sharp in my speech today?"
+          ]
+        },
+        {
+          "id": "humility_generosity",
+          "name": "Humility and Generosity",
+          "focus": "Love is not envious, not boastful, not proud.",
+          "questions": [
+            "Have I bragged about my achievements to feel superior to others?",
+            "Have I felt envy toward another's success or peace?",
+            "Have I acted selfishly, seeking only my own interest or comfort?"
+          ]
+        },
+        {
+          "id": "forgiveness_peace",
+          "name": "Forgiveness and Meekness",
+          "focus": "Love is not easily angered, it keeps no record of wrongs.",
+          "questions": [
+            "Have I reacted with disproportionate anger to an inconvenience?",
+            "Do I carry a mental 'list' of the offenses done to me (keeping a record of wrongs)?",
+            "Have I been quick to forgive, or do I let the sun set on my anger?"
+          ]
+        },
+        {
+          "id": "truth_hope",
+          "name": "Truth and Hope",
+          "focus": "Love rejoices in the truth. It bears all things, believes all things, hopes all things, endures all things.",
+          "questions": [
+            "Have I secretly rejoiced at the failure or mistake of someone I dislike?",
+            "Have I defended the truth with charity, or used it as a weapon to wound?",
+            "Have I lost hope in people, treating them as though they could never change?",
+            "Have I been able to bear difficulties with faith, without complaining bitterly?"
+          ]
+        }
+      ],
+      "closing": {
+        "scripture": "And now these three remain: faith, hope, and love. But the greatest of these is love. (1 Corinthians 13:13)"
+      }
+    },
+    {
+      "id": "holy_spirit_gifts_exam",
+      "title": "Examen of the Gifts of the Holy Spirit",
+      "target": "Adults / Confirmandi",
+      "description": "A review of how we allow God's grace to act within our intellect and will.",
+      "categories": [
+        {
+          "id": "wisdom_intellect",
+          "name": "Wisdom and Understanding",
+          "focus": "Seeing things as God sees them.",
+          "questions": [
+            "Do I seek God's will before making important decisions, or am I impulsive?",
+            "Do I try to deepen in the truths of the faith, or settle for superficial knowledge?",
+            "Do I stop to meditate on the Word of God so that it may illumine my daily life?"
+          ]
+        },
+        {
+          "id": "counsel_fortitude",
+          "name": "Counsel and Fortitude",
+          "focus": "Acting with righteousness and courage.",
+          "questions": [
+            "Do I ask the Holy Spirit for counsel when I am confused?",
+            "Have I had the strength to say 'no' to sin in moments of strong temptation?",
+            "Am I constant in my spiritual resolutions, or do I give up at the first obstacle?"
+          ]
+        },
+        {
+          "id": "piety_fear_god",
+          "name": "Piety and Fear of God",
+          "focus": "A filial relationship with the Father.",
+          "questions": [
+            "Do I treat God as a loving Father, or as a distant and cold judge?",
+            "Do I have deep respect for sacred things (the Eucharist, the temple, prayer)?",
+            "Do I avoid sin out of love for God, or only out of fear of punishment?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "youth_exam",
+      "title": "Examen for Young People",
+      "target": "Teenagers and Students",
+      "description": "A practical guide for young people seeking to live their faith at school, with friends, and at home.",
+      "categories": [
+        {
+          "id": "family_school",
+          "name": "At Home and at School",
+          "focus": "Honoring parents and being responsible.",
+          "questions": [
+            "Have I disobeyed my parents or talked back with disrespect?",
+            "Do I help with chores at home without being asked a thousand times?",
+            "Have I been honest in my studies, or have I cheated on tests and assignments?",
+            "Do I waste too much time on video games or my phone, neglecting my duties?"
+          ]
+        },
+        {
+          "id": "friends_social",
+          "name": "Friendships and Peer Pressure",
+          "focus": "Being a light among friends.",
+          "questions": [
+            "Have I joined in teasing or bullying toward a classmate?",
+            "Have I let friends pressure me into things I know are wrong (alcohol, drugs, sex)?",
+            "Have I stood up for someone who was being mistreated, or stayed silent out of fear?",
+            "Do I speak ill of my friends behind their backs?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "professional_ethics_work_exam",
+      "title": "Examen of the Sanctification of Work",
+      "target": "Professionals, Engineers and Entrepreneurs",
+      "description": "A guide to evaluate our integrity, leadership, and purpose at work and in business.",
+      "categories": [
+        {
+          "id": "integrity_honesty",
+          "name": "Integrity and Honesty",
+          "focus": "Reflecting the truth of Christ in every transaction and decision.",
+          "questions": [
+            "Have I been honest in my reports, billing, taxes, and handling of others' resources?",
+            "Have I kept my promises and contracts, even when it was costly or difficult?",
+            "Have I used my position or authority for personal benefit at the expense of others?",
+            "Have I spoken ill of the competition or of colleagues to raise my own image?"
+          ]
+        },
+        {
+          "id": "excellence_stewardship",
+          "name": "Excellence and Diligence",
+          "focus": "Doing the work well for the love of God, not merely to get it done.",
+          "questions": [
+            "Do I strive to do my work with the highest possible quality, as if doing it for the Lord?",
+            "Have I wasted time at work on personal distractions (social media, leisure)?",
+            "Have I neglected my professional or technical development, limiting my ability to serve better?",
+            "Have I been orderly and responsible with the tools and work environment entrusted to me?"
+          ]
+        },
+        {
+          "id": "leadership_charity",
+          "name": "Leadership and Charity",
+          "focus": "Treating colleagues, clients, and subordinates with dignity.",
+          "questions": [
+            "Do I treat my employees or collaborators with justice, paying what is due and respecting their rest?",
+            "Have I been a leader who serves, or a boss who oppresses and humiliates?",
+            "Have I let the stress of work affect my kindness toward others?",
+            "Have I borne witness to my Christian values in my professional setting without fear of judgment?"
+          ]
+        },
+        {
+          "id": "work_life_balance",
+          "name": "Balance and Detachment",
+          "focus": "Not letting work become an idol.",
+          "questions": [
+            "Have I let ambition or professional success become my priority over God and family?",
+            "Am I able to disconnect from work to be truly present at home?",
+            "Have I worked excessively out of anxiety or a lack of trust in divine Providence?",
+            "Do I accept professional failures with humility and successes with gratitude, without inflating my ego?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "marriage_family_exam",
+      "title": "Examen for Family Life",
+      "target": "Spouses and Parents",
+      "description": "A guide to review our vocation as pillars of the Christian home.",
+      "categories": [
+        {
+          "id": "as_spouse",
+          "name": "As Spouse",
+          "focus": "The sacrament of marriage as a path to holiness.",
+          "questions": [
+            "Have I placed my spouse as my human priority, after God?",
+            "Have I been grateful for the small sacrifices my spouse makes for me?",
+            "Have I held grudges or brought up past offenses instead of forgiving?",
+            "Have I neglected deep conversation, preferring my phone or the television?",
+            "Have I been faithful not only physically, but also in my thoughts and desires?"
+          ]
+        },
+        {
+          "id": "as_parent",
+          "name": "As Parent",
+          "focus": "The responsibility of educating and loving our children.",
+          "questions": [
+            "Have I been an example of faith and prayer for my children?",
+            "Have I taken time to listen to them and know their concerns, or only to correct them?",
+            "Have I lost my temper and shouted at them, or treated them with unnecessary harshness?",
+            "Do I work to create an atmosphere of joy and peace at home?",
+            "Have I neglected my own formation so as to answer their questions about life and faith?"
+          ]
+        },
+        {
+          "id": "home_stewardship",
+          "name": "Stewardship of the Home",
+          "focus": "The use of resources and time as a family.",
+          "questions": [
+            "Have I let work or outside business consume the time that belongs to my family?",
+            "Are we a family open to the needs of other relatives or neighbors?",
+            "Have I encouraged the reading of the Word or the praying of the Rosary at home?"
+          ]
+        }
+      ]
     }
   ],
   "closing": {

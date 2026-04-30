@@ -5,6 +5,7 @@ import {
     CaretDown, CheckCircle, ArrowLeft, TrashSimple, CheckSquareOffset,
     Heart, UserCircle, Lightning, UserFocus, Moon, Sparkle, ArrowCounterClockwise,
     HandHeart, HeartStraight, Clock, Flame, Leaf, HandsPraying,
+    Wind, GraduationCap, Scroll, Briefcase, House,
 } from "@phosphor-icons/react";
 
 const DATA_URL = (lang) => `/data/examen-${lang}.json`;
@@ -14,16 +15,21 @@ const STORAGE_KEY = (lang) => `soyapostol:examen:${lang}`; // local only — nev
 //   - kind "general"   → renders the Ten Commandments (+ optional specific_states target)
 //   - kind "alt_exam"  → renders an entry from `alternative_exams` by id (e.g. Beatitudes)
 const PROFILES = [
-    { id: "adults",          icon: UserFocus,    kind: "general",  target: null },
-    { id: "married_couples", icon: Heart,        kind: "general",  target: "married_couples" },
-    { id: "single_adults",   icon: UserCircle,   kind: "general",  target: "single_adults" },
-    { id: "teenagers",       icon: Lightning,    kind: "general",  target: "teenagers" },
-    { id: "beatitudes",      icon: Sparkle,      kind: "alt_exam", target: "beatitudes_exam" },
+    { id: "adults",          icon: UserFocus,     kind: "general",  target: null },
+    { id: "married_couples", icon: Heart,         kind: "general",  target: "married_couples" },
+    { id: "single_adults",   icon: UserCircle,    kind: "general",  target: "single_adults" },
+    { id: "teenagers",       icon: Lightning,     kind: "general",  target: "teenagers" },
+    { id: "beatitudes",      icon: Sparkle,       kind: "alt_exam", target: "beatitudes_exam" },
     { id: "triple_love",     icon: HeartStraight, kind: "alt_exam", target: "triple_love_exam" },
-    { id: "capital_sins",    icon: Flame,        kind: "alt_exam", target: "capital_sins_exam" },
-    { id: "virtues",         icon: Leaf,         kind: "alt_exam", target: "virtues_moral_exam" },
-    { id: "mercy_works",     icon: HandsPraying, kind: "alt_exam", target: "mercy_works_exam" },
-    { id: "ignatian_daily",  icon: Clock,        kind: "alt_exam", target: "ignatian_daily_examen" },
+    { id: "capital_sins",    icon: Flame,         kind: "alt_exam", target: "capital_sins_exam" },
+    { id: "virtues",         icon: Leaf,          kind: "alt_exam", target: "virtues_moral_exam" },
+    { id: "mercy_works",     icon: HandsPraying,  kind: "alt_exam", target: "mercy_works_exam" },
+    { id: "ignatian_daily",  icon: Clock,         kind: "alt_exam", target: "ignatian_daily_examen" },
+    { id: "charity_hymn",    icon: Scroll,        kind: "alt_exam", target: "charity_hymn_exam" },
+    { id: "holy_spirit",     icon: Wind,          kind: "alt_exam", target: "holy_spirit_gifts_exam" },
+    { id: "youth",           icon: GraduationCap, kind: "alt_exam", target: "youth_exam" },
+    { id: "work",            icon: Briefcase,     kind: "alt_exam", target: "professional_ethics_work_exam" },
+    { id: "family",          icon: House,         kind: "alt_exam", target: "marriage_family_exam" },
 ];
 
 // -------- State shape --------

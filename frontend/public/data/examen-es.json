@@ -530,6 +530,220 @@
       "closing": {
         "prayer": "Padre Nuestro, que estás en el cielo... (Rezar un Padre Nuestro para cerrar el día)."
       }
+    },
+    {
+      "id": "charity_hymn_exam",
+      "title": "Examen del Amor (1 Corintios 13)",
+      "target": "Parejas, Familias y Comunidad",
+      "description": "Una reflexión profunda basada en las características del amor verdadero descritas por San Pablo.",
+      "categories": [
+        {
+          "id": "patience_kindness",
+          "name": "Paciencia y Bondad",
+          "focus": "El amor es paciente, es servicial.",
+          "questions": [
+            "¿He perdido la paciencia con las debilidades de los que me rodean?",
+            "¿Soy servicial y me anticipo a las necesidades de los demás, o espero a que me pidan ayuda?",
+            "¿He sido rudo o cortante al hablar hoy?"
+          ]
+        },
+        {
+          "id": "humility_generosity",
+          "name": "Humildad y Generosidad",
+          "focus": "El amor no es envidioso, no es jactancioso, no se engríe.",
+          "questions": [
+            "¿He presumido de mis logros para sentirme superior a otros?",
+            "¿He sentido envidia del éxito o de la paz de otra persona?",
+            "¿He actuado con egoísmo, buscando solo mi propio interés o comodidad?"
+          ]
+        },
+        {
+          "id": "forgiveness_peace",
+          "name": "Perdón y Mansedumbre",
+          "focus": "El amor no se irrita, no lleva cuentas del mal.",
+          "questions": [
+            "¿He reaccionado con ira desmedida ante una contrariedad?",
+            "¿Llevo una 'lista' mental de las ofensas que me han hecho (llevo cuentas del mal)?",
+            "¿He sido capaz de perdonar rápido, o dejo que el sol se ponga sobre mi enojo?"
+          ]
+        },
+        {
+          "id": "truth_hope",
+          "name": "Verdad y Esperanza",
+          "focus": "El amor se alegra con la verdad. Todo lo excusa, todo lo cree, todo lo espera, todo lo soporta.",
+          "questions": [
+            "¿Me he alegrado secretamente del fallo o error de alguien que no me cae bien?",
+            "¿He defendido la verdad con caridad, o la he usado como un arma para herir?",
+            "¿He perdido la esperanza en las personas, tratándolas como si no pudieran cambiar?",
+            "¿He sido capaz de soportar las dificultades con fe, sin quejarme amargamente?"
+          ]
+        }
+      ],
+      "closing": {
+        "scripture": "Ahora permanecen estas tres cosas: la fe, la esperanza y el amor, pero la más excelente de ellas es el amor. (1 Corintios 13:13)"
+      }
+    },
+    {
+      "id": "holy_spirit_gifts_exam",
+      "title": "Examen de los Dones del Espíritu Santo",
+      "target": "Adultos / Confirmandos",
+      "description": "Una revisión sobre cómo permitimos que la gracia de Dios actúe en nuestra inteligencia y voluntad.",
+      "categories": [
+        {
+          "id": "wisdom_intellect",
+          "name": "Sabiduría y Entendimiento",
+          "focus": "Ver las cosas como Dios las ve.",
+          "questions": [
+            "¿Busco la voluntad de Dios antes de tomar decisiones importantes o soy impulsivo?",
+            "¿Trato de profundizar en las verdades de la fe o me conformo con un conocimiento superficial?",
+            "¿Me detengo a meditar la Palabra de Dios para que ilumine mi vida diaria?"
+          ]
+        },
+        {
+          "id": "counsel_fortitude",
+          "name": "Consejo y Fortaleza",
+          "focus": "Actuar con rectitud y valentía.",
+          "questions": [
+            "¿Pido consejo al Espíritu Santo cuando estoy confundido?",
+            "¿He tenido la fuerza para decir 'no' al pecado en momentos de tentación fuerte?",
+            "¿Soy constante en mis propósitos espirituales o me rindo al primer obstáculo?"
+          ]
+        },
+        {
+          "id": "piety_fear_god",
+          "name": "Piedad y Temor de Dios",
+          "focus": "Relación filial con el Padre.",
+          "questions": [
+            "¿Trato a Dios como a un Padre amoroso o como a un juez lejano y frío?",
+            "¿Tengo un respeto profundo por las cosas sagradas (la Eucaristía, el templo, la oración)?",
+            "¿Evito el pecado por amor a Dios, o solo por miedo al castigo?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "youth_exam",
+      "title": "Examen para Jóvenes",
+      "target": "Adolescentes y Estudiantes",
+      "description": "Una guía práctica para jóvenes que buscan vivir su fe en la escuela, con amigos y en casa.",
+      "categories": [
+        {
+          "id": "family_school",
+          "name": "En Casa y en la Escuela",
+          "focus": "Honrar a los padres y ser responsables.",
+          "questions": [
+            "¿He desobedecido a mis padres o les he contestado con falta de respeto?",
+            "¿Ayudo en las tareas del hogar sin que me lo tengan que pedir mil veces?",
+            "¿He sido honesto en mis estudios o he hecho trampa en exámenes y tareas?",
+            "¿Pierdo demasiado tiempo en videojuegos o celular descuidando mis deberes?"
+          ]
+        },
+        {
+          "id": "friends_social",
+          "name": "Amistades y Presión Social",
+          "focus": "Ser luz entre los amigos.",
+          "questions": [
+            "¿He participado en burlas o 'bullying' hacia algún compañero?",
+            "¿Me he dejado presionar por amigos para hacer cosas que sé que están mal (alcohol, drogas, sexo)?",
+            "¿He defendido a alguien que estaba siendo maltratado o me quedé callado por miedo?",
+            "¿Hablo mal de mis amigos a sus espaldas?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "professional_ethics_work_exam",
+      "title": "Examen de Santificación del Trabajo",
+      "target": "Profesionales, Ingenieros y Emprendedores",
+      "description": "Una guía para evaluar nuestra integridad, liderazgo y propósito en el ámbito laboral y los negocios.",
+      "categories": [
+        {
+          "id": "integrity_honesty",
+          "name": "Integridad y Honestidad",
+          "focus": "Reflejar la verdad de Cristo en cada transacción y decisión.",
+          "questions": [
+            "¿He sido honesto en mis informes, cobros, impuestos y manejo de recursos ajenos?",
+            "¿He cumplido con mis promesas y contratos, incluso cuando me resulta costoso o difícil?",
+            "¿He utilizado mi posición o autoridad para beneficio personal a costa de otros?",
+            "¿He hablado mal de la competencia o de colegas para elevar mi propia imagen?"
+          ]
+        },
+        {
+          "id": "excellence_stewardship",
+          "name": "Excelencia y Laboriosidad",
+          "focus": "Hacer el trabajo bien por amor a Dios, no solo por cumplir.",
+          "questions": [
+            "¿Me esfuerzo por realizar mi trabajo con la mayor calidad posible, como si lo hiciera para el Señor?",
+            "¿He desperdiciado tiempo en el trabajo en distracciones personales (redes sociales, ocio)?",
+            "¿He descuidado mi formación profesional o técnica, limitando mi capacidad de servir mejor?",
+            "¿He sido ordenado y responsable con las herramientas y el entorno de trabajo que se me han confiado?"
+          ]
+        },
+        {
+          "id": "leadership_charity",
+          "name": "Liderazgo y Caridad",
+          "focus": "Tratar a colegas, clientes y subordinados con dignidad.",
+          "questions": [
+            "¿Trato a mis empleados o colaboradores con justicia, pagando lo debido y respetando su descanso?",
+            "¿He sido un líder que sirve o un jefe que oprime y humilla?",
+            "¿He permitido que el estrés del trabajo afecte mi trato amable con los demás?",
+            "¿He dado testimonio de mis valores cristianos en mi entorno profesional sin miedo al juicio?"
+          ]
+        },
+        {
+          "id": "work_life_balance",
+          "name": "Equilibrio y Desapego",
+          "focus": "Evitar que el trabajo se convierta en un ídolo.",
+          "questions": [
+            "¿He permitido que la ambición o el éxito profesional se conviertan en mi prioridad sobre Dios y mi familia?",
+            "¿Sé desconectarme del trabajo para estar presente de corazón en mi hogar?",
+            "¿He trabajado excesivamente por ansiedad o falta de confianza en la Providencia divina?",
+            "¿Acepto los fracasos profesionales con humildad y los éxitos con gratitud, sin que inflen mi ego?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "marriage_family_exam",
+      "title": "Examen para la Vida en Familia",
+      "target": "Esposos y Padres",
+      "description": "Una guía para revisar nuestra vocación como pilares del hogar cristiano.",
+      "categories": [
+        {
+          "id": "as_spouse",
+          "name": "Como Esposo / Esposa",
+          "focus": "El sacramento del matrimonio como camino de santidad.",
+          "questions": [
+            "¿He puesto a mi cónyuge como mi prioridad humana, después de Dios?",
+            "¿He sido agradecido por los pequeños sacrificios que mi cónyuge hace por mí?",
+            "¿He guardado rencores o he recordado ofensas pasadas en lugar de perdonar?",
+            "¿He descuidado la comunicación profunda por preferir el celular o la televisión?",
+            "¿He sido fiel no solo físicamente, sino también en mis pensamientos y deseos?"
+          ]
+        },
+        {
+          "id": "as_parent",
+          "name": "Como Padre / Madre",
+          "focus": "La responsabilidad de educar y amar a los hijos.",
+          "questions": [
+            "¿He sido un ejemplo de fe y oración para mis hijos?",
+            "¿He dedicado tiempo para escucharlos y conocer sus preocupaciones, o solo para corregirlos?",
+            "¿He perdido los estribos y les he gritado o tratado con dureza innecesaria?",
+            "¿Me esfuerzo por crear un ambiente de alegría y paz en el hogar?",
+            "¿He descuidado mi propia formación para poder responder a sus dudas sobre la vida y la fe?"
+          ]
+        },
+        {
+          "id": "home_stewardship",
+          "name": "Administración del Hogar",
+          "focus": "El uso de los recursos y el tiempo en familia.",
+          "questions": [
+            "¿He permitido que el trabajo o los negocios externos consuman el tiempo que le pertenece a mi familia?",
+            "¿Somos una familia abierta a las necesidades de otros parientes o vecinos?",
+            "¿He fomentado la lectura de la Palabra o el rezo del Rosario en casa?"
+          ]
+        }
+      ]
     }
   ],
   "closing": {

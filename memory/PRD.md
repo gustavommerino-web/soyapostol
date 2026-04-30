@@ -53,6 +53,16 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
 - ✅ 29/29 backend tests + frontend Examen flow passing (`iteration_2.json`)
 
+## Implemented (2026-04-30 · part 3) — 5 exámenes más añadidos
+
+- ✅ **Himno de la Caridad** (1 Co 13) · cierre con Escritura (1 Co 13:13).
+- ✅ **Dones del Espíritu Santo** (Sabiduría, Consejo, Piedad).
+- ✅ **Jóvenes** (casa/escuela, amistades/presión social).
+- ✅ **Trabajo profesional** (integridad, excelencia, liderazgo, equilibrio).
+- ✅ **Matrimonio y familia** (como esposo, como padre, administración del hogar).
+- ✅ Traducciones ES/EN completas + 5 iconos únicos nuevos (Scroll, Wind, GraduationCap, Briefcase, House).
+- ✅ Total **15 perfiles** en la cobertura del Examen. Smoke test verificó cobertura, scripture closing y fallback a Acto de Contrición.
+
 ## Implemented (2026-04-30 · part 2) — 5 exámenes alternativos añadidos
 
 - ✅ **Triple amor** (Gran Mandamiento: Dios / prójimo / uno mismo).
