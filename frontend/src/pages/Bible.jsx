@@ -616,16 +616,12 @@ function VerseRow({
             data-bible-verse={verse.verse}
             data-testid={`bible-verse-${verse.verse}`}
             className={[
-                "scroll-mt-36 relative rounded-md transition-colors duration-150",
+                "verse-row scroll-mt-36 relative rounded-md transition-colors duration-150",
                 "px-3 py-2 -mx-3",
                 isSaved ? "border-l-2 border-sangre/50 pl-4" : "",
                 isActive ? "verse-active" : "",
             ].filter(Boolean).join(" ")}
             {...handlers}
-            style={{
-                WebkitTouchCallout: "none",
-                WebkitUserSelect: isActive ? "none" : "auto",
-            }}
         >
             <sup className="text-sangre text-xs mr-1 font-semibold">{verse.verse}</sup>
             {verse.text}
@@ -728,37 +724,37 @@ function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismis
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 z-30 inline-flex items-center gap-1 bg-white border border-sand-300 shadow-lg rounded-lg px-1 py-1 ui-sans text-sm whitespace-nowrap"
+            className="absolute left-3 top-full mt-2 z-30 flex flex-col bg-white border border-sand-300 shadow-lg rounded-lg py-1 ui-sans text-sm min-w-[220px] max-w-[90vw]"
         >
             <button
                 type="button"
                 onClick={doFavorite}
                 data-testid={`bible-verse-fav-${verseInfo.verse}`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-left hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
             >
                 {isSaved
-                    ? <HeartBreak size={14} weight="duotone" />
-                    : <Heart size={14} weight="duotone" />}
+                    ? <HeartBreak size={16} weight="duotone" />
+                    : <Heart size={16} weight="duotone" />}
                 <span>{isSaved ? t("bible.remove_favorite") : t("common.save_favorite")}</span>
             </button>
-            <span className="w-px h-5 bg-sand-300" aria-hidden="true" />
+            <span className="h-px bg-sand-300 mx-2" aria-hidden="true" />
             <button
                 type="button"
                 onClick={doCopy}
                 data-testid={`bible-verse-copy-${verseInfo.verse}`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-left hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
             >
-                <Copy size={14} weight="duotone" />
+                <Copy size={16} weight="duotone" />
                 <span>{t("bible.copy_verse")}</span>
             </button>
-            <span className="w-px h-5 bg-sand-300" aria-hidden="true" />
+            <span className="h-px bg-sand-300 mx-2" aria-hidden="true" />
             <button
                 type="button"
                 onClick={doShare}
                 data-testid={`bible-verse-share-${verseInfo.verse}`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-left hover:bg-sangre/5 text-stone900 hover:text-sangre transition-colors"
             >
-                <ShareNetwork size={14} weight="duotone" />
+                <ShareNetwork size={16} weight="duotone" />
                 <span>{t("bible.share_verse")}</span>
             </button>
         </span>

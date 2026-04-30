@@ -126,6 +126,17 @@
         box-shadow: 0 0 0 1px rgba(107, 70, 193, 0.35);
     }
 
+    /* Disable the native iOS/Android selection callout on verses so our
+       long-press menu is the only UI that appears. The popover remains
+       selectable because nested selectable inputs override this. */
+    .verse-row {
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
     .btn-primary {
         background-color: #0984E3;
         color: #FDFDFD;
