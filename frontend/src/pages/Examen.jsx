@@ -9,11 +9,10 @@ import {
 } from "@phosphor-icons/react";
 
 const DATA_URL = (lang) => `/data/examen-${lang}.json`;
-const STORAGE_KEY = (lang) => `soyapostol:examen:${lang}`; // local only — never sent to server
+const STORAGE_KEY = (lang) => `soyapostol:examen:${lang}`;
 
-// Profiles exposed on the cover.
-//   - kind "general"   → renders the Ten Commandments (+ optional specific_states target)
-//   - kind "alt_exam"  → renders an entry from `alternative_exams` by id (e.g. Beatitudes)
+// Profiles offered on the cover. Each is addressable by its id, which also
+// serves as the `examId` key in the cumulative checks map.
 const PROFILES = [
     { id: "adults",          icon: UserFocus,     kind: "general",  target: null },
     { id: "married_couples", icon: Heart,         kind: "general",  target: "married_couples" },
@@ -33,13 +32,30 @@ const PROFILES = [
     { id: "digital",         icon: DeviceMobile,  kind: "alt_exam", target: "digital_world_exam" },
 ];
 
-// -------- State shape --------
-// localStorage: { profile, checks: { [sectionId]: { [questionIdx]: true } } }
+/* ---------- State helpers ---------- */
+// Shape:
+//   { profile: <examId|null>, checks: { [examId]: { [sectionId]: { [qIdx]: true } } } }
 function loadState(lang) {
     try {
         const raw = localStorage.getItem(STORAGE_KEY(lang));
-        return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+        if (!raw) return { profile: null, checks: {} };
+        const parsed = JSON.parse(raw);
+        const c = (parsed && typeof parsed.checks === "object" && parsed.checks) || {};
+        // Legacy format migration: old shape stored sections flat at the top of
+        // `checks` (keys like `gen_1`, `spec_...`, `alt_...`). Wrap those under
+        // the persisted profile so the cumulative model can absorb them.
+        const isLegacy = Object.keys(c).some(
+            (k) => k.startsWith("gen_") || k.startsWith("spec_") || k.startsWith("alt_"),
+        );
+        if (isLegacy) {
+            const migrated = parsed.profile ? { [parsed.profile]: c } : {};
+            return { profile: null, checks: migrated };
+        }
+        // Always land on the cover when returning to the page.
+        return { profile: null, checks: c };
+    } catch {
+        return { profile: null, checks: {} };
+    }
 }
 function saveState(lang, state) {
     try { localStorage.setItem(STORAGE_KEY(lang), JSON.stringify(state)); } catch { /* ignore */ }
@@ -48,6 +64,64 @@ function clearState(lang) {
     try { localStorage.removeItem(STORAGE_KEY(lang)); } catch { /* ignore */ }
 }
 
+function countExam(checks, examId) {
+    const ex = checks?.[examId];
+    if (!ex) return 0;
+    return Object.values(ex).reduce(
+        (n, s) => n + Object.values(s || {}).filter(Boolean).length, 0,
+    );
+}
+
+/* ---------- Section builder (shared by live view + summary) ---------- */
+function buildSections(data, profileId, t) {
+    if (!data || !profileId) return [];
+    const selected = PROFILES.find((p) => p.id === profileId);
+    if (!selected) return [];
+    const out = [];
+
+    if (selected.kind === "alt_exam") {
+        const alt = (data.alternative_exams || []).find((a) => a.id === selected.target);
+        if (alt?.categories) {
+            alt.categories.forEach((c) => {
+                out.push({
+                    id: `alt_${alt.id}_${c.id}`,
+                    eyebrow: alt.title,
+                    title: c.name,
+                    focus: c.focus,
+                    questions: c.questions || [],
+                });
+            });
+        }
+        return out;
+    }
+
+    const gen = data.general_sections?.[0];
+    if (gen?.questions_by_commandment) {
+        gen.questions_by_commandment.forEach((c) => {
+            out.push({
+                id: `gen_${c.commandment}`,
+                eyebrow: `${t("examen.commandment")} ${c.commandment}`,
+                title: c.title,
+                questions: c.questions || [],
+            });
+        });
+    }
+    if (selected.target) {
+        const spec = (data.specific_states || []).find((s) => s.id === selected.target);
+        if (spec) {
+            out.push({
+                id: `spec_${spec.id}`,
+                eyebrow: t("examen.your_state"),
+                title: spec.title,
+                questions: spec.questions || [],
+            });
+        }
+    }
+    return out;
+}
+
+/* ================================================================== */
+
 export default function Examen() {
     const { lang, t } = useLang();
     const [data, setData] = React.useState(null);
@@ -55,12 +129,11 @@ export default function Examen() {
     const [error, setError] = React.useState("");
 
     const initial = React.useMemo(() => loadState(lang), [lang]);
-    const [profile, setProfile] = React.useState(initial?.profile || null);
-    const [checks, setChecks] = React.useState(initial?.checks || {});
+    const [profile, setProfile] = React.useState(initial.profile);
+    const [checks, setChecks] = React.useState(initial.checks);
     const [showSummary, setShowSummary] = React.useState(false);
     const [finished, setFinished] = React.useState(false);
 
-    // Fetch the dataset (same file for every profile of a given language).
     React.useEffect(() => {
         let cancelled = false;
         setLoading(true); setError("");
@@ -72,117 +145,66 @@ export default function Examen() {
         return () => { cancelled = true; };
     }, [lang]);
 
-    // Rehydrate profile + checks when language flips (each language has its own
-    // localStorage key so translating mid-examen doesn't lose data).
+    // Rehydrate on language flip.
     React.useEffect(() => {
         const s = loadState(lang);
-        setProfile(s?.profile || null);
-        setChecks(s?.checks || {});
+        setProfile(s.profile);
+        setChecks(s.checks);
         setShowSummary(false);
         setFinished(false);
     }, [lang]);
 
-    // Persist on every change (skip the initial empty state).
+    // Persist.
     React.useEffect(() => {
         if (!profile && Object.keys(checks).length === 0) return;
         saveState(lang, { profile, checks });
     }, [lang, profile, checks]);
 
-    const sections = React.useMemo(() => {
-        if (!data || !profile) return [];
-        const selected = PROFILES.find((p) => p.id === profile);
-        if (!selected) return [];
-        const out = [];
-
-        if (selected.kind === "alt_exam") {
-            // Alternative exam (e.g. Beatitudes, Capital Sins) — render categories only.
-            const alt = (data.alternative_exams || []).find((a) => a.id === selected.target);
-            if (alt?.categories) {
-                alt.categories.forEach((c) => {
-                    out.push({
-                        id: `alt_${alt.id}_${c.id}`,
-                        eyebrow: alt.title,
-                        title: c.name,
-                        focus: c.focus,
-                        questions: c.questions || [],
-                    });
-                });
-            }
-            return out;
-        }
-
-        // General commandment-based section for every "general" profile.
-        const gen = data.general_sections?.[0];
-        if (gen?.questions_by_commandment) {
-            gen.questions_by_commandment.forEach((c) => {
-                out.push({
-                    id: `gen_${c.commandment}`,
-                    eyebrow: `${t("examen.commandment")} ${c.commandment}`,
-                    title: c.title,
-                    questions: c.questions || [],
-                });
-            });
-        }
-        // Append state-specific questions when the profile points at one.
-        if (selected.target) {
-            const spec = (data.specific_states || []).find((s) => s.id === selected.target);
-            if (spec) {
-                out.push({
-                    id: `spec_${spec.id}`,
-                    eyebrow: t("examen.your_state"),
-                    title: spec.title,
-                    questions: spec.questions || [],
-                });
-            }
-        }
-        return out;
-    }, [data, profile, t]);
-
-    const totalChecked = React.useMemo(
-        () => Object.values(checks).reduce((n, s) => n + Object.values(s).filter(Boolean).length, 0),
-        [checks],
+    const sections = React.useMemo(
+        () => buildSections(data, profile, t),
+        [data, profile, t],
     );
 
-    // Per-exam closing (scripture or prayer) for alternative exams. When
-    // present it replaces the default Act of Contrition in the summary.
-    const altClosing = React.useMemo(() => {
-        if (!data || !profile) return null;
-        const selected = PROFILES.find((p) => p.id === profile);
-        if (selected?.kind !== "alt_exam") return null;
-        const alt = (data.alternative_exams || []).find((a) => a.id === selected.target);
-        return alt?.closing || null;
-    }, [data, profile]);
+    const currentExamChecks = checks[profile] || {};
+
+    const totalChecked = React.useMemo(
+        () => (profile ? countExam(checks, profile) : 0),
+        [checks, profile],
+    );
 
     const toggleQuestion = (sectionId, qIdx) => {
+        if (!profile) return;
         setChecks((prev) => {
-            const next = { ...prev, [sectionId]: { ...(prev[sectionId] || {}) } };
-            if (next[sectionId][qIdx]) delete next[sectionId][qIdx];
-            else next[sectionId][qIdx] = true;
+            const ex = { ...(prev[profile] || {}) };
+            const sec = { ...(ex[sectionId] || {}) };
+            if (sec[qIdx]) delete sec[qIdx];
+            else sec[qIdx] = true;
+            if (Object.keys(sec).length === 0) delete ex[sectionId];
+            else ex[sectionId] = sec;
+            const next = { ...prev };
+            if (Object.keys(ex).length === 0) delete next[profile];
+            else next[profile] = ex;
             return next;
         });
     };
 
-    // Wipe marks only — keep the current profile.
-    const clearChecksOnly = () => {
-        setChecks({});
-        saveState(lang, { profile, checks: {} });
-    };
-
-    // Wipe EVERYTHING (marks + profile) and return to cover.
-    const resetAll = () => {
+    // Complete wipe — only triggered by the two explicit reset actions.
+    const wipeAll = () => {
         clearState(lang);
         setChecks({});
         setProfile(null);
         setShowSummary(false);
     };
-
-    // Finish confession: wipe everything, show peace screen.
-    const finishConfession = () => {
-        clearState(lang);
-        setChecks({});
-        setProfile(null);
-        setShowSummary(false);
+    const startOver = () => { wipeAll(); };
+    const finishAndExit = () => {
+        wipeAll();
         setFinished(true);
+    };
+
+    // Leaving an exam never wipes — cumulative model.
+    const backToCover = () => {
+        setProfile(null);
+        setShowSummary(false);
     };
 
     if (loading) {
@@ -200,33 +222,37 @@ export default function Examen() {
         );
     }
 
-    // 0) Peace screen after "Finish confession".
     if (finished) {
         return <PeaceScreen onClose={() => setFinished(false)} />;
     }
 
-    // 1) No profile chosen → cover screen with picker.
     if (!profile) {
-        return <ProfileCover onPick={setProfile} />;
-    }
-
-    // 2) Summary view.
-    if (showSummary) {
         return (
-            <SummaryView
-                sections={sections}
+            <ProfileCover
+                onPick={setProfile}
                 checks={checks}
-                actOfContrition={data.closing?.act_of_contrition}
-                altClosing={altClosing}
-                profileLabel={t(`examen.profile.${profile}`)}
-                onBack={() => setShowSummary(false)}
-                onReset={resetAll}
-                onFinish={finishConfession}
+                onViewSummary={() => setShowSummary(true)}
+                showSummary={showSummary}
+                data={data}
+                onStartOver={startOver}
+                onFinish={finishAndExit}
             />
         );
     }
 
-    // 3) Working view — accordion of sections with checkboxes.
+    if (showSummary) {
+        return (
+            <SummaryView
+                data={data}
+                checks={checks}
+                actOfContrition={data.closing?.act_of_contrition}
+                onBack={() => setShowSummary(false)}
+                onStartOver={startOver}
+                onFinish={finishAndExit}
+            />
+        );
+    }
+
     return (
         <div className="max-w-3xl mx-auto" data-testid="examen-page">
             <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
@@ -236,7 +262,14 @@ export default function Examen() {
                         {t("examen.title")}
                     </h1>
                 </div>
-                <ChangeProfileButton onConfirm={resetAll} />
+                <button
+                    type="button"
+                    onClick={backToCover}
+                    data-testid="examen-change-profile"
+                    className="ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
+                >
+                    <ArrowLeft size={14} weight="bold" /> {t("examen.change_profile")}
+                </button>
             </div>
             <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-2">
                 {t(`examen.profile.${profile}`)}
@@ -248,13 +281,13 @@ export default function Examen() {
 
             {totalChecked > 0 && (
                 <div className="mb-6">
-                    <StartOverButton onConfirm={clearChecksOnly} />
+                    <StartOverInline onConfirm={startOver} />
                 </div>
             )}
 
             <SectionsAccordion
                 sections={sections}
-                checks={checks}
+                checks={currentExamChecks}
                 onToggle={toggleQuestion}
             />
 
@@ -271,7 +304,7 @@ export default function Examen() {
                     <button
                         type="button"
                         onClick={() => setShowSummary(true)}
-                        disabled={totalChecked === 0}
+                        disabled={totalAcrossAll(checks) === 0}
                         data-testid="examen-see-summary"
                         className="ui-sans inline-flex items-center gap-2 px-4 sm:px-5 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
@@ -286,52 +319,17 @@ export default function Examen() {
     );
 }
 
-/* ------------------------------------------------------------------ */
-
-function ChangeProfileButton({ onConfirm }) {
-    const { t } = useLang();
-    const [confirm, setConfirm] = React.useState(false);
-    if (!confirm) {
-        return (
-            <button
-                type="button"
-                onClick={() => setConfirm(true)}
-                data-testid="examen-change-profile"
-                className="ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-sangre inline-flex items-center gap-1.5"
-            >
-                <ArrowLeft size={14} weight="bold" /> {t("examen.change_profile")}
-            </button>
-        );
-    }
-    return (
-        <div
-            className="surface-card p-3 flex items-center gap-3 max-w-md"
-            data-testid="examen-change-profile-confirm"
-        >
-            <p className="text-xs text-stone900 flex-1 leading-snug">
-                {t("examen.change_profile_confirm")}
-            </p>
-            <button
-                type="button"
-                onClick={onConfirm}
-                data-testid="examen-change-profile-yes"
-                className="ui-sans text-xs uppercase tracking-widest font-semibold px-3 py-2 rounded-md bg-sangre text-sand-50 hover:bg-sangre-hover"
-            >
-                {t("common.yes")}
-            </button>
-            <button
-                type="button"
-                onClick={() => setConfirm(false)}
-                data-testid="examen-change-profile-no"
-                className="ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-stone900"
-            >
-                {t("common.cancel")}
-            </button>
-        </div>
+function totalAcrossAll(checks) {
+    return Object.values(checks).reduce(
+        (n, ex) => n + Object.values(ex || {}).reduce(
+            (m, s) => m + Object.values(s || {}).filter(Boolean).length, 0,
+        ), 0,
     );
 }
 
-function StartOverButton({ onConfirm }) {
+/* ------------------------------------------------------------------ */
+
+function StartOverInline({ onConfirm }) {
     const { t } = useLang();
     const [confirm, setConfirm] = React.useState(false);
     if (!confirm) {
@@ -377,8 +375,10 @@ function StartOverButton({ onConfirm }) {
 
 /* ------------------------------------------------------------------ */
 
-function ProfileCover({ onPick }) {
+function ProfileCover({ onPick, checks, onViewSummary, data, onStartOver, onFinish }) {
     const { t } = useLang();
+    const total = totalAcrossAll(checks);
+
     return (
         <div className="max-w-2xl mx-auto" data-testid="examen-cover">
             <p className="label-eyebrow mb-3">{t("nav.examen")}</p>
@@ -394,31 +394,81 @@ function ProfileCover({ onPick }) {
                 {t("examen.privacy_notice")}
             </p>
 
+            {total > 0 && (
+                <div
+                    className="surface-card p-4 sm:p-5 mb-6 flex items-center justify-between gap-3"
+                    data-testid="examen-cumulative-banner"
+                    style={{ borderLeft: "3px solid #B33A3A" }}
+                >
+                    <div className="min-w-0">
+                        <p className="ui-sans text-xs uppercase tracking-widest text-stoneMuted">
+                            {t("examen.cumulative_title")}
+                        </p>
+                        <p className="heading-serif text-2xl leading-none tracking-tight mt-1">
+                            {t(total === 1 ? "examen.marked_count_one" : "examen.marked_count", { n: total })}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onViewSummary}
+                        data-testid="examen-cover-see-summary"
+                        className="ui-sans inline-flex items-center gap-2 px-4 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors shrink-0"
+                    >
+                        <CheckSquareOffset size={16} weight="bold" />
+                        {t("examen.see_summary")}
+                    </button>
+                </div>
+            )}
+
             <p className="label-eyebrow mb-3">{t("examen.choose_profile")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PROFILES.map(({ id, icon: Icon }) => (
-                    <button
-                        key={id}
-                        type="button"
-                        onClick={() => onPick(id)}
-                        data-testid={`examen-profile-${id}`}
-                        className="surface-card p-5 text-left flex items-center gap-4 hover:border-sangre/60 transition-colors"
-                    >
-                        <div className="shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-sangre/10 text-sangre"
-                             aria-hidden="true">
-                            <Icon size={24} weight="duotone" />
-                        </div>
-                        <div>
-                            <p className="heading-serif text-xl leading-tight tracking-tight">
-                                {t(`examen.profile.${id}`)}
-                            </p>
-                            <p className="text-sm text-stoneMuted mt-0.5">
-                                {t(`examen.profile_desc.${id}`)}
-                            </p>
-                        </div>
-                    </button>
-                ))}
+                {PROFILES.map(({ id, icon: Icon }) => {
+                    const count = countExam(checks, id);
+                    const active = count > 0;
+                    return (
+                        <button
+                            key={id}
+                            type="button"
+                            onClick={() => onPick(id)}
+                            data-testid={`examen-profile-${id}`}
+                            className={`surface-card p-5 text-left flex items-center gap-4 transition-colors ${
+                                active ? "border-sangre/60" : "hover:border-sangre/60"
+                            }`}
+                        >
+                            <div className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
+                                active ? "bg-sangre text-sand-50" : "bg-sangre/10 text-sangre"
+                            }`} aria-hidden="true">
+                                <Icon size={24} weight="duotone" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="heading-serif text-xl leading-tight tracking-tight">
+                                        {t(`examen.profile.${id}`)}
+                                    </p>
+                                    {active && (
+                                        <span
+                                            className="ui-sans text-[10px] uppercase tracking-widest font-semibold px-2 py-1 rounded-full bg-sangre/10 text-sangre shrink-0"
+                                            data-testid={`examen-profile-count-${id}`}
+                                        >
+                                            {t(count === 1 ? "examen.marked_count_one" : "examen.marked_count", { n: count })}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-stoneMuted mt-0.5">
+                                    {t(`examen.profile_desc.${id}`)}
+                                </p>
+                            </div>
+                        </button>
+                    );
+                })}
             </div>
+
+            {total > 0 && (
+                <div className="mt-10 flex flex-col gap-3" data-testid="examen-cover-actions">
+                    <StartOverInline onConfirm={onStartOver} />
+                    <FinishInline onConfirm={onFinish} />
+                </div>
+            )}
         </div>
     );
 }
@@ -426,8 +476,6 @@ function ProfileCover({ onPick }) {
 /* ------------------------------------------------------------------ */
 
 function SectionsAccordion({ sections, checks, onToggle }) {
-    // Only one section open at a time keeps the screen focused — especially
-    // useful in low-light conditions inside a church.
     const [openId, setOpenId] = React.useState(sections[0]?.id || null);
     return (
         <div className="flex flex-col gap-3" data-testid="examen-sections">
@@ -519,22 +567,35 @@ function SectionsAccordion({ sections, checks, onToggle }) {
 
 /* ------------------------------------------------------------------ */
 
-function SummaryView({ sections, checks, actOfContrition, altClosing, profileLabel, onBack, onReset, onFinish }) {
+function SummaryView({ data, checks, actOfContrition, onBack, onStartOver, onFinish }) {
     const { t } = useLang();
-    const [confirmClear, setConfirmClear] = React.useState(false);
-    const [confirmFinish, setConfirmFinish] = React.useState(false);
 
-    const groupedSelections = React.useMemo(() => {
-        return sections
-            .map((sec) => {
-                const c = checks[sec.id] || {};
-                const questions = sec.questions.filter((_, i) => c[i]);
-                return { ...sec, questions };
-            })
-            .filter((sec) => sec.questions.length > 0);
-    }, [sections, checks]);
+    // Flatten every examId's non-empty sections into a single, ordered list.
+    // Order follows the PROFILES array for predictable grouping.
+    const groupedCards = React.useMemo(() => {
+        const out = [];
+        for (const p of PROFILES) {
+            const exChecks = checks[p.id];
+            if (!exChecks || Object.keys(exChecks).length === 0) continue;
+            const secs = buildSections(data, p.id, t);
+            secs.forEach((sec) => {
+                const c = exChecks[sec.id] || {};
+                const qs = sec.questions.filter((_, i) => c[i]);
+                if (qs.length > 0) {
+                    out.push({
+                        key: `${p.id}__${sec.id}`,
+                        examId: p.id,
+                        profileLabel: t(`examen.profile.${p.id}`),
+                        sectionTitle: sec.title,
+                        questions: qs,
+                    });
+                }
+            });
+        }
+        return out;
+    }, [data, checks, t]);
 
-    const total = groupedSelections.reduce((n, s) => n + s.questions.length, 0);
+    const total = groupedCards.reduce((n, g) => n + g.questions.length, 0);
 
     return (
         <div className="max-w-3xl mx-auto" data-testid="examen-summary">
@@ -547,7 +608,7 @@ function SummaryView({ sections, checks, actOfContrition, altClosing, profileLab
                 <ArrowLeft size={14} weight="bold" /> {t("examen.back_to_questions")}
             </button>
 
-            <p className="label-eyebrow mb-3">{profileLabel}</p>
+            <p className="label-eyebrow mb-3">{t("examen.summary_eyebrow")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">
                 {t("examen.summary_title")}
             </h1>
@@ -565,19 +626,19 @@ function SummaryView({ sections, checks, actOfContrition, altClosing, profileLab
                 </p>
             ) : (
                 <div className="flex flex-col gap-5" data-testid="examen-summary-sections">
-                    {groupedSelections.map((sec) => (
+                    {groupedCards.map((card) => (
                         <article
-                            key={sec.id}
+                            key={card.key}
                             className="surface-card p-5 sm:p-6"
-                            data-testid={`examen-summary-section-${sec.id}`}
+                            data-testid={`examen-summary-card-${card.key}`}
                             style={{ borderLeft: "3px solid #B33A3A" }}
                         >
-                            <p className="label-eyebrow mb-2">{sec.eyebrow}</p>
+                            <p className="label-eyebrow mb-2">{card.profileLabel}</p>
                             <h2 className="heading-serif text-lg sm:text-xl leading-tight tracking-tight mb-4">
-                                {sec.title}
+                                {card.sectionTitle}
                             </h2>
                             <ul className="flex flex-col gap-2">
-                                {sec.questions.map((q, i) => (
+                                {card.questions.map((q, i) => (
                                     <li
                                         key={i}
                                         className="reading-serif text-base leading-relaxed text-stone900 flex gap-3"
@@ -592,25 +653,7 @@ function SummaryView({ sections, checks, actOfContrition, altClosing, profileLab
                 </div>
             )}
 
-            {altClosing?.scripture ? (
-                <section className="mt-16 mb-8" data-testid="examen-alt-scripture">
-                    <p className="label-eyebrow mb-3">{t("examen.scripture_eyebrow")}</p>
-                    <article className="surface-card p-6 sm:p-7">
-                        <p className="reading-serif italic text-lg leading-[1.8] text-stone900 m-0 text-justify">
-                            {altClosing.scripture}
-                        </p>
-                    </article>
-                </section>
-            ) : altClosing?.prayer ? (
-                <section className="mt-16 mb-8" data-testid="examen-alt-prayer">
-                    <p className="label-eyebrow mb-3">{t("examen.prayer_eyebrow")}</p>
-                    <article className="surface-card p-6 sm:p-7 reading-prose">
-                        <p className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 m-0 text-justify">
-                            {altClosing.prayer}
-                        </p>
-                    </article>
-                </section>
-            ) : actOfContrition && (
+            {actOfContrition && (
                 <section className="mt-16 mb-8" data-testid="examen-act-of-contrition">
                     <p className="label-eyebrow mb-3">{t("examen.contrition_eyebrow")}</p>
                     <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
@@ -625,85 +668,58 @@ function SummaryView({ sections, checks, actOfContrition, altClosing, profileLab
             )}
 
             <div className="mt-10 flex flex-col gap-3">
-                {/* "Clear all" — discard marks, stay in app, keep profile reset to cover. */}
-                {!confirmClear ? (
-                    <button
-                        type="button"
-                        onClick={() => { setConfirmClear(true); setConfirmFinish(false); }}
-                        data-testid="examen-clear-btn"
-                        className="ui-sans inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md text-sm font-semibold border border-sand-300 text-stone900 hover:border-sangre hover:text-sangre transition-colors"
-                    >
-                        <TrashSimple size={16} weight="bold" />
-                        {t("examen.clear_all")}
-                    </button>
-                ) : (
-                    <div
-                        className="surface-card p-4 flex items-center gap-3"
-                        data-testid="examen-clear-confirm"
-                    >
-                        <p className="text-sm text-stone900 flex-1">
-                            {t("examen.clear_all_confirm")}
-                        </p>
-                        <button
-                            type="button"
-                            onClick={onReset}
-                            data-testid="examen-clear-confirm-yes"
-                            className="ui-sans text-xs uppercase tracking-widest font-semibold px-3 py-2 rounded-md bg-sangre text-sand-50 hover:bg-sangre-hover"
-                        >
-                            {t("common.yes")}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setConfirmClear(false)}
-                            data-testid="examen-clear-confirm-no"
-                            className="ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-stone900"
-                        >
-                            {t("common.cancel")}
-                        </button>
-                    </div>
-                )}
-
-                {/* "Finish confession" — primary privacy wipe after receiving absolution. */}
-                {!confirmFinish ? (
-                    <button
-                        type="button"
-                        onClick={() => { setConfirmFinish(true); setConfirmClear(false); }}
-                        data-testid="examen-finish-btn"
-                        className="ui-sans inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors"
-                    >
-                        <HandHeart size={16} weight="bold" />
-                        {t("examen.finish_confession")}
-                    </button>
-                ) : (
-                    <div
-                        className="surface-card p-4 flex items-center gap-3"
-                        data-testid="examen-finish-confirm"
-                        style={{ borderLeft: "3px solid #B33A3A" }}
-                    >
-                        <p className="text-sm text-stone900 flex-1">
-                            {t("examen.finish_confession_confirm")}
-                        </p>
-                        <button
-                            type="button"
-                            onClick={onFinish}
-                            data-testid="examen-finish-confirm-yes"
-                            className="ui-sans text-xs uppercase tracking-widest font-semibold px-3 py-2 rounded-md bg-sangre text-sand-50 hover:bg-sangre-hover"
-                        >
-                            {t("common.yes")}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setConfirmFinish(false)}
-                            data-testid="examen-finish-confirm-no"
-                            className="ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-stone900"
-                        >
-                            {t("common.cancel")}
-                        </button>
-                    </div>
-                )}
+                <StartOverInline onConfirm={onStartOver} />
+                <FinishInline onConfirm={onFinish} />
             </div>
 
             <BackToTopButton testId="examen-summary-back-to-top" />
+        </div>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+
+function FinishInline({ onConfirm }) {
+    const { t } = useLang();
+    const [confirm, setConfirm] = React.useState(false);
+    if (!confirm) {
+        return (
+            <button
+                type="button"
+                onClick={() => setConfirm(true)}
+                data-testid="examen-finish-btn"
+                className="ui-sans inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors"
+            >
+                <TrashSimple size={16} weight="bold" />
+                {t("examen.finish_confession")}
+            </button>
+        );
+    }
+    return (
+        <div
+            className="surface-card p-4 flex items-center gap-3"
+            data-testid="examen-finish-confirm"
+            style={{ borderLeft: "3px solid #B33A3A" }}
+        >
+            <p className="text-sm text-stone900 flex-1">
+                {t("examen.finish_confession_confirm")}
+            </p>
+            <button
+                type="button"
+                onClick={onConfirm}
+                data-testid="examen-finish-confirm-yes"
+                className="ui-sans text-xs uppercase tracking-widest font-semibold px-3 py-2 rounded-md bg-sangre text-sand-50 hover:bg-sangre-hover"
+            >
+                {t("common.yes")}
+            </button>
+            <button
+                type="button"
+                onClick={() => setConfirm(false)}
+                data-testid="examen-finish-confirm-no"
+                className="ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-stone900"
+            >
+                {t("common.cancel")}
+            </button>
         </div>
     );
 }

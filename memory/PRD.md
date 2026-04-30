@@ -53,6 +53,23 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
 - ✅ 29/29 backend tests + frontend Examen flow passing (`iteration_2.json`)
 
+## Implemented (2026-04-30 · part 5) — Examen cumulativo (cambio arquitectónico)
+
+Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
+
+- ✅ **Estado cumulativo**: `checks` ahora se indexa por `examId` → `{ [examId]: { [sectionId]: { [qIdx]: true } } }`. Cambiar de examen NO borra las marcas anteriores.
+- ✅ **Summary fusionado**: el resumen agrupa TODAS las selecciones de TODOS los exámenes en cards unificadas, mostrando el examen de origen como eyebrow + la sección como título.
+- ✅ **Dos únicos puntos de borrado total**: botón **"Empezar de nuevo"** (vuelve a la cobertura) y **"Borrar y salir"** (pantalla de paz). Ambos con confirmación inline. Se eliminaron las confirmaciones antiguas de "cambiar estado" y "borrar todo".
+- ✅ **Migración automática** del formato legacy de `localStorage` al abrir.
+- ✅ **Indicadores visuales en la cobertura**: cada tarjeta de examen con marcas muestra un badge "N marcadas" (con pluralización ES correcta — "1 marcada" / "N marcadas"), borde e icono resaltados en rojo `sangre`. Banner superior "TU EXAMEN ACUMULADO · N marcadas" con botón "Ver resumen" cuando hay al menos una marca.
+- ✅ El contador del pie en la vista de preguntas ahora muestra SOLO las marcas del examen actual ("Marcadas en este examen"). El summary cuenta el total global.
+- ✅ Se retira el closing personalizado por examen (scripture/prayer) en el summary fusionado; se usa siempre el Acto de Contrición (que aplica de forma universal).
+- ✅ Traducciones ES/EN nuevas: `marked_count`, `marked_count_one`, `cumulative_title`, `summary_eyebrow`. Relabel: "Cambiar estado" → "Cambiar examen"; "Terminar confesión" → "Borrar y salir".
+- ✅ Verificado con screenshot tool: badges por tarjeta, banner acumulado, 3 exámenes simultáneos → summary con las 3 cards merged, `startOver` y `finishAndExit` borran todo completamente.
+
+## Implemented (2026-04-30 · part 4) — Examen de Vida Digital añadido
+- ✅ **Vida digital** (Caridad en la Red · Pureza y Tiempo). Icono `DeviceMobile`. Total 16 perfiles.
+
 ## Implemented (2026-04-30 · part 3) — 5 exámenes más añadidos
 
 - ✅ **Himno de la Caridad** (1 Co 13) · cierre con Escritura (1 Co 13:13).
