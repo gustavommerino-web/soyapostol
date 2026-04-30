@@ -134,7 +134,7 @@ export default function Favorites() {
 
             <ul className="space-y-5" data-testid="favorites-list">
                 {filtered.map((f) => (
-                    <FavoriteCard key={f.id} fav={f} onDelete={() => onDelete(f.id)} />
+                    <FavoriteCard key={f.id} fav={f} query={q} onDelete={() => onDelete(f.id)} />
                 ))}
             </ul>
         </div>
@@ -151,7 +151,72 @@ function isHtmlContent(s) {
     return /<[a-zA-Z!/]/.test(s);
 }
 
-function FavoriteCard({ fav, onDelete }) {
+// ---- search highlighting --------------------------------------------
+
+const ESC_RE = /[.*+?^${}()|[\]\\]/g;
+const escapeRegex = (s) => s.replace(ESC_RE, "\\$&");
+
+// Plain-text → React nodes. Uses a capture group in split() so odd-index
+// parts are the matched separators and can be wrapped in <mark>.
+function highlightText(text, query) {
+    if (!text) return text;
+    if (!query) return text;
+    const re = new RegExp(`(${escapeRegex(query)})`, "gi");
+    const parts = String(text).split(re);
+    return parts.map((part, i) =>
+        i % 2 === 1
+            ? <mark key={i}>{part}</mark>
+            : <React.Fragment key={i}>{part}</React.Fragment>,
+    );
+}
+
+// HTML string → HTML string with <mark> wrapping every text match. We parse
+// into a DocumentFragment and walk only TEXT_NODEs, so tag structure (red
+// rubric spans, <br>, <em>, …) stays untouched.
+function highlightHtml(html, query) {
+    if (!html) return html;
+    if (!query || typeof window === "undefined") return html;
+    try {
+        const re = new RegExp(escapeRegex(query), "gi");
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+        const hits = [];
+        let n;
+        while ((n = walker.nextNode())) {
+            if (n.parentElement && n.parentElement.tagName === "MARK") continue;
+            if (!n.nodeValue) continue;
+            if (n.nodeValue.toLowerCase().includes(query.toLowerCase())) {
+                hits.push(n);
+            }
+        }
+        for (const node of hits) {
+            const text = node.nodeValue;
+            const frag = doc.createDocumentFragment();
+            let last = 0;
+            let m;
+            re.lastIndex = 0;
+            while ((m = re.exec(text)) !== null) {
+                if (m.index > last) {
+                    frag.appendChild(doc.createTextNode(text.slice(last, m.index)));
+                }
+                const mark = doc.createElement("mark");
+                mark.textContent = m[0];
+                frag.appendChild(mark);
+                last = m.index + m[0].length;
+                if (m.index === re.lastIndex) re.lastIndex++; // zero-width guard
+            }
+            if (last < text.length) {
+                frag.appendChild(doc.createTextNode(text.slice(last)));
+            }
+            node.parentNode.replaceChild(frag, node);
+        }
+        return doc.body.innerHTML;
+    } catch {
+        return html;
+    }
+}
+
+function FavoriteCard({ fav, query, onDelete }) {
     const { t, lang } = useLang();
     const bodyRef = React.useRef(null);
     const [expanded, setExpanded] = React.useState(false);
@@ -159,15 +224,19 @@ function FavoriteCard({ fav, onDelete }) {
     const [overflows, setOverflows] = React.useState(false);
 
     const html = isHtmlContent(fav.content);
+    const highlightedHtml = React.useMemo(
+        () => (html ? highlightHtml(fav.content, query) : null),
+        [html, fav.content, query],
+    );
 
-    // Measure the rendered body every time content/language changes so the
-    // animation target is the real scrollHeight, not a magic big number.
+    // Measure the rendered body every time content/language/query changes so
+    // the animation target is the real scrollHeight, not a magic big number.
     React.useLayoutEffect(() => {
         if (!bodyRef.current) return;
         const h = bodyRef.current.scrollHeight;
         setFullHeight(h);
         setOverflows(h > COLLAPSED_HEIGHT + 2);
-    }, [fav.content, lang]);
+    }, [fav.content, lang, query]);
 
     const toggle = () => {
         if (overflows) setExpanded((e) => !e);
@@ -209,7 +278,7 @@ function FavoriteCard({ fav, onDelete }) {
                     {SECTION_LABELS[lang]?.[fav.section] || fav.section}
                 </span>
                 <h3 className="heading-serif text-2xl tracking-tight leading-snug mt-1">
-                    {fav.title}
+                    {highlightText(fav.title, query)}
                 </h3>
             </div>
 
@@ -226,11 +295,11 @@ function FavoriteCard({ fav, onDelete }) {
                     {html ? (
                         <div
                             className="reading-serif text-base leading-relaxed text-stone900"
-                            dangerouslySetInnerHTML={{ __html: fav.content }}
+                            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                         />
                     ) : (
                         <p className="reading-serif text-base leading-relaxed text-stone900 whitespace-pre-line m-0">
-                            {fav.content}
+                            {highlightText(fav.content, query)}
                         </p>
                     )}
                 </div>

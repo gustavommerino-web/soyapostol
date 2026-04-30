@@ -111,6 +111,15 @@
         font-weight: 600;
     }
 
+    /* Search highlight marker — used in Favorites, keeps foreground color
+       untouched so red liturgy rubrics inside <mark> still read as rubrics. */
+    mark {
+        background-color: rgba(179, 58, 58, 0.22);
+        color: inherit;
+        border-radius: 2px;
+        padding: 0 0.12em;
+    }
+
     .btn-primary {
         background-color: #0984E3;
         color: #FDFDFD;
