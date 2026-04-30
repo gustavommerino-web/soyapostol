@@ -53,6 +53,18 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
 - ✅ 29/29 backend tests + frontend Examen flow passing (`iteration_2.json`)
 
+## Implemented (2026-04-30 · part 2) — 5 exámenes alternativos añadidos
+
+- ✅ **Triple amor** (Gran Mandamiento: Dios / prójimo / uno mismo).
+- ✅ **Siete pecados capitales** (Soberbia, Avaricia, Lujuria, Envidia, Gula, Ira, Pereza).
+- ✅ **Virtudes teologales y cardinales** (Fe, Esperanza, Caridad + Prudencia, Justicia, Fortaleza, Templanza).
+- ✅ **Obras de misericordia** (Corporales + Espirituales) · cierre con Mt 25:40.
+- ✅ **Examen diario ignaciano** (5 pasos: Acción de gracias, Petición de luz, Revisión, Perdón, Enmienda) · cierre con Padre Nuestro.
+- ✅ Cada examen alternativo con **closing propio** (scripture/prayer) — `SummaryView` ahora elige: `scripture` → blockquote "Palabra de Dios"; `prayer` → card "Oración para cerrar"; fallback → Acto de Contrición.
+- ✅ Traducciones ES/EN completas para cada examen, sus categorías, preguntas y focus (citas bíblicas / descripciones).
+- ✅ Iconos únicos por perfil (HeartStraight, Flame, Leaf, HandsPraying, Clock).
+- ✅ Verificado con screenshot tool: 10 perfiles visibles, mercy_works renderiza scripture closing, ignatian renderiza prayer closing, triple_love usa fallback Acto de Contrición.
+
 ## Implemented (2026-04-30) — Examen Privacy & Beatitudes
 
 - ✅ **Beatitudes examen** added as a 5th profile on `Examen.jsx` (ES + EN). Sourced from user-provided JSON; renders each Beatitude as its own accordion section with the biblical quote as italic blockquote + 3 introspection questions.

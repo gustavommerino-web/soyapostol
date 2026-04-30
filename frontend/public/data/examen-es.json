@@ -227,6 +227,309 @@
           ]
         }
       ]
+    },
+    {
+      "id": "triple_love_exam",
+      "title": "Examen del Triple Amor",
+      "target": "Adultos / Crecimiento Personal",
+      "description": "Una revisión basada en el Gran Mandamiento: Amar a Dios, al prójimo y a nosotros mismos.",
+      "categories": [
+        {
+          "id": "love_god",
+          "name": "Amor a Dios",
+          "focus": "Amarás al Señor tu Dios con todo tu corazón, con toda tu alma y con toda tu mente.",
+          "questions": [
+            "¿He buscado a Dios hoy por quién es Él, o solo por lo que puede darme?",
+            "¿He dedicado tiempo de calidad a la oración, o le he dado solo mis 'sobras' de tiempo?",
+            "¿He confiado en Su amor durante las dificultades o me he rebelado contra Su voluntad?",
+            "¿He participado en los Sacramentos con reverencia y deseo de conversión?"
+          ]
+        },
+        {
+          "id": "love_neighbor",
+          "name": "Amor al Prójimo",
+          "focus": "Amarás a tu prójimo como a ti mismo.",
+          "questions": [
+            "¿He tratado a los demás con la dignidad que merecen como hijos de Dios?",
+            "¿He sido rápido para juzgar y lento para perdonar?",
+            "¿He compartido mis bienes, mi tiempo o mis talentos con los que más lo necesitan?",
+            "¿He causado daño a alguien con mis palabras, chismes o silencios indiferentes?",
+            "¿He cumplido con mis deberes hacia mi familia, siendo paciente y servicial?"
+          ]
+        },
+        {
+          "id": "love_self",
+          "name": "Amor a uno mismo",
+          "focus": "El cuidado del templo del Espíritu Santo que eres tú.",
+          "questions": [
+            "¿Me trato a mí mismo con la misericordia con la que Dios me trata, o soy excesivamente duro y perfeccionista?",
+            "¿He descuidado mi salud, descanso o alimentación de forma irresponsable?",
+            "¿He permitido que pensamientos de baja autoestima o falta de valor propio dominen mi mente?",
+            "¿Me esfuerzo por cultivar mis talentos para ponerlos al servicio de Dios, o los entierro por miedo o pereza?",
+            "¿He guardado la pureza de mi corazón, mente y cuerpo?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "capital_sins_exam",
+      "title": "Examen de los Siete Pecados Capitales",
+      "target": "Adultos / Jóvenes",
+      "description": "Un análisis de las raíces de nuestras faltas para identificar nuestras debilidades principales.",
+      "categories": [
+        {
+          "id": "pride",
+          "name": "Soberbia",
+          "focus": "El deseo desordenado de ser preferido a otros.",
+          "questions": [
+            "¿He sido presumido o he buscado que otros me admiren constantemente?",
+            "¿Me cuesta pedir perdón o admitir que estoy equivocado?",
+            "¿He despreciado a otros en mi mente por su situación económica, social o intelectual?",
+            "¿Me atribuyo a mí mismo mis éxitos olvidando que son dones de Dios?"
+          ]
+        },
+        {
+          "id": "avarice",
+          "name": "Avaricia",
+          "focus": "El deseo desordenado de poseer riquezas.",
+          "questions": [
+            "¿Estoy excesivamente apegado al dinero o a mis pertenencias?",
+            "¿He sido tacaño con los necesitados o con mi propia familia?",
+            "¿Gasto dinero en lujos innecesarios mientras descuido mis obligaciones cristianas?",
+            "¿He puesto mi seguridad en el dinero en lugar de ponerla en Dios?"
+          ]
+        },
+        {
+          "id": "lust",
+          "name": "Lujuria",
+          "focus": "El deseo desordenado de placer sexual.",
+          "questions": [
+            "¿He buscado placer sexual a través de pornografía o masturbación?",
+            "¿He consentido pensamientos o deseos impuros voluntariamente?",
+            "¿He faltado al respeto a la dignidad de otros viéndolos como objetos?",
+            "¿He mantenido conversaciones o chistes de doble sentido que ofenden la pureza?"
+          ]
+        },
+        {
+          "id": "envy",
+          "name": "Envidia",
+          "focus": "Tristeza ante el bien ajeno.",
+          "questions": [
+            "¿He sentido tristeza o amargura por el éxito o la felicidad de otros?",
+            "¿He deseado que a alguien le vaya mal para sentirme mejor conmigo mismo?",
+            "¿He criticado a otros por celos para disminuir su reputación?",
+            "¿Sufro cuando alguien que no me cae bien recibe un reconocimiento?"
+          ]
+        },
+        {
+          "id": "gluttony",
+          "name": "Gula",
+          "focus": "El deseo desordenado de comer y beber.",
+          "questions": [
+            "¿He comido o bebido en exceso hasta dañar mi salud o perder el control?",
+            "¿Soy demasiado exigente con la comida, causando molestias a quienes la preparan?",
+            "¿He gastado dinero excesivo en banquetes o bebidas mientras otros pasan hambre?",
+            "¿Me dejo dominar por mis antojos sin practicar nunca el ayuno o la abstinencia?"
+          ]
+        },
+        {
+          "id": "wrath",
+          "name": "Ira",
+          "focus": "El deseo desordenado de venganza o enojo descontrolado.",
+          "questions": [
+            "¿He reaccionado con violencia física o verbal hacia otros?",
+            "¿Guardo resentimientos y me niego a perdonar de corazón?",
+            "¿He sido impaciente e irritable con mi familia o compañeros de trabajo?",
+            "¿Uso el sarcasmo o el silencio para castigar a los demás?"
+          ]
+        },
+        {
+          "id": "sloth",
+          "name": "Pereza",
+          "focus": "Falta de esfuerzo en el cumplimiento de los deberes.",
+          "questions": [
+            "¿He descuidado mi oración diaria por flojera o distracción?",
+            "¿Llego tarde a Misa o a mis compromisos por falta de disciplina?",
+            "¿Pierdo demasiado tiempo en redes sociales o televisión descuidando mis deberes?",
+            "¿He dejado pasar oportunidades de hacer el bien por no incomodarme?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "virtues_moral_exam",
+      "title": "Examen de las Virtudes (Teologales y Cardinales)",
+      "target": "Adultos / Crecimiento Espiritual",
+      "description": "Un análisis profundo sobre cómo estamos cultivando las virtudes que guían nuestra vida cristiana.",
+      "categories": [
+        {
+          "id": "theological_faith",
+          "name": "Fe",
+          "focus": "Creer en Dios y en todo lo que Él ha revelado.",
+          "questions": [
+            "¿He descuidado el estudio de mi fe, dejando que mis dudas crezcan sin buscar respuestas?",
+            "¿Me avergüenzo de ser católico en ambientes sociales o profesionales?",
+            "¿He puesto mi confianza en horóscopos, adivinación o filosofías contrarias al Evangelio?"
+          ]
+        },
+        {
+          "id": "theological_hope",
+          "name": "Esperanza",
+          "focus": "Confiar en las promesas de Cristo y en la vida eterna.",
+          "questions": [
+            "¿He caído en la desesperación, dudando de la misericordia de Dios ante mis pecados?",
+            "¿He pecado por presunción, pensando que puedo salvarme sin esfuerzo o sin la gracia?",
+            "¿Me quejo constantemente de mi situación sin confiar en la Providencia divina?"
+          ]
+        },
+        {
+          "id": "theological_charity",
+          "name": "Caridad",
+          "focus": "Amar a Dios sobre todas las cosas y al prójimo como a nosotros mismos.",
+          "questions": [
+            "¿Es Dios el centro de mi vida o solo lo busco cuando tengo problemas?",
+            "¿He sido indiferente al sufrimiento de los demás, especialmente de los más cercanos?",
+            "¿He dejado que el egoísmo guíe mis decisiones en lugar del servicio?"
+          ]
+        },
+        {
+          "id": "cardinal_prudence",
+          "name": "Prudencia",
+          "focus": "Discernir nuestro verdadero bien y elegir los medios correctos para lograrlo.",
+          "questions": [
+            "¿Tomo decisiones importantes sin orar o sin buscar consejo sabio?",
+            "¿He actuado impulsivamente, hiriendo a otros con mis palabras o acciones?",
+            "¿He sido negligente en mis responsabilidades diarias?"
+          ]
+        },
+        {
+          "id": "cardinal_justice",
+          "name": "Justicia",
+          "focus": "Dar a Dios y al prójimo lo que les es debido.",
+          "questions": [
+            "¿He sido honesto en mis negocios, impuestos y el uso del tiempo en el trabajo?",
+            "¿He pagado lo justo a quienes me prestan un servicio?",
+            "¿He juzgado a los demás sin fundamento o he participado en chismes?"
+          ]
+        },
+        {
+          "id": "cardinal_fortitude",
+          "name": "Fortaleza",
+          "focus": "Firmeza en las dificultades y constancia en la búsqueda del bien.",
+          "questions": [
+            "¿Me rindo fácilmente ante las tentaciones o las pruebas de la vida?",
+            "¿He tenido miedo de defender la verdad por temor a ser rechazado?",
+            "¿Soy perezoso para cumplir con mis deberes espirituales y familiares?"
+          ]
+        },
+        {
+          "id": "cardinal_temperance",
+          "name": "Templanza",
+          "focus": "Moderar la atracción de los placeres y procurar el equilibrio.",
+          "questions": [
+            "¿He abusado de la comida, el alcohol, las redes sociales o el entretenimiento?",
+            "¿Me cuesta controlar mis impulsos o mi carácter cuando las cosas no salen como quiero?",
+            "¿He sido vanidoso, buscando siempre ser el centro de atención?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mercy_works_exam",
+      "title": "Examen de las Obras de Misericordia",
+      "target": "Adultos / Grupos Parroquiales",
+      "description": "Una revisión basada en nuestra respuesta activa a las necesidades de los demás, siguiendo el mandato de Cristo.",
+      "categories": [
+        {
+          "id": "corporal_mercy",
+          "name": "Obras de Misericordia Corporales",
+          "focus": "Atender las necesidades físicas del prójimo.",
+          "questions": [
+            "¿He pasado de largo ante alguien que pasaba hambre o sed, pudiendo ayudar?",
+            "¿He sido generoso con la ropa o bienes que ya no uso, o los acumulo sin necesidad?",
+            "¿He dedicado tiempo a visitar a un enfermo o a alguien que está solo?",
+            "¿Soy hospitalario con los que llegan a mi comunidad o a mi hogar?",
+            "¿He ayudado a alguien con problemas económicos de forma desinteresada?"
+          ]
+        },
+        {
+          "id": "spiritual_mercy",
+          "name": "Obras de Misericordia Espirituales",
+          "focus": "Atender las necesidades del alma y el espíritu.",
+          "questions": [
+            "¿He dado un buen consejo a quien lo necesitaba, o me he quedado callado por miedo o pereza?",
+            "¿He tenido paciencia con los defectos de los demás, o reacciono con amargura?",
+            "¿He consolado al que está triste o pasando por un duelo?",
+            "¿He perdonado de corazón las ofensas, o sigo alimentando el rencor?",
+            "¿He rezado por los vivos y por los difuntos, incluyendo a quienes me han hecho daño?",
+            "¿He tratado de enseñar o compartir mi fe con quienes no conocen a Dios?"
+          ]
+        }
+      ],
+      "closing": {
+        "scripture": "En verdad les digo que cuanto hicieron a uno de estos hermanos míos más pequeños, a mí me lo hicieron. (Mateo 25:40)"
+      }
+    },
+    {
+      "id": "ignatian_daily_examen",
+      "title": "Examen Diario (San Ignacio de Loyola)",
+      "target": "Todos los fieles",
+      "description": "Una revisión diaria del corazón para encontrar a Dios en todas las cosas y preparar el día de mañana.",
+      "categories": [
+        {
+          "id": "step_1_gratitude",
+          "name": "1. Acción de Gracias",
+          "focus": "Dar gracias a Dios Nuestro Señor por los beneficios recibidos.",
+          "questions": [
+            "¿Qué tres momentos de gracia o alegría viví hoy?",
+            "¿Agradecí a Dios por el don de la vida, la salud y el trabajo al iniciar el día?",
+            "¿Reconocí la presencia de Dios en las personas que encontré hoy?"
+          ]
+        },
+        {
+          "id": "step_2_petition",
+          "name": "2. Petición de Luz",
+          "focus": "Pedir gracia para conocer los pecados y lanzarlos de mí.",
+          "questions": [
+            "¿He pedido al Espíritu Santo que me ayude a ver mi día con sus ojos y no solo con los míos?",
+            "¿Estoy dispuesto a mirar mi verdad con humildad y sin autoengaños?"
+          ]
+        },
+        {
+          "id": "step_3_review",
+          "name": "3. Revisión del Día",
+          "focus": "Pedir cuenta al alma desde la hora de levantarse hasta el examen presente.",
+          "questions": [
+            "¿Cómo reaccioné ante los desafíos o momentos de estrés de hoy?",
+            "¿Fui fiel a mis propósitos de oración y servicio?",
+            "¿En qué momentos me alejé del amor de Dios (pensamientos, palabras u omisiones)?",
+            "¿Hubo algún sentimiento dominante hoy (tristeza, ansiedad, alegría) y por qué?"
+          ]
+        },
+        {
+          "id": "step_4_forgiveness",
+          "name": "4. Pedir Perdón",
+          "focus": "Pedir perdón a Dios por las faltas del día.",
+          "questions": [
+            "¿Le he pedido perdón a Dios sinceramente por mis caídas de hoy?",
+            "¿Confío en su misericordia infinita o me quedo atrapado en la culpa?",
+            "¿He perdonado a quienes me molestaron o hirieron durante la jornada?"
+          ]
+        },
+        {
+          "id": "step_5_amendment",
+          "name": "5. Propósito de Enmienda",
+          "focus": "Proponer enmienda con su gracia.",
+          "questions": [
+            "¿Qué aspecto específico quiero mejorar mañana con la ayuda de Dios?",
+            "¿Hay alguna situación difícil mañana para la cual necesite pedir una gracia especial?",
+            "¿Cómo puedo ser más consciente de la presencia de Dios en mi rutina de mañana?"
+          ]
+        }
+      ],
+      "closing": {
+        "prayer": "Padre Nuestro, que estás en el cielo... (Rezar un Padre Nuestro para cerrar el día)."
+      }
     }
   ],
   "closing": {

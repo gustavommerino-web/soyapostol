@@ -227,6 +227,309 @@
           ]
         }
       ]
+    },
+    {
+      "id": "triple_love_exam",
+      "title": "Examen of the Threefold Love",
+      "target": "Adults / Personal Growth",
+      "description": "A review based on the Great Commandment: love God, neighbor, and oneself.",
+      "categories": [
+        {
+          "id": "love_god",
+          "name": "Love of God",
+          "focus": "You shall love the Lord your God with all your heart, with all your soul, and with all your mind.",
+          "questions": [
+            "Have I sought God today for who He is, or only for what He can give me?",
+            "Have I given quality time to prayer, or only offered Him the 'leftovers' of my time?",
+            "Have I trusted in His love during difficulties, or rebelled against His will?",
+            "Have I received the Sacraments with reverence and a desire for conversion?"
+          ]
+        },
+        {
+          "id": "love_neighbor",
+          "name": "Love of Neighbor",
+          "focus": "You shall love your neighbor as yourself.",
+          "questions": [
+            "Have I treated others with the dignity they deserve as children of God?",
+            "Have I been quick to judge and slow to forgive?",
+            "Have I shared my goods, my time, or my talents with those most in need?",
+            "Have I harmed anyone with my words, gossip, or indifferent silences?",
+            "Have I fulfilled my duties toward my family, being patient and of service?"
+          ]
+        },
+        {
+          "id": "love_self",
+          "name": "Love of self",
+          "focus": "The care of the temple of the Holy Spirit that you are.",
+          "questions": [
+            "Do I treat myself with the mercy with which God treats me, or am I excessively harsh and perfectionistic?",
+            "Have I neglected my health, rest, or nutrition irresponsibly?",
+            "Have I allowed thoughts of low self-esteem or worthlessness to dominate my mind?",
+            "Do I strive to cultivate my talents to put them at God's service, or do I bury them out of fear or laziness?",
+            "Have I guarded the purity of my heart, mind, and body?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "capital_sins_exam",
+      "title": "Examen of the Seven Capital Sins",
+      "target": "Adults / Youth",
+      "description": "An analysis of the roots of our faults to identify our main weaknesses.",
+      "categories": [
+        {
+          "id": "pride",
+          "name": "Pride",
+          "focus": "The disordered desire to be preferred above others.",
+          "questions": [
+            "Have I been boastful, or sought others' admiration constantly?",
+            "Do I find it hard to ask forgiveness or admit I am wrong?",
+            "Have I looked down on others in my mind because of their economic, social, or intellectual situation?",
+            "Do I take credit for my successes, forgetting they are gifts from God?"
+          ]
+        },
+        {
+          "id": "avarice",
+          "name": "Greed",
+          "focus": "The disordered desire to possess wealth.",
+          "questions": [
+            "Am I excessively attached to money or to my belongings?",
+            "Have I been stingy with the needy or with my own family?",
+            "Do I spend money on unnecessary luxuries while neglecting my Christian duties?",
+            "Have I placed my security in money instead of in God?"
+          ]
+        },
+        {
+          "id": "lust",
+          "name": "Lust",
+          "focus": "The disordered desire for sexual pleasure.",
+          "questions": [
+            "Have I sought sexual pleasure through pornography or masturbation?",
+            "Have I voluntarily consented to impure thoughts or desires?",
+            "Have I disrespected others' dignity by seeing them as objects?",
+            "Have I taken part in conversations or jokes of double meaning that offend purity?"
+          ]
+        },
+        {
+          "id": "envy",
+          "name": "Envy",
+          "focus": "Sadness at the good of another.",
+          "questions": [
+            "Have I felt sadness or bitterness over others' success or happiness?",
+            "Have I wished someone would fail so that I could feel better about myself?",
+            "Have I criticized others out of jealousy to diminish their reputation?",
+            "Do I suffer when someone I dislike receives recognition?"
+          ]
+        },
+        {
+          "id": "gluttony",
+          "name": "Gluttony",
+          "focus": "The disordered desire to eat and drink.",
+          "questions": [
+            "Have I eaten or drunk excessively, to the point of harming my health or losing control?",
+            "Am I too demanding with food, causing trouble for those who prepare it?",
+            "Have I spent excessive money on feasts or drinks while others go hungry?",
+            "Do I let my cravings rule me, never practicing fasting or abstinence?"
+          ]
+        },
+        {
+          "id": "wrath",
+          "name": "Wrath",
+          "focus": "The disordered desire for revenge or uncontrolled anger.",
+          "questions": [
+            "Have I reacted with physical or verbal violence toward others?",
+            "Do I hold resentment and refuse to forgive from the heart?",
+            "Have I been impatient and irritable with my family or coworkers?",
+            "Do I use sarcasm or silence to punish others?"
+          ]
+        },
+        {
+          "id": "sloth",
+          "name": "Sloth",
+          "focus": "Lack of effort in fulfilling one's duties.",
+          "questions": [
+            "Have I neglected my daily prayer out of laziness or distraction?",
+            "Do I arrive late to Mass or my commitments because of a lack of discipline?",
+            "Do I waste too much time on social media or television, neglecting my duties?",
+            "Have I let opportunities to do good pass by, simply to avoid discomfort?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "virtues_moral_exam",
+      "title": "Examen of the Virtues (Theological and Cardinal)",
+      "target": "Adults / Spiritual Growth",
+      "description": "A deep look at how we are cultivating the virtues that guide our Christian life.",
+      "categories": [
+        {
+          "id": "theological_faith",
+          "name": "Faith",
+          "focus": "Believing in God and in everything He has revealed.",
+          "questions": [
+            "Have I neglected the study of my faith, letting my doubts grow without seeking answers?",
+            "Am I ashamed of being Catholic in social or professional settings?",
+            "Have I placed my trust in horoscopes, divination, or philosophies contrary to the Gospel?"
+          ]
+        },
+        {
+          "id": "theological_hope",
+          "name": "Hope",
+          "focus": "Trusting in the promises of Christ and in eternal life.",
+          "questions": [
+            "Have I fallen into despair, doubting God's mercy in the face of my sins?",
+            "Have I sinned by presumption, thinking I can be saved without effort or without grace?",
+            "Do I complain constantly about my situation, failing to trust in divine Providence?"
+          ]
+        },
+        {
+          "id": "theological_charity",
+          "name": "Charity",
+          "focus": "Loving God above all things and our neighbor as ourselves.",
+          "questions": [
+            "Is God the center of my life, or do I only seek Him when I have problems?",
+            "Have I been indifferent to the suffering of others, especially those closest to me?",
+            "Have I let selfishness guide my decisions instead of service?"
+          ]
+        },
+        {
+          "id": "cardinal_prudence",
+          "name": "Prudence",
+          "focus": "Discerning our true good and choosing the right means to attain it.",
+          "questions": [
+            "Do I make important decisions without praying or seeking wise counsel?",
+            "Have I acted impulsively, hurting others with my words or actions?",
+            "Have I been negligent in my daily responsibilities?"
+          ]
+        },
+        {
+          "id": "cardinal_justice",
+          "name": "Justice",
+          "focus": "Giving God and neighbor what is due to them.",
+          "questions": [
+            "Have I been honest in my business dealings, taxes, and in the use of time at work?",
+            "Have I paid fairly those who provide me a service?",
+            "Have I judged others without grounds, or taken part in gossip?"
+          ]
+        },
+        {
+          "id": "cardinal_fortitude",
+          "name": "Fortitude",
+          "focus": "Firmness in difficulties and constancy in the pursuit of the good.",
+          "questions": [
+            "Do I give up easily in the face of temptation or life's trials?",
+            "Have I been afraid to defend the truth out of fear of rejection?",
+            "Am I lazy in fulfilling my spiritual and family duties?"
+          ]
+        },
+        {
+          "id": "cardinal_temperance",
+          "name": "Temperance",
+          "focus": "Moderating the attraction of pleasures and seeking balance.",
+          "questions": [
+            "Have I abused food, alcohol, social media, or entertainment?",
+            "Do I find it hard to control my impulses or temper when things don't go my way?",
+            "Have I been vain, always seeking to be the center of attention?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mercy_works_exam",
+      "title": "Examen of the Works of Mercy",
+      "target": "Adults / Parish Groups",
+      "description": "A review based on our active response to the needs of others, following Christ's command.",
+      "categories": [
+        {
+          "id": "corporal_mercy",
+          "name": "Corporal Works of Mercy",
+          "focus": "Attending to the physical needs of our neighbor.",
+          "questions": [
+            "Have I walked past someone who was hungry or thirsty when I could have helped?",
+            "Have I been generous with clothing or goods I no longer use, or do I hoard them needlessly?",
+            "Have I taken time to visit the sick or someone who is alone?",
+            "Am I hospitable to those who arrive in my community or home?",
+            "Have I helped someone in financial difficulty, asking nothing in return?"
+          ]
+        },
+        {
+          "id": "spiritual_mercy",
+          "name": "Spiritual Works of Mercy",
+          "focus": "Attending to the needs of the soul and spirit.",
+          "questions": [
+            "Have I given good counsel to someone who needed it, or stayed silent out of fear or laziness?",
+            "Have I been patient with others' faults, or do I react with bitterness?",
+            "Have I consoled those who are sad or going through grief?",
+            "Have I forgiven offenses from the heart, or do I keep feeding my resentment?",
+            "Have I prayed for the living and the dead, including those who have hurt me?",
+            "Have I tried to teach or share my faith with those who do not know God?"
+          ]
+        }
+      ],
+      "closing": {
+        "scripture": "Truly I tell you, whatever you did for one of the least of these brothers of mine, you did for me. (Matthew 25:40)"
+      }
+    },
+    {
+      "id": "ignatian_daily_examen",
+      "title": "Daily Examen (St. Ignatius of Loyola)",
+      "target": "All the faithful",
+      "description": "A daily review of the heart to find God in all things and to prepare for tomorrow.",
+      "categories": [
+        {
+          "id": "step_1_gratitude",
+          "name": "1. Thanksgiving",
+          "focus": "Give thanks to God our Lord for the benefits received.",
+          "questions": [
+            "What three moments of grace or joy did I experience today?",
+            "Did I thank God for the gift of life, health, and work at the start of the day?",
+            "Did I recognize God's presence in the people I met today?"
+          ]
+        },
+        {
+          "id": "step_2_petition",
+          "name": "2. Petition for Light",
+          "focus": "Ask for grace to know my sins and to cast them from me.",
+          "questions": [
+            "Have I asked the Holy Spirit to help me see my day with His eyes, not only with my own?",
+            "Am I willing to look at my truth with humility and without self-deception?"
+          ]
+        },
+        {
+          "id": "step_3_review",
+          "name": "3. Review of the Day",
+          "focus": "Examine the soul from the hour of rising to the present examen.",
+          "questions": [
+            "How did I react to today's challenges or moments of stress?",
+            "Was I faithful to my commitments of prayer and service?",
+            "At what moments did I stray from God's love (thoughts, words, or omissions)?",
+            "Was there a dominant feeling today (sadness, anxiety, joy) and why?"
+          ]
+        },
+        {
+          "id": "step_4_forgiveness",
+          "name": "4. Ask for Forgiveness",
+          "focus": "Ask God's forgiveness for the day's faults.",
+          "questions": [
+            "Have I sincerely asked God's forgiveness for my falls today?",
+            "Do I trust in His infinite mercy, or do I stay trapped in guilt?",
+            "Have I forgiven those who annoyed or hurt me throughout the day?"
+          ]
+        },
+        {
+          "id": "step_5_amendment",
+          "name": "5. Resolution for Amendment",
+          "focus": "Resolve to amend, with His grace.",
+          "questions": [
+            "What specific aspect do I want to improve tomorrow with God's help?",
+            "Is there a difficult situation tomorrow for which I need a special grace?",
+            "How can I be more aware of God's presence in tomorrow's routine?"
+          ]
+        }
+      ],
+      "closing": {
+        "prayer": "Our Father, who art in heaven... (Pray an Our Father to close the day)."
+      }
     }
   ],
   "closing": {

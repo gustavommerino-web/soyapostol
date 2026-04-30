@@ -4,7 +4,7 @@ import BackToTopButton from "@/components/BackToTopButton";
 import {
     CaretDown, CheckCircle, ArrowLeft, TrashSimple, CheckSquareOffset,
     Heart, UserCircle, Lightning, UserFocus, Moon, Sparkle, ArrowCounterClockwise,
-    HandHeart,
+    HandHeart, HeartStraight, Clock, Flame, Leaf, HandsPraying,
 } from "@phosphor-icons/react";
 
 const DATA_URL = (lang) => `/data/examen-${lang}.json`;
@@ -14,11 +14,16 @@ const STORAGE_KEY = (lang) => `soyapostol:examen:${lang}`; // local only — nev
 //   - kind "general"   → renders the Ten Commandments (+ optional specific_states target)
 //   - kind "alt_exam"  → renders an entry from `alternative_exams` by id (e.g. Beatitudes)
 const PROFILES = [
-    { id: "adults",          icon: UserFocus,  kind: "general",  target: null },
-    { id: "married_couples", icon: Heart,      kind: "general",  target: "married_couples" },
-    { id: "single_adults",   icon: UserCircle, kind: "general",  target: "single_adults" },
-    { id: "teenagers",       icon: Lightning,  kind: "general",  target: "teenagers" },
-    { id: "beatitudes",      icon: Sparkle,    kind: "alt_exam", target: "beatitudes_exam" },
+    { id: "adults",          icon: UserFocus,    kind: "general",  target: null },
+    { id: "married_couples", icon: Heart,        kind: "general",  target: "married_couples" },
+    { id: "single_adults",   icon: UserCircle,   kind: "general",  target: "single_adults" },
+    { id: "teenagers",       icon: Lightning,    kind: "general",  target: "teenagers" },
+    { id: "beatitudes",      icon: Sparkle,      kind: "alt_exam", target: "beatitudes_exam" },
+    { id: "triple_love",     icon: HeartStraight, kind: "alt_exam", target: "triple_love_exam" },
+    { id: "capital_sins",    icon: Flame,        kind: "alt_exam", target: "capital_sins_exam" },
+    { id: "virtues",         icon: Leaf,         kind: "alt_exam", target: "virtues_moral_exam" },
+    { id: "mercy_works",     icon: HandsPraying, kind: "alt_exam", target: "mercy_works_exam" },
+    { id: "ignatian_daily",  icon: Clock,        kind: "alt_exam", target: "ignatian_daily_examen" },
 ];
 
 // -------- State shape --------
@@ -83,13 +88,13 @@ export default function Examen() {
         const out = [];
 
         if (selected.kind === "alt_exam") {
-            // Alternative exam (e.g. Beatitudes) — render categories only.
+            // Alternative exam (e.g. Beatitudes, Capital Sins) — render categories only.
             const alt = (data.alternative_exams || []).find((a) => a.id === selected.target);
             if (alt?.categories) {
-                alt.categories.forEach((c, idx) => {
+                alt.categories.forEach((c) => {
                     out.push({
                         id: `alt_${alt.id}_${c.id}`,
-                        eyebrow: t("examen.beatitude_n", { n: idx + 1 }),
+                        eyebrow: alt.title,
                         title: c.name,
                         focus: c.focus,
                         questions: c.questions || [],
@@ -130,6 +135,16 @@ export default function Examen() {
         () => Object.values(checks).reduce((n, s) => n + Object.values(s).filter(Boolean).length, 0),
         [checks],
     );
+
+    // Per-exam closing (scripture or prayer) for alternative exams. When
+    // present it replaces the default Act of Contrition in the summary.
+    const altClosing = React.useMemo(() => {
+        if (!data || !profile) return null;
+        const selected = PROFILES.find((p) => p.id === profile);
+        if (selected?.kind !== "alt_exam") return null;
+        const alt = (data.alternative_exams || []).find((a) => a.id === selected.target);
+        return alt?.closing || null;
+    }, [data, profile]);
 
     const toggleQuestion = (sectionId, qIdx) => {
         setChecks((prev) => {
@@ -195,6 +210,7 @@ export default function Examen() {
                 sections={sections}
                 checks={checks}
                 actOfContrition={data.closing?.act_of_contrition}
+                altClosing={altClosing}
                 profileLabel={t(`examen.profile.${profile}`)}
                 onBack={() => setShowSummary(false)}
                 onReset={resetAll}
@@ -496,7 +512,7 @@ function SectionsAccordion({ sections, checks, onToggle }) {
 
 /* ------------------------------------------------------------------ */
 
-function SummaryView({ sections, checks, actOfContrition, profileLabel, onBack, onReset, onFinish }) {
+function SummaryView({ sections, checks, actOfContrition, altClosing, profileLabel, onBack, onReset, onFinish }) {
     const { t } = useLang();
     const [confirmClear, setConfirmClear] = React.useState(false);
     const [confirmFinish, setConfirmFinish] = React.useState(false);
@@ -569,7 +585,25 @@ function SummaryView({ sections, checks, actOfContrition, profileLabel, onBack, 
                 </div>
             )}
 
-            {actOfContrition && (
+            {altClosing?.scripture ? (
+                <section className="mt-16 mb-8" data-testid="examen-alt-scripture">
+                    <p className="label-eyebrow mb-3">{t("examen.scripture_eyebrow")}</p>
+                    <article className="surface-card p-6 sm:p-7">
+                        <p className="reading-serif italic text-lg leading-[1.8] text-stone900 m-0 text-justify">
+                            {altClosing.scripture}
+                        </p>
+                    </article>
+                </section>
+            ) : altClosing?.prayer ? (
+                <section className="mt-16 mb-8" data-testid="examen-alt-prayer">
+                    <p className="label-eyebrow mb-3">{t("examen.prayer_eyebrow")}</p>
+                    <article className="surface-card p-6 sm:p-7 reading-prose">
+                        <p className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 m-0 text-justify">
+                            {altClosing.prayer}
+                        </p>
+                    </article>
+                </section>
+            ) : actOfContrition && (
                 <section className="mt-16 mb-8" data-testid="examen-act-of-contrition">
                     <p className="label-eyebrow mb-3">{t("examen.contrition_eyebrow")}</p>
                     <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
