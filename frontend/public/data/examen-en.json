@@ -1,0 +1,145 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-04-29",
+  "general_sections": [
+    {
+      "id": "ten_commandments_adults",
+      "title": "General Examination (Ten Commandments)",
+      "target": "Adults",
+      "questions_by_commandment": [
+        {
+          "commandment": 1,
+          "title": "I am the Lord your God: you shall not have strange Gods before me.",
+          "questions": [
+            "Have I doubted or denied the existence of God?",
+            "Have I put money, career, status, or technology before God?",
+            "Have I engaged in superstitious practices, magic, or occultism?",
+            "Have I failed to pray daily?"
+          ]
+        },
+        {
+          "commandment": 2,
+          "title": "You shall not take the name of the Lord your God in vain.",
+          "questions": [
+            "Have I used God's name in anger or carelessly?",
+            "Have I spoken disrespectfully about the Church or holy things?",
+            "Have I broken a solemn vow, oath, or promise to God?"
+          ]
+        },
+        {
+          "commandment": 3,
+          "title": "Remember to keep holy the Lord's Day.",
+          "questions": [
+            "Have I deliberately missed Mass on Sundays or Holy Days of Obligation?",
+            "Have I treated Sunday as a day like any other, without rest or worship?",
+            "Have I received Holy Communion while in a state of mortal sin?",
+            "Have I been distracted or disrespectful during Mass?"
+          ]
+        },
+        {
+          "commandment": 4,
+          "title": "Honor your father and your mother.",
+          "questions": [
+            "Have I been disrespectful, rebellious, or ungrateful to my parents or elders?",
+            "Have I neglected to care for my aging parents or relatives?",
+            "Have I failed in my duty to correct or spiritually nurture my children?"
+          ]
+        },
+        {
+          "commandment": 5,
+          "title": "You shall not kill.",
+          "questions": [
+            "Have I held anger, hatred, or resentment toward another person?",
+            "Have I been physically or verbally abusive?",
+            "Have I encouraged, supported, or participated in abortion, euthanasia, or suicide?",
+            "Have I harmed my body with drugs, excessive alcohol, or reckless behavior?"
+          ]
+        },
+        {
+          "commandment": 6,
+          "title": "You shall not commit adultery.",
+          "questions": [
+            "Have I been unfaithful to my spouse in thought, word, or action?",
+            "Have I engaged in sexual activity outside of marriage?",
+            "Have I viewed pornography or impure images?",
+            "Have I dressed or acted in a way that incited lustful thoughts in others?"
+          ]
+        },
+        {
+          "commandment": 7,
+          "title": "You shall not steal.",
+          "questions": [
+            "Have I stolen, cheated, or committed fraud, no matter how small?",
+            "Have I failed to return borrowed items or money?",
+            "Have I been dishonest in my work, taxes, or business dealings?",
+            "Have I been wasteful of resources or failed to help the poor?"
+          ]
+        },
+        {
+          "commandment": 8,
+          "title": "You shall not bear false witness against your neighbor.",
+          "questions": [
+            "Have I told lies, even small ones?",
+            "Have I gossiped or harmed the reputation of others?",
+            "Have I been quick to judge others without knowing the full truth?",
+            "Have I refused to admit when I was wrong or apologize?"
+          ]
+        },
+        {
+          "commandment": 9,
+          "title": "You shall not covet your neighbor's wife.",
+          "questions": [
+            "Have I entertained impure thoughts or desires for someone else's spouse?",
+            "Have I used others as objects in my imagination?"
+          ]
+        },
+        {
+          "commandment": 10,
+          "title": "You shall not covet your neighbor's goods.",
+          "questions": [
+            "Have I been envious of what others possess (their money, talents, or happiness)?",
+            "Have I complained excessively about what I lack instead of being grateful?"
+          ]
+        }
+      ]
+    }
+  ],
+  "specific_states": [
+    {
+      "id": "married_couples",
+      "title": "For Married Couples",
+      "questions": [
+        "Have I failed to show love and support to my spouse today?",
+        "Have I been selfish or insisted on my own way in the home?",
+        "Have I failed to be open to new life within our marriage?",
+        "Have I neglected the spiritual or moral education of our children?",
+        "Have I held grudges against my spouse instead of forgiving?"
+      ]
+    },
+    {
+      "id": "single_adults",
+      "title": "For Single Adults",
+      "questions": [
+        "Have I used my time and freedom solely for myself rather than in service to others?",
+        "Have I been impatient with my current state in life?",
+        "Have I failed to practice chastity in my relationships?",
+        "Have I neglected my spiritual growth or service to the Church?"
+      ]
+    },
+    {
+      "id": "teenagers",
+      "title": "For Teenagers",
+      "questions": [
+        "Have I been disobedient or talked back to my parents?",
+        "Have I been lazy in my schoolwork or chores?",
+        "Have I joined in when others were bullying or mocking someone?",
+        "Have I experimented with drugs, alcohol, or vaping?",
+        "Have I been honest with my parents about where I am and who I'm with?",
+        "Have I used social media to hurt others or viewed inappropriate content?"
+      ]
+    }
+  ],
+  "closing": {
+    "act_of_contrition": "O my God, I am heartily sorry for having offended Thee, and I detest all my sins because of thy just punishments, but most of all because they offend Thee, my God, who art all good and deserving of all my love. I firmly resolve with the help of Thy grace to sin no more and to avoid the near occasion of sin. Amen."
+  }
+}

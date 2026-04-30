@@ -1,0 +1,145 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-04-29",
+  "general_sections": [
+    {
+      "id": "ten_commandments_adults",
+      "title": "Examen general (Los Diez Mandamientos)",
+      "target": "Adultos",
+      "questions_by_commandment": [
+        {
+          "commandment": 1,
+          "title": "Amarás a Dios sobre todas las cosas.",
+          "questions": [
+            "¿He dudado de la existencia de Dios o la he negado?",
+            "¿He puesto el dinero, la carrera, el estatus o la tecnología antes que Dios?",
+            "¿He recurrido a supersticiones, magia u ocultismo?",
+            "¿He dejado de orar a diario?"
+          ]
+        },
+        {
+          "commandment": 2,
+          "title": "No tomarás el Nombre de Dios en vano.",
+          "questions": [
+            "¿He usado el nombre de Dios con ira o a la ligera?",
+            "¿He hablado con irrespeto de la Iglesia o de las cosas sagradas?",
+            "¿He roto votos solemnes, juramentos o promesas hechas a Dios?"
+          ]
+        },
+        {
+          "commandment": 3,
+          "title": "Santificarás las fiestas.",
+          "questions": [
+            "¿He faltado deliberadamente a Misa los domingos o días de precepto?",
+            "¿He tratado el domingo como un día cualquiera, sin descanso ni oración?",
+            "¿He comulgado en estado de pecado mortal?",
+            "¿He estado distraído o irrespetuoso durante la Misa?"
+          ]
+        },
+        {
+          "commandment": 4,
+          "title": "Honrarás a tu padre y a tu madre.",
+          "questions": [
+            "¿He sido irrespetuoso, rebelde o ingrato con mis padres o mayores?",
+            "¿He descuidado el cuidado de mis padres ancianos o familiares?",
+            "¿He fallado en mi deber de corregir o formar espiritualmente a mis hijos?"
+          ]
+        },
+        {
+          "commandment": 5,
+          "title": "No matarás.",
+          "questions": [
+            "¿He guardado ira, odio o resentimiento hacia otra persona?",
+            "¿He sido agresivo física o verbalmente?",
+            "¿He fomentado, apoyado o participado en el aborto, la eutanasia o el suicidio?",
+            "¿He dañado mi cuerpo con drogas, exceso de alcohol o conductas imprudentes?"
+          ]
+        },
+        {
+          "commandment": 6,
+          "title": "No cometerás actos impuros.",
+          "questions": [
+            "¿He sido infiel a mi cónyuge de pensamiento, palabra u obra?",
+            "¿He tenido relaciones sexuales fuera del matrimonio?",
+            "¿He visto pornografía o imágenes impuras?",
+            "¿Me he vestido o comportado de forma que indujera pensamientos impuros en otros?"
+          ]
+        },
+        {
+          "commandment": 7,
+          "title": "No robarás.",
+          "questions": [
+            "¿He robado, engañado o cometido fraude, por pequeño que fuera?",
+            "¿He dejado de devolver objetos o dinero prestado?",
+            "¿He sido deshonesto en mi trabajo, impuestos o negocios?",
+            "¿He sido derrochador o he dejado de ayudar a los necesitados?"
+          ]
+        },
+        {
+          "commandment": 8,
+          "title": "No darás falso testimonio ni mentirás.",
+          "questions": [
+            "¿He dicho mentiras, aun pequeñas?",
+            "¿He hecho chismes o dañado la reputación de otros?",
+            "¿He juzgado con ligereza sin conocer la verdad completa?",
+            "¿Me he negado a admitir mis errores o a pedir perdón?"
+          ]
+        },
+        {
+          "commandment": 9,
+          "title": "No consentirás pensamientos ni deseos impuros.",
+          "questions": [
+            "¿He cultivado pensamientos o deseos impuros hacia la pareja de otro?",
+            "¿He usado a otras personas como objetos en mi imaginación?"
+          ]
+        },
+        {
+          "commandment": 10,
+          "title": "No codiciarás los bienes ajenos.",
+          "questions": [
+            "¿He envidiado lo que otros poseen (dinero, talentos, felicidad)?",
+            "¿Me he quejado en exceso de lo que me falta en lugar de dar gracias?"
+          ]
+        }
+      ]
+    }
+  ],
+  "specific_states": [
+    {
+      "id": "married_couples",
+      "title": "Para casados",
+      "questions": [
+        "¿He dejado de mostrar amor y apoyo a mi cónyuge hoy?",
+        "¿He sido egoísta o he impuesto mi voluntad en el hogar?",
+        "¿He rechazado estar abierto a la vida en nuestro matrimonio?",
+        "¿He descuidado la educación espiritual o moral de nuestros hijos?",
+        "¿He guardado rencores contra mi cónyuge en lugar de perdonar?"
+      ]
+    },
+    {
+      "id": "single_adults",
+      "title": "Para solteros",
+      "questions": [
+        "¿He usado mi tiempo y libertad solo para mí, en lugar de servir a los demás?",
+        "¿He sido impaciente con mi estado de vida actual?",
+        "¿He dejado de practicar la castidad en mis relaciones?",
+        "¿He descuidado mi crecimiento espiritual o el servicio a la Iglesia?"
+      ]
+    },
+    {
+      "id": "teenagers",
+      "title": "Para adolescentes",
+      "questions": [
+        "¿He sido desobediente o he contestado mal a mis padres?",
+        "¿He sido perezoso con las tareas escolares o de la casa?",
+        "¿Me he unido a otros al hacer bullying o burla de alguien?",
+        "¿He experimentado con drogas, alcohol o vapeo?",
+        "¿He sido honesto con mis padres sobre dónde estoy y con quién?",
+        "¿He usado redes sociales para dañar a otros o he visto contenido inapropiado?"
+      ]
+    }
+  ],
+  "closing": {
+    "act_of_contrition": "Dios mío, me arrepiento de todo corazón de haberte ofendido, y aborrezco todos mis pecados por temor a perder el cielo y merecer el infierno, pero sobre todo porque te ofenden a Ti, mi Dios, que eres todo bondad y digno de todo mi amor. Propongo firmemente, con el auxilio de tu gracia, no pecar más y evitar las ocasiones próximas de pecado. Amén."
+  }
+}
