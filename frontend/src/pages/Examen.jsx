@@ -2,7 +2,7 @@ import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import BackToTopButton from "@/components/BackToTopButton";
 import {
-    CaretDown, CheckCircle, ArrowLeft, TrashSimple, CheckSquareOffset,
+    CheckCircle, ArrowLeft, TrashSimple, CheckSquareOffset,
     Heart, UserCircle, Lightning, UserFocus, Moon, Sparkle, ArrowCounterClockwise,
     HandHeart, HeartStraight, Clock, Flame, Leaf, HandsPraying,
     Wind, GraduationCap, Scroll, Briefcase, House, DeviceMobile,
@@ -476,88 +476,73 @@ function ProfileCover({ onPick, checks, onViewSummary, data, onStartOver, onFini
 /* ------------------------------------------------------------------ */
 
 function SectionsAccordion({ sections, checks, onToggle }) {
-    const [openId, setOpenId] = React.useState(sections[0]?.id || null);
+    // Single long scroll: every section is rendered as an always-open card
+    // so the user can flow through the questions without taps.
     return (
-        <div className="flex flex-col gap-3" data-testid="examen-sections">
+        <div className="flex flex-col gap-5" data-testid="examen-sections">
             {sections.map((sec) => {
-                const open = openId === sec.id;
                 const sectionChecks = checks[sec.id] || {};
                 const selected = Object.values(sectionChecks).filter(Boolean).length;
                 return (
                     <article
                         key={sec.id}
-                        className="surface-card p-0 overflow-hidden"
+                        className="surface-card overflow-hidden"
                         data-testid={`examen-section-${sec.id}`}
                     >
-                        <button
-                            type="button"
-                            onClick={() => setOpenId(open ? null : sec.id)}
-                            aria-expanded={open}
-                            className="w-full text-left p-5 sm:p-6 flex items-start gap-4"
-                        >
-                            <div className="flex-1 min-w-0">
-                                <p className="label-eyebrow mb-2">{sec.eyebrow}</p>
-                                <h2 className="heading-serif text-lg sm:text-xl leading-tight tracking-tight m-0">
-                                    {sec.title}
-                                </h2>
-                                {selected > 0 && (
-                                    <p className="text-xs text-sangre mt-2 ui-sans uppercase tracking-widest font-semibold">
-                                        <CheckCircle size={12} weight="fill" className="inline -mt-0.5 mr-1" />
-                                        {selected}
-                                    </p>
-                                )}
-                            </div>
-                            <CaretDown
-                                size={18}
-                                weight="bold"
-                                className="text-stoneFaint transition-transform shrink-0 mt-1"
-                                style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
-                            />
-                        </button>
-                        {open && (
-                            <div className="px-5 sm:px-6 pb-6">
-                                {sec.focus && (
-                                    <blockquote
-                                        className="reading-serif italic text-base text-stoneMuted border-l-2 border-sangre/40 pl-4 mb-4"
-                                        data-testid={`examen-focus-${sec.id}`}
-                                    >
-                                        {sec.focus}
-                                    </blockquote>
-                                )}
-                                <ul className="flex flex-col gap-1">
-                                    {sec.questions.map((q, i) => {
-                                        const checked = !!sectionChecks[i];
-                                        return (
-                                            <li key={i}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onToggle(sec.id, i)}
-                                                    data-testid={`examen-q-${sec.id}-${i}`}
-                                                    aria-pressed={checked}
-                                                    className={`w-full text-left py-3 px-3 -mx-3 rounded-md flex items-start gap-3 transition-colors ${
-                                                        checked ? "bg-sangre/5" : "hover:bg-sand-200"
+                        <header className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4">
+                            <p className="label-eyebrow mb-2">{sec.eyebrow}</p>
+                            <h2 className="heading-serif text-lg sm:text-xl leading-tight tracking-tight m-0">
+                                {sec.title}
+                            </h2>
+                            {selected > 0 && (
+                                <p className="text-xs text-sangre mt-2 ui-sans uppercase tracking-widest font-semibold">
+                                    <CheckCircle size={12} weight="fill" className="inline -mt-0.5 mr-1" />
+                                    {selected}
+                                </p>
+                            )}
+                        </header>
+                        <div className="px-5 sm:px-6 pb-6">
+                            {sec.focus && (
+                                <blockquote
+                                    className="reading-serif italic text-base text-stoneMuted border-l-2 border-sangre/40 pl-4 mb-4"
+                                    data-testid={`examen-focus-${sec.id}`}
+                                >
+                                    {sec.focus}
+                                </blockquote>
+                            )}
+                            <ul className="flex flex-col gap-1">
+                                {sec.questions.map((q, i) => {
+                                    const checked = !!sectionChecks[i];
+                                    return (
+                                        <li key={i}>
+                                            <button
+                                                type="button"
+                                                onClick={() => onToggle(sec.id, i)}
+                                                data-testid={`examen-q-${sec.id}-${i}`}
+                                                aria-pressed={checked}
+                                                className={`w-full text-left py-3 px-3 -mx-3 rounded-md flex items-start gap-3 transition-colors ${
+                                                    checked ? "bg-sangre/5" : "hover:bg-sand-200"
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`shrink-0 w-5 h-5 mt-0.5 rounded-[5px] border-2 flex items-center justify-center transition-colors ${
+                                                        checked
+                                                            ? "bg-sangre border-sangre"
+                                                            : "bg-transparent border-stoneFaint"
                                                     }`}
+                                                    aria-hidden="true"
                                                 >
-                                                    <span
-                                                        className={`shrink-0 w-5 h-5 mt-0.5 rounded-[5px] border-2 flex items-center justify-center transition-colors ${
-                                                            checked
-                                                                ? "bg-sangre border-sangre"
-                                                                : "bg-transparent border-stoneFaint"
-                                                        }`}
-                                                        aria-hidden="true"
-                                                    >
-                                                        {checked && <CheckCircle size={12} weight="fill" color="#FDFDFD" />}
-                                                    </span>
-                                                    <span className="reading-serif text-base leading-relaxed text-stone900 flex-1">
-                                                        {q}
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
+                                                    {checked && <CheckCircle size={12} weight="fill" color="#FDFDFD" />}
+                                                </span>
+                                                <span className="reading-serif text-base leading-relaxed text-stone900 flex-1">
+                                                    {q}
+                                                </span>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
                     </article>
                 );
             })}
