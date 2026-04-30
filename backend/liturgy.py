@@ -29,7 +29,7 @@ IBREVIARY_CODES = {
     "compline": "compieta",
 }
 
-# Internal hour code → divineoffice.org RSS prayer code
+# Internal hour code → divineoffice.org RSS prayer code (legacy URL filter)
 DIVINE_OFFICE_CODES = {
     "office_of_readings": "OfficeOfReadings",
     "lauds": "MorningPrayer",
@@ -39,6 +39,76 @@ DIVINE_OFFICE_CODES = {
     "vespers": "EveningPrayer",
     "compline": "NightPrayer",
 }
+
+# divineoffice.org exposes each item under multiple <category> tags. Two
+# are relevant for filtering:
+#   - a human-readable label, e.g. "Divine Office -- Morning Prayer (Lauds)"
+#   - a canonical short code, e.g. "MorningPrayer"
+# Invitatory/About entries share the human label with their parent hour, so
+# we match first on the canonical code (always unique per hour) and accept
+# the human label only as a secondary signal when paired with the canonical.
+DIVINE_OFFICE_CATEGORY_CODES = {
+    "office_of_readings": {"officeofreadings"},
+    "lauds":              {"morningprayer"},
+    "midmorning":         {"midmorningprayer"},
+    "midday":             {"middayprayer"},
+    "midafternoon":       {"midafternoonprayer"},
+    "vespers":            {"eveningprayer"},
+    "compline":           {"nightprayer"},
+}
+
+# Human-readable base (after stripping "Divine Office -- " and parenthetical)
+DIVINE_OFFICE_CATEGORY_BASES = {
+    "office_of_readings": {"office of readings"},
+    "lauds":              {"morning prayer"},
+    "midmorning":         {"midmorning prayer"},
+    "midday":             {"midday prayer"},
+    "midafternoon":       {"midafternoon prayer"},
+    "vespers":            {"evening prayer"},
+    "compline":           {"night prayer"},
+}
+
+
+def _entry_matches_hour(entry, hour: str) -> bool:
+    """True when the RSS entry carries the canonical <category> for this hour.
+
+    The feed bundles both a canonical code tag (e.g. ``MorningPrayer``) and a
+    prose label (e.g. ``Divine Office -- Morning Prayer (Lauds)``); we match
+    on the canonical code because the prose label is shared with Invitatory
+    and "About" items for the same day.
+    """
+    codes = DIVINE_OFFICE_CATEGORY_CODES.get(hour, set())
+    if not codes:
+        return False
+    for tag in entry.get("tags", []) or []:
+        term = (tag.get("term") or "").strip().lower()
+        if term in codes:
+            return True
+    return False
+
+
+def _entry_date(entry) -> Optional[date_cls]:
+    """Return the entry's liturgical day.
+
+    Divine Office publishes each prayer the day *before* the liturgical day
+    it refers to, so `published_parsed` is usually offset by ~24 h. The URL
+    query ``?date=YYYYMMDD`` matches the actual liturgical day — prefer it.
+    """
+    link = entry.get("link", "")
+    q = parse_qs(urlparse(link).query)
+    raw = q.get("date", [""])[0]
+    if raw and len(raw) == 8 and raw.isdigit():
+        try:
+            return date_cls(int(raw[:4]), int(raw[4:6]), int(raw[6:8]))
+        except ValueError:
+            pass
+    pp = entry.get("published_parsed")
+    if pp:
+        try:
+            return date_cls(pp.tm_year, pp.tm_mon, pp.tm_mday)
+        except (TypeError, ValueError):
+            return None
+    return None
 
 # Internal hour code → liturgiadelashoras.github.io filename
 LDLH_CODES = {
@@ -57,6 +127,7 @@ HOURS = list(IBREVIARY_CODES.keys())
 IBREVIARY_BASE = "https://www.ibreviary.com/m2"
 DIVINE_OFFICE_FEED = "https://divineoffice.org/feed/"
 LDLH_BASE = "https://liturgiadelashoras.github.io/sync"
+CACHE_TTL_SECONDS = 3600  # 1 hour — hourly refresh per user spec
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
@@ -94,55 +165,85 @@ async def _fetch_with_retry(url: str, retries: int = 3, timeout: int = 30) -> ht
 # ---------- Divine Office (EN) ----------
 
 async def _fetch_divine_office(hour: str, target_date: date_cls) -> dict:
-    prayer_code = DIVINE_OFFICE_CODES.get(hour)
-    if not prayer_code:
+    """Read the divineoffice.org RSS feed, iterate <item> elements, filter by
+    <category> (e.g. "Morning Prayer (Lauds)") and return the entry that
+    matches `target_date`. If no entry for that date exists, return the most
+    recent matching item so the user always gets *something*.
+    """
+    if hour not in DIVINE_OFFICE_CATEGORY_CODES:
         raise HTTPException(status_code=400, detail="Unsupported hour for Divine Office")
-    today = target_date.strftime("%Y%m%d")
     r = await _fetch_with_retry(DIVINE_OFFICE_FEED)
     feed = feedparser.parse(r.content)
 
-    matching = []
+    matching = []  # list of (entry_date, entry) — entry_date may be None
     for entry in feed.entries:
-        link = entry.get("link", "")
-        q = parse_qs(urlparse(link).query)
-        if q.get("prayer", [""])[0] != prayer_code:
+        if not _entry_matches_hour(entry, hour):
             continue
-        entry_date = q.get("date", [""])[0]
-        matching.append((entry_date, entry))
-    if not matching:
-        raise HTTPException(status_code=502, detail="Divine Office feed missing entry")
-    matching.sort(key=lambda x: x[0], reverse=True)
-    chosen_date, entry = None, None
-    for d, e in matching:
-        if d == today:
-            chosen_date, entry = d, e
-            break
-    if entry is None:
-        chosen_date, entry = matching[0]
+        matching.append((_entry_date(entry), entry))
 
+    if not matching:
+        raise HTTPException(status_code=502, detail="Divine Office feed missing category for hour")
+
+    # Prefer today's entry, otherwise the most recent one we can date, otherwise
+    # the first one the feed gave us.
+    chosen_entry = None
+    chosen_date = None
+    for d, e in matching:
+        if d == target_date:
+            chosen_date, chosen_entry = d, e
+            break
+    if chosen_entry is None:
+        dated = [(d, e) for d, e in matching if d is not None]
+        if dated:
+            dated.sort(key=lambda x: x[0], reverse=True)
+            chosen_date, chosen_entry = dated[0]
+        else:
+            chosen_date, chosen_entry = matching[0]
+
+    # The prayer body lives in <content:encoded>; feedparser exposes it under
+    # entry.content[0].value. Strip media/share widgets but KEEP inline styles
+    # — divineoffice.org marks breviary rubrics with
+    #   <span style="color: #ff0000;">...</span>
     content_html = ""
-    if entry.get("content"):
-        content_html = entry["content"][0].get("value", "")
+    if chosen_entry.get("content"):
+        content_html = chosen_entry["content"][0].get("value", "") or ""
     if not content_html:
-        content_html = entry.get("summary", "")
+        content_html = chosen_entry.get("summary", "") or ""
+
     soup = BeautifulSoup(content_html, "lxml")
-    for s in soup.select("audio, iframe, script, .powerpress_player, .podcast_links, .sharedaddy, .jp-audio"):
-        s.decompose()
-    cleaned_html = str(soup)
+    # Remove player widgets, audio embeds, share badges, scripts.
+    for sel in (
+        "audio", "iframe", "script", "style", "form",
+        ".powerpress_player", ".powerpress_links", ".podcast_links",
+        ".sharedaddy", ".sd-block", ".jp-audio",
+        "div[id^='powerpress_player']", "div[class*='powerpress']",
+    ):
+        for node in soup.select(sel):
+            node.decompose()
+    # Unwrap any leftover <a> that only wrap media.
+    for a in soup.find_all("a"):
+        if a.find(["audio", "iframe"]):
+            a.decompose()
+
+    # Return only the inner HTML of <body> so the frontend can inject it
+    # directly via dangerouslySetInnerHTML without swallowed <html>/<body>.
+    body = soup.body
+    if body is not None:
+        cleaned_html = body.decode_contents().strip()
+    else:
+        cleaned_html = str(soup).strip()
     text = soup.get_text("\n", strip=True)
-    # Normalize entry_date YYYYMMDD → YYYY-MM-DD
-    iso_entry_date = chosen_date
-    if chosen_date and len(chosen_date) == 8 and chosen_date.isdigit():
-        iso_entry_date = f"{chosen_date[:4]}-{chosen_date[4:6]}-{chosen_date[6:8]}"
+
+    entry_iso = chosen_date.isoformat() if isinstance(chosen_date, date_cls) else None
     return {
         "hour": hour,
         "lang": "en",
-        "title": entry.get("title", hour.replace("_", " ").title()),
+        "title": chosen_entry.get("title", hour.replace("_", " ").title()),
         "content_html": cleaned_html,
         "content_text": text,
-        "source_url": entry.get("link", ""),
+        "source_url": chosen_entry.get("link", ""),
         "source": "Divine Office",
-        "entry_date": iso_entry_date,
+        "entry_date": entry_iso,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -279,8 +380,21 @@ async def get_liturgy(request: Request,
     if not refresh:
         cached = await db.liturgy_cache.find_one({"_id": cache_key})
         if cached:
-            cached.pop("_id", None)
-            return cached
+            # Honour the 1h TTL: serve cache only if fresh, otherwise fall
+            # through and re-fetch. Stale-while-error still covered below.
+            fetched_at = cached.get("fetched_at")
+            fresh = False
+            if fetched_at:
+                try:
+                    fa = datetime.fromisoformat(str(fetched_at).replace("Z", "+00:00"))
+                    if fa.tzinfo is None:
+                        fa = fa.replace(tzinfo=timezone.utc)
+                    fresh = (datetime.now(timezone.utc) - fa).total_seconds() < CACHE_TTL_SECONDS
+                except ValueError:
+                    fresh = False
+            if fresh:
+                cached.pop("_id", None)
+                return cached
 
     try:
         data = await _fetch_liturgy(hour, lang, target_date)

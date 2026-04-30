@@ -53,6 +53,18 @@ Build a Catholic web called "Apostol" with bilingual (ES/EN) support and 8 secti
 - ✅ Examen admin UI verified end-to-end (upload/list/view/delete, Spanish empty state, 403 for non-admin, 401 for anonymous delete)
 - ✅ 29/29 backend tests + frontend Examen flow passing (`iteration_2.json`)
 
+## Implemented (2026-04-30 · part 6) — Liturgia EN migrada al RSS de Divine Office
+
+Siguiendo la especificación técnica del usuario:
+
+- ✅ **Parser de XML**: `feedparser` itera cada `<item>` del feed `https://divineoffice.org/feed/`.
+- ✅ **Filtrado por `<category>`**: nuevo mapa `DIVINE_OFFICE_CATEGORY_CODES` que asocia cada hora canónica (ej. "MorningPrayer") con su hora interna. Se añadió también `DIVINE_OFFICE_CATEGORY_BASES` para la etiqueta humana ("Morning Prayer (Lauds)") como referencia. Se eligió la canónica porque la prosa se comparte entre Invitatory / About / Morning Prayer del mismo día.
+- ✅ **Extracción de texto**: cuerpo tomado de `<content:encoded>`; `BeautifulSoup` limpia `audio, iframe, script, style, form, .powerpress_*, .podcast_links, .sharedaddy, .sd-block, .jp-audio` y **preserva** los `<span style="color: #ff0000;">` que marcan las rúbricas rojas. Salida: `body.decode_contents()` para evitar envolver `<html><body>` en el HTML devuelto.
+- ✅ **Fecha litúrgica correcta**: se usa `?date=YYYYMMDD` del URL (día litúrgico) en vez de `published_parsed` (día de publicación, que va 24-48h adelantado).
+- ✅ **Caché cada 1 h**: constante `CACHE_TTL_SECONDS = 3600`. Las lecturas en caché se sirven solo si `fetched_at < 1h`; si no, se re-busca desde el feed. Mantiene la política `stale-while-error` para cortes de red.
+- ✅ Verificado con curl: Divine Office devuelve todas las horas (lauds/vespers/compline/office_of_readings/midmorning/midday/midafternoon) con `red_rubric=True`. TTL probado envejeciendo `fetched_at` a 2h → re-fetch inmediato.
+- ✅ Frontend `/liturgy` renderiza 39 spans rojos en una sesión EN.
+
 ## Implemented (2026-04-30 · part 5) — Examen cumulativo (cambio arquitectónico)
 
 Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
