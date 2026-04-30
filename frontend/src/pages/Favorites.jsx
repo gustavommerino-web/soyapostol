@@ -2,7 +2,9 @@ import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
-import { Trash, ArrowSquareOut, HeartBreak } from "@phosphor-icons/react";
+import {
+    Trash, ArrowSquareOut, HeartBreak, CaretDown, CaretUp,
+} from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -10,6 +12,10 @@ const SECTION_LABELS = {
     es: { readings: "Lecturas", liturgy: "Liturgia", prayers: "Oración", examen: "Examen", news: "Noticia", bible: "Biblia", catechism: "Catecismo" },
     en: { readings: "Readings", liturgy: "Liturgy", prayers: "Prayer", examen: "Examen", news: "News", bible: "Bible", catechism: "Catechism" },
 };
+
+// Height of the collapsed content body in px. Anything shorter than this
+// renders without the "Read more" affordance.
+const COLLAPSED_HEIGHT = 160;
 
 export default function Favorites() {
     const { t, lang } = useLang();
@@ -81,29 +87,141 @@ export default function Favorites() {
 
             <ul className="space-y-5" data-testid="favorites-list">
                 {filtered.map((f) => (
-                    <li key={f.id} className="surface-card p-6" data-testid={`favorite-${f.id}`}>
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                            <div className="min-w-0 flex-1">
-                                <span className="label-eyebrow text-sangre">{SECTION_LABELS[lang]?.[f.section] || f.section}</span>
-                                <h3 className="heading-serif text-2xl tracking-tight leading-snug mt-1">{f.title}</h3>
-                            </div>
-                            <button onClick={() => onDelete(f.id)} data-testid={`fav-delete-${f.id}`}
-                                className="text-stoneFaint hover:text-sangre p-2">
-                                <Trash size={16} />
-                            </button>
-                        </div>
-                        <div className="reading-prose">
-                            <p className="line-clamp-6">{f.content}</p>
-                        </div>
-                        {f.source_url && (
-                            <a href={f.source_url} target="_blank" rel="noreferrer"
-                                className="mt-3 inline-flex items-center gap-1.5 ui-sans text-xs uppercase tracking-widest text-sangre hover:underline">
-                                {t("common.source")} <ArrowSquareOut size={12} />
-                            </a>
-                        )}
-                    </li>
+                    <FavoriteCard key={f.id} fav={f} onDelete={() => onDelete(f.id)} />
                 ))}
             </ul>
         </div>
+    );
+}
+
+// -------------------------------------------------------------------
+
+// Detect HTML so prayers/readings/liturgy content (which arrives as real
+// markup with <span style="color:#ff0000"> rubrics, <br>, <em>, etc.) is
+// rendered faithfully; plain text is kept with its original line breaks.
+function isHtmlContent(s) {
+    if (!s || typeof s !== "string") return false;
+    return /<[a-zA-Z!/]/.test(s);
+}
+
+function FavoriteCard({ fav, onDelete }) {
+    const { t, lang } = useLang();
+    const bodyRef = React.useRef(null);
+    const [expanded, setExpanded] = React.useState(false);
+    const [fullHeight, setFullHeight] = React.useState(COLLAPSED_HEIGHT);
+    const [overflows, setOverflows] = React.useState(false);
+
+    const html = isHtmlContent(fav.content);
+
+    // Measure the rendered body every time content/language changes so the
+    // animation target is the real scrollHeight, not a magic big number.
+    React.useLayoutEffect(() => {
+        if (!bodyRef.current) return;
+        const h = bodyRef.current.scrollHeight;
+        setFullHeight(h);
+        setOverflows(h > COLLAPSED_HEIGHT + 2);
+    }, [fav.content, lang]);
+
+    const toggle = () => {
+        if (overflows) setExpanded((e) => !e);
+    };
+
+    const onCardKeyDown = (e) => {
+        if (!overflows) return;
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded((x) => !x);
+        }
+    };
+
+    const stop = (e) => e.stopPropagation();
+
+    return (
+        <li
+            className={`surface-card relative p-6 ${overflows ? "cursor-pointer" : ""}`}
+            data-testid={`favorite-${fav.id}`}
+            onClick={toggle}
+            onKeyDown={onCardKeyDown}
+            role={overflows ? "button" : undefined}
+            tabIndex={overflows ? 0 : undefined}
+            aria-expanded={overflows ? expanded : undefined}
+        >
+            {/* Delete button — always visible, corner anchored. */}
+            <button
+                onClick={(e) => { stop(e); onDelete(); }}
+                data-testid={`fav-delete-${fav.id}`}
+                className="absolute top-4 right-4 p-2 rounded-md text-stoneFaint hover:text-sangre hover:bg-sangre/5 transition-colors"
+                aria-label={t("common.remove")}
+                title={t("common.remove")}
+            >
+                <Trash size={16} />
+            </button>
+
+            <div className="pr-10 mb-3">
+                <span className="label-eyebrow text-sangre">
+                    {SECTION_LABELS[lang]?.[fav.section] || fav.section}
+                </span>
+                <h3 className="heading-serif text-2xl tracking-tight leading-snug mt-1">
+                    {fav.title}
+                </h3>
+            </div>
+
+            {/* Collapsible body with animated max-height + fade overlay. */}
+            <div className="relative">
+                <div
+                    ref={bodyRef}
+                    className="reading-prose overflow-hidden transition-[max-height] duration-500 ease-in-out"
+                    style={{
+                        maxHeight: expanded || !overflows ? `${fullHeight}px` : `${COLLAPSED_HEIGHT}px`,
+                    }}
+                    data-testid={`fav-body-${fav.id}`}
+                >
+                    {html ? (
+                        <div
+                            className="reading-serif text-base leading-relaxed text-stone900"
+                            dangerouslySetInnerHTML={{ __html: fav.content }}
+                        />
+                    ) : (
+                        <p className="reading-serif text-base leading-relaxed text-stone900 whitespace-pre-line m-0">
+                            {fav.content}
+                        </p>
+                    )}
+                </div>
+                {overflows && !expanded && (
+                    <div
+                        className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white via-white/90 to-transparent"
+                        aria-hidden="true"
+                        data-testid={`fav-fade-${fav.id}`}
+                    />
+                )}
+            </div>
+
+            {/* Footer row: toggle + source */}
+            <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+                {overflows ? (
+                    <button
+                        type="button"
+                        onClick={(e) => { stop(e); setExpanded((x) => !x); }}
+                        data-testid={`fav-toggle-${fav.id}`}
+                        aria-expanded={expanded}
+                        className="ui-sans inline-flex items-center gap-1.5 text-xs uppercase tracking-widest font-semibold text-sangre hover:underline"
+                    >
+                        {expanded ? t("common.show_less") : t("common.show_more")}
+                        {expanded ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}
+                    </button>
+                ) : <span />}
+                {fav.source_url && (
+                    <a
+                        href={fav.source_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={stop}
+                        className="inline-flex items-center gap-1.5 ui-sans text-xs uppercase tracking-widest text-stoneMuted hover:text-sangre"
+                    >
+                        {t("common.source")} <ArrowSquareOut size={12} />
+                    </a>
+                )}
+            </div>
+        </li>
     );
 }

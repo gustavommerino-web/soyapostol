@@ -45,6 +45,8 @@ const STRINGS = {
             back_to_top: "Volver arriba",
             yes: "Sí",
             cancel: "Cancelar",
+            show_more: "Leer más",
+            show_less: "Cerrar",
         },
         sections: {
             readings_desc: "Las lecturas del día con comentario del Evangelio",
@@ -310,6 +312,8 @@ const STRINGS = {
             back_to_top: "Back to top",
             yes: "Yes",
             cancel: "Cancel",
+            show_more: "Read more",
+            show_less: "Show less",
         },
         sections: {
             readings_desc: "Today's readings with Gospel commentary",
