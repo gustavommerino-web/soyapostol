@@ -161,7 +161,21 @@ export default function Catechism() {
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, [jumpTarget, visible]);
 
-    const jumpToPart = (part) => { setQuery(String(part.start)); };
+    // Card-click path is fully decoupled from the search bar: clear the
+    // search filter so the full CCC is rendered, ensure pagination has
+    // reached the target paragraph, then scroll to it on the next frame.
+    const jumpToPart = (part) => {
+        setQuery("");
+        setActiveId(null);
+        const idx = entries.findIndex((e) => e.id === part.start);
+        if (idx >= 0) setVisible((v) => Math.max(v, idx + 5));
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const el = document.querySelector(`[data-ccc-id="${part.start}"]`);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+        });
+    };
     const onResetTop = () => setQuery("");
 
     const shown = results.slice(0, visible);
@@ -305,11 +319,12 @@ function ParagraphRow({ paragraph, renderText, isActive, isSaved, onActivate, on
             data-ccc-id={paragraph.id}
             data-testid={`ccc-para-${paragraph.id}`}
             className={[
-                "ccc-row group scroll-mt-36 relative rounded-md transition-colors duration-150",
+                "ccc-row group relative rounded-md transition-colors duration-150",
                 "px-3 py-3 -mx-3",
                 isSaved ? "border-l-2 border-sangre/50 pl-4" : "",
                 isActive ? "verse-active" : "",
             ].filter(Boolean).join(" ")}
+            style={{ scrollMarginTop: "80px" }}
             {...handlers}
         >
             <div className="flex items-start gap-3">
