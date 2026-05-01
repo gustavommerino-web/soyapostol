@@ -15,9 +15,12 @@ import {
 } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
-const DATA_URL = "/data/catechism.json";
-const CATECHISM_DATA_VERSION = 1;
-const IDB_KEY = "catechism:ccc";
+const DATA_URL = {
+    es: "/data/catechism-es.json",
+    en: "/data/catechism.json",
+};
+const CATECHISM_DATA_VERSION = 2;        // bumped: added Spanish edition
+const IDB_KEY = (lang) => `catechism:ccc:${lang}`;
 
 // Canonical CCC structure: paragraph the Part begins at + last paragraph it
 // covers, so each card on the index can render the full range "§N – §M" and
@@ -63,13 +66,18 @@ export default function Catechism() {
     );
 
     // Load the catechism file (IDB + network, same pattern as Bible).
+    // Re-fires when `lang` changes so the Spanish/English bodies are kept
+    // in distinct IDB buckets and switched live.
     React.useEffect(() => {
         let cancelled = false;
+        const idbKey = IDB_KEY(lang);
+        const dataUrl = DATA_URL[lang] || DATA_URL.en;
         (async () => {
             setLoading(true);
             setError("");
+            setEntries([]);
             try {
-                const cached = await idbGet(IDB_KEY);
+                const cached = await idbGet(idbKey);
                 if (!cancelled && cached
                     && cached.version === CATECHISM_DATA_VERSION
                     && Array.isArray(cached.payload)) {
@@ -77,13 +85,13 @@ export default function Catechism() {
                     setLoading(false);
                     return;
                 }
-                const res = await fetch(DATA_URL, { cache: "force-cache" });
+                const res = await fetch(dataUrl, { cache: "force-cache" });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 if (cancelled) return;
                 const arr = Array.isArray(data) ? data : [];
                 setEntries(arr);
-                idbSet(IDB_KEY, CATECHISM_DATA_VERSION, arr).catch(() => {});
+                idbSet(idbKey, CATECHISM_DATA_VERSION, arr).catch(() => {});
             } catch (e) {
                 if (!cancelled) setError(e.message || "Failed to load");
             } finally {
@@ -91,7 +99,7 @@ export default function Catechism() {
             }
         })();
         return () => { cancelled = true; };
-    }, []);
+    }, [lang]);
 
     // Preload the Bible (same IDB cache as /bible) so the quick-view modal
     // can resolve any citation synchronously the moment it opens.
@@ -343,8 +351,10 @@ export default function Catechism() {
                     </span>
                 );
             }
-            // Bible citation token.
+            // Bible citation token. Strip the italic markers from the raw
+            // capture so users see clean "Jn 14,26" instead of "*Jn*14,26".
             const refLabel = `${seg.book[lang === "es" ? "es" : "en"]} ${seg.chapter}:${seg.verse}${seg.endVerse ? `-${seg.endVerse}` : ""}`;
+            const cleanLabel = seg.raw.replace(/\*/g, "").replace(/\s+/g, " ").trim();
             return (
                 <button
                     key={i}
@@ -359,7 +369,7 @@ export default function Catechism() {
                     aria-label={refLabel}
                     title={refLabel}
                 >
-                    {seg.raw}
+                    {cleanLabel}
                 </button>
             );
         });
@@ -375,45 +385,30 @@ export default function Catechism() {
             </h1>
             <p className="text-stoneMuted mb-6">{t("sections.catechism_desc")}</p>
 
-            {lang === "es" ? (
-                <div
-                    className="surface-card p-8 sm:p-10 text-center max-w-xl mx-auto mt-6"
-                    data-testid="catechism-es-coming-soon"
-                >
-                    <p className="label-eyebrow mb-3">{t("catechism.coming_soon_eyebrow")}</p>
-                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-4">
-                        {t("catechism.coming_soon_title")}
-                    </h2>
-                    <p className="text-stoneMuted leading-relaxed">
-                        {t("catechism.coming_soon_body")}
-                    </p>
-                </div>
-            ) : (
-                <CatechismEnglishView
-                    loading={loading}
-                    error={error}
-                    entries={entries}
-                    results={results}
-                    shown={shown}
-                    visible={visible}
-                    setVisible={setVisible}
-                    sentinelRef={sentinelRef}
-                    hasMore={hasMore}
-                    searching={searching}
-                    query={query}
-                    setQuery={setQuery}
-                    jumpToPart={jumpToPart}
-                    activeId={activeId}
-                    setActiveId={setActiveId}
-                    savedParas={savedParas}
-                    flashId={flashId}
-                    toggleParaFavorite={toggleParaFavorite}
-                    renderRichText={renderRichText}
-                    onResetTop={onResetTop}
-                    t={t}
-                    lang={lang}
-                />
-            )}
+            <CatechismEnglishView
+                loading={loading}
+                error={error}
+                entries={entries}
+                results={results}
+                shown={shown}
+                visible={visible}
+                setVisible={setVisible}
+                sentinelRef={sentinelRef}
+                hasMore={hasMore}
+                searching={searching}
+                query={query}
+                setQuery={setQuery}
+                jumpToPart={jumpToPart}
+                activeId={activeId}
+                setActiveId={setActiveId}
+                savedParas={savedParas}
+                flashId={flashId}
+                toggleParaFavorite={toggleParaFavorite}
+                renderRichText={renderRichText}
+                onResetTop={onResetTop}
+                t={t}
+                lang={lang}
+            />
 
             {quickCite && (
                 <BibleQuickView
@@ -427,7 +422,7 @@ export default function Catechism() {
 }
 
 /* ================================================================== */
-/* English view — full reader (Spanish is "coming soon" placeholder)   */
+/* Reader view — search + Parts index + paragraph list (ES + EN)       */
 /* ================================================================== */
 
 function CatechismEnglishView({

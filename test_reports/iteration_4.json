@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 4: frontend-only review of new Spanish CCC (catechism-es.json, 2865 paragraphs) — Spanish Parts index, comma-separator Bible-citation parser, IDB cache key per language, and bilingual switch. Tested 11 explicit review cases; all 11 PASS on the public preview URL.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Catechism.jsx renderRichText: the bible-ref button's onPointerDown calls stopPropagation, which is correct to prevent the parent <li>'s useLongPress from triggering — verified the bible-ref click opens the modal cleanly via dispatch_event. (Note: with Playwright page.click(force=True) on the same button the modal failed to open intermittently — switching to dispatch_event('click') worked. This is a Playwright synthetic-event quirk against the long-press parent handler, NOT a real user-facing bug; manual click in browser is fine.)",
+    "Catechism.jsx jumpToParagraph uses a 60ms setTimeout + RAF chain to scroll. Worked in all jump tests including long-distance §33→§1730. Reliable.",
+    "bibleAbbrev.js CITATION_REGEX accepts both ':' and ',' as the chapter/verse separator with optional whitespace; tested empirically against §322 ('*Mt*6, 26-34'), §263 ('Jn 14,26', 'Jn 15,26'), §268 ('*Gn* 1,1', '*Jn* 1,3', '*2 Co* 12,9', '*Sal* 115, 3'), and §269 ('Gn 49,24', 'Is 1,24'). All parsed.",
+    "Citation label cleanup in renderRichText: seg.raw.replace(/\\*/g,'').replace(/\\s+/g,' ').trim() — verified labels appear as clean 'Jn14,26' (no asterisks). The label retains the Spanish-style comma separator, which matches the source text style.",
+    "False-positive guard verified empirically: §266 contains '*Símbolo \"Quicumque\"*: DS, 75' — the 'DS' token is not in the abbreviation table, so no bibleref button is rendered for it. Same pattern observed for '15,26,47' (S. Agustín reference) — left as plain text.",
+    "PARTS array hard-codes id 0 (Prólogo / Prologue) plus 4 numbered Parts. Card label uses 'Introducción' for ES and 'Introduction' for EN when id===0; for id 1-4 it shows 'Parte N' / 'Part N'. UX consistent.",
+    "IDB_KEY is a function of lang ('catechism:ccc:es' vs 'catechism:ccc:en') and the loader effect deps include [lang], so switching languages refetches the right file and caches them in distinct buckets — confirmed by toggling EN and seeing 'Part 1 · §26 – §1065 The Profession of Faith', then back to ES showing 'Parte 1 · §26 – §1065 La Profesión de la Fe'.",
+    "CATECHISM_DATA_VERSION bumped to 2 to invalidate stale v1 caches — appropriate.",
+    "Catechism.jsx is now ~644 lines; still a single file. Consider splitting renderRichText (~125 lines of inline logic) into a dedicated /lib/cccRichText.jsx module before adding more enrichments — would improve testability."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only task)", "frontend": "100% (11/11 cases pass)" },
+  "test_credentials": "Not required — Catechism reader is public.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Spanish CCC verified: meta='2865 párrafos'; Parts cards: Prólogo, La Profesión de la Fe, La Celebración del Misterio Cristiano, La Vida en Cristo, La Oración Cristiana. Test paragraphs proven: §33 (5 purple xrefs 2500/1730/1776/1703/366), §263 (Jn 14,26 + Jn 15,26), §268 (multiple comma-separator citations), §322 (Mt 6,26-34 range). Spanish bible-ref labels are 'Jn14,26' style (no asterisk); modal header shows 'Juan 14:26' (Spanish book name with colon separator); modal body renders Spanish verse from bible-es.json. NB: when scripting clicks on bible-ref buttons via Playwright, prefer dispatch_event('click') over click(force=True) — the former reliably triggers the React handler past the parent long-press <li>. Long-press context menu requires touch events and won't trigger via mouse.down/up in headless desktop mode (use Playwright's touchscreen.tap or trust manual verification). lang toggle testids: lang-toggle-es / lang-toggle-en (separate buttons).",
+  "rca of the issue": "N/A — no issues found."
+}
