@@ -16,6 +16,7 @@ import {
     Books,
     Cross,
     DotsThreeVertical,
+    Gear,
 } from "@phosphor-icons/react";
 import {
     Sheet,
@@ -89,6 +90,23 @@ export default function Layout() {
                                 className={`px-2.5 sm:px-3 py-1 text-xs uppercase tracking-widest rounded-sm transition-colors ${lang === "en" ? "bg-sangre text-sand-50" : "text-stoneMuted hover:text-stone900"}`}
                             >EN</button>
                         </div>
+
+                        {/* Settings */}
+                        <NavLink
+                            to="/settings"
+                            data-testid="header-settings-link"
+                            aria-label={t("nav_more.settings")}
+                            title={t("nav_more.settings")}
+                            className={({ isActive }) =>
+                                `ui-sans text-sm flex items-center gap-2 px-2.5 sm:px-3 py-2 border rounded-md transition-colors ${
+                                    isActive
+                                        ? "border-purple-400 text-purple-700 bg-purple-50"
+                                        : "border-sand-300 hover:border-purple-400 text-stoneMuted hover:text-purple-700"
+                                }`
+                            }
+                        >
+                            <Gear size={18} weight="duotone" />
+                        </NavLink>
 
                         {user ? (
                             <button

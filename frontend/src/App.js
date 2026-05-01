@@ -18,6 +18,7 @@ import Bible from "@/pages/Bible";
 import Catechism from "@/pages/Catechism";
 import Favorites from "@/pages/Favorites";
 import Rosary from "@/pages/Rosary";
+import Settings from "@/pages/Settings";
 
 function PublicOnly({ children }) {
     const { user } = useAuth();
@@ -47,6 +48,7 @@ function App() {
                             <Route path="/bible" element={<Bible />} />
                             <Route path="/catechism" element={<Catechism />} />
                             <Route path="/favorites" element={<Favorites />} />
+                            <Route path="/settings" element={<Settings />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Route>
                     </Routes>

@@ -293,6 +293,39 @@ const STRINGS = {
             passwords_mismatch: "Las contraseñas no coinciden.",
             reset_missing_token: "Falta el token de recuperación. Solicita un enlace nuevo.",
         },
+        settings: {
+            eyebrow: "Información",
+            title: "Ajustes",
+            subtitle: "Sobre la app, legal y soporte.",
+            about: {
+                eyebrow: "Sobre la app",
+                title: "Quiénes somos",
+                p1: "Hola, somos Corazones A La Obra, un grupo de laicos enamorados de nuestro Señor Jesucristo, convencidos de que el mundo de hoy necesita testigos audaces de la Verdad. Como consagrados a la Santísima Virgen María, confiamos plenamente en su protección; ella es quien nos sostiene, nos abraza y nos conduce con mano firme hacia su Hijo. Bajo su manto, buscamos que cada una de nuestras acciones sea un puente hacia el Cielo.",
+                p2: "Corazones A La Obra no es solo un proyecto digital; es nuestra respuesta al llamado a la santidad. Nuestra misión es poner nuestro tiempo, talento y tesoro al servicio de la Iglesia para la gloria de Dios y el bien de las almas.",
+                p3_heading: "Acerca de soyapostol.org",
+                p4: "Esta aplicación nace del deseo de santificar nuestra vida diaria y la de nuestros hermanos. Es un esfuerzo colectivo para que la Palabra de Dios, el Catecismo y la oración litúrgica estén siempre al alcance de tu mano, sin distracciones ni barreras y por supuesto completamente gratis. Todo ha sido desarrollado con el rigor y el fervor para que tú también puedas decir, con obras y de verdad: ¡Soy Apóstol!",
+            },
+            legal: {
+                eyebrow: "Legal",
+                title: "Documentos",
+                privacy_title: "Política de privacidad",
+                privacy_hint: "Se abre en Termly en una nueva pestaña.",
+                privacy_pending: "Próximamente disponible.",
+            },
+            support: {
+                eyebrow: "Soporte",
+                title: "¿Necesitas ayuda?",
+                cta: "Reportar un error o sugerir una mejora",
+                subject: "Soporte soyapostol",
+                body: "Hola, quisiera comentarles lo siguiente:\n\n",
+            },
+            footer: {
+                version: "Versión {v}",
+            },
+        },
+        nav_more: {
+            settings: "Ajustes",
+        },
     },
     en: {
         app_name: "soyapostol",
@@ -585,6 +618,39 @@ const STRINGS = {
             password_too_short: "Password must be at least 8 characters.",
             passwords_mismatch: "Passwords do not match.",
             reset_missing_token: "Reset token missing. Request a new link.",
+        },
+        settings: {
+            eyebrow: "Information",
+            title: "Settings",
+            subtitle: "About the app, legal, and support.",
+            about: {
+                eyebrow: "About the app",
+                title: "Who we are",
+                p1: "Hello, we are Corazones A La Obra, a group of lay people in love with our Lord Jesus Christ, convinced that today's world needs bold witnesses of the Truth. As those consecrated to the Blessed Virgin Mary, we place our full trust in her protection; she is the one who sustains us, embraces us, and leads us with a firm hand to her Son. Under her mantle, we seek to make each of our actions a bridge to Heaven.",
+                p2: "Corazones A La Obra is not just a digital project; it is our response to the call to holiness. Our mission is to place our time, talent, and treasure at the service of the Church for the glory of God and the good of souls.",
+                p3_heading: "About soyapostol.org",
+                p4: "This app is born from the desire to sanctify our daily life and that of our brothers and sisters. It is a collective effort so that the Word of God, the Catechism, and liturgical prayer are always within your reach, without distractions or barriers and of course completely free. Everything has been developed with the rigor and fervor so that you too can say, in deed and in truth: I Am an Apostle!",
+            },
+            legal: {
+                eyebrow: "Legal",
+                title: "Documents",
+                privacy_title: "Privacy Policy",
+                privacy_hint: "Opens on Termly in a new tab.",
+                privacy_pending: "Coming soon.",
+            },
+            support: {
+                eyebrow: "Support",
+                title: "Need help?",
+                cta: "Report a bug or suggest an improvement",
+                subject: "soyapostol support",
+                body: "Hi, I wanted to share the following:\n\n",
+            },
+            footer: {
+                version: "Version {v}",
+            },
+        },
+        nav_more: {
+            settings: "Settings",
         },
     },
 };

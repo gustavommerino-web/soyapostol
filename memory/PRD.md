@@ -138,6 +138,16 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🇪🇸 **Spanish placeholder for the Catechism**: since the project only has the English `catechism.json`, the ES locale now shows a centred "Próximamente · Catecismo en español" card explaining that the official Spanish edition is being prepared and inviting the user to switch to EN. The full reader (search bar + Parts index + paragraph list + Bible quick-view) is gated behind `lang === "en"` via a new `CatechismEnglishView` sub-component. Translations added in `LangContext.jsx` (`catechism.coming_soon_eyebrow / _title / _body` for ES and EN).
 - ✅ Verified by screenshot tool: ES placeholder, EN parts navigation (5/5), §33 → §1730 multi-xref jump, no Bible modal regression. Lint clean.
 
+## Implemented (2026-05-01 · part 4) — Settings/Ajustes screen
+- ✅ New **`/settings` route** with bilingual content. Header now carries a purple `Gear` icon (`data-testid="header-settings-link"`) next to the ES/EN toggle.
+- ✅ **Sobre la App → Quiénes somos** block: exact copy provided by the user, rendered with `reading-serif` prose. `decorateParagraph` helper emphasises `Corazones A La Obra`, `Señor Jesucristo` / `Lord Jesus Christ`, `Virgen María` / `Virgin Mary`, `tiempo/talento/tesoro` (and EN equivalents), and `¡Soy Apóstol!` / `I Am an Apostle!` in **bold liturgical purple** (`text-purple-700 font-semibold`). Per user request, "Corazones A La Obra" stays in Spanish on both locales.
+- ✅ **Clickable `soyapostol.org`** link (`target="_blank"`, `rel="noopener noreferrer"`, underlined purple).
+- ✅ **Legal block**: single card-button that opens the Termly Privacy Policy in a new tab. URL left as `#` placeholder — button auto-disables and shows "Próximamente disponible / Coming soon" until the real URL is wired in.
+- ✅ **Soporte block**: card-button that launches `mailto:gustavommerino@gmail.com` with pre-filled subject ("Soporte soyapostol" / "soyapostol support") and body template.
+- ✅ **Footer**: small grey `Versión 1.0.0 · soyapostol.org · Houston, TX, US` (bilingual).
+- ✅ Translations added in `LangContext.jsx` (ES + EN) under `settings.*` and `nav_more.settings`.
+- ✅ Verified via screenshot tool: all 13 testids render, footer text exact, link href `https://soyapostol.org`, EN locale keeps "Corazones A La Obra" in Spanish. Lint clean.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
