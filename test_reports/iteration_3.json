@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 3: Focused frontend-only review of the new tappable Bible cross-references inside the Catechism (BibleQuickView modal). Verified citation rendering, modal open/close variants, verse-range expansion, deep-link to /bible, bilingual behaviour, and false-positive guard. All seven requested test cases pass on the public preview URL.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "bibleAbbrev.js CITATION_REGEX second alternation '\\b((?:[123I]{1,3}\\s)?[A-Z][a-z]{1,11})\\.?\\s+\\d+:\\d+' will match ANY capitalized English word followed by 'N:N' — e.g., 'Section 4:5' or 'Chapter 3:2' would pass the regex. The false-positive guard currently works ONLY because resolveBookName() rejects unknown tokens (e.g., 'Section', 'Chapter', 'Part'). Verified empirically — no false positives rendered in tests. Still, a stricter whitelist-based regex (constructed from Object.keys(RAW)) would be safer and slightly faster.",
+    "CITATION_REGEX upper-bound of {1,11} on book body characters and {1,3} on the '[123I]' ordinal prefix will miss multi-word books that might ever appear unstarred (e.g., 'Song of Solomon 2:1' or 'Revelation of John 21:14'). Not hit in the provided catechism.json (all such books appear in *starred* form), but worth noting.",
+    "BibleQuickView.jsx uses `onClick={onClose}` on the outermost overlay div plus a stopPropagation on the inner card. That works, but the overlay div does not carry role='button' and is not keyboard-activatable. Escape handling compensates, so a11y-wise it is acceptable.",
+    "data-testid slug for books with spaces uses `seg.book.en.replace(/\\s+/g,'_')` — e.g., 'I_Corinthians'. Tests confirmed the 1 Cor 9:22 button testid is `ccc-bibleref-I_Corinthians-9-22`. Consider documenting this in the BibleQuickView comment so future tests don't guess the slug.",
+    "Body scroll unlock: useEffect restores `document.body.style.overflow` to the previously captured value (empty string on normal pages). Verified after backdrop dismiss. Good.",
+    "After deep-link navigation to /bible?ref=..., URL is cleaned to /bible (ref param stripped) as required. Verified.",
+    "Long-press vs button click: the Bible citation button calls `e.stopPropagation()` on pointerdown (per spec) — click opened the modal cleanly without firing the long-press context menu. Verified."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only task)", "frontend": "100% (all 7 user-facing cases pass)" },
+  "test_credentials": "Not required — cross-ref + modal flow is unauthenticated.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "BibleQuickView testids confirmed: bible-quick-view (wrapper), quickview-reference (e.g., 'Juan 14:26' ES / 'John 14:26' EN / 'Mateo 6:26-34' for ranges), quickview-body (with <sup> verse numbers), quickview-close (X), quickview-cancel (Cancelar/Cancel), quickview-open-bible (Ver en la Biblia / Open in Bible). Bible citation buttons use testid pattern `ccc-bibleref-<BookEn>-<chapter>-<verse>` where spaces in English book name are replaced with underscores (e.g., 'I_Corinthians', 'II_Corinthians', 'Revelation_of_John'). Language toggle testids: lang-toggle-es, lang-toggle-en (NOT a single 'lang-toggle'). After clicking open-bible, navigate strips the ?ref query param and scrolls to chapter. Tested paragraphs: §263 (Jn 14:26), §320 (Heb 1:3), §322 (Mt 6:26-34 — 9 verses rendered), §24 (1 Cor 9:22). False-positive guard confirmed: 'Part', 'Section', 'Chapter' are filtered out by resolveBookName() because they are not in the RAW abbreviation table.",
+  "rca of the issue": "N/A — no issues found."
+}

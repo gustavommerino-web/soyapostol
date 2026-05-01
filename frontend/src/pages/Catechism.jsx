@@ -441,6 +441,14 @@ export default function Catechism() {
             )}
 
             <BackToTopButton onClick={onResetTop} testId="catechism-back-to-top" />
+
+            {quickCite && (
+                <BibleQuickView
+                    cite={quickCite}
+                    bibleData={bibleData}
+                    onClose={() => setQuickCite(null)}
+                />
+            )}
         </div>
     );
 }

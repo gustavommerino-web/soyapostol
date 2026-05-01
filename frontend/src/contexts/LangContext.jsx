@@ -233,6 +233,10 @@ const STRINGS = {
             title: "Versículo del día",
             open_bible: "Ir a la Biblia",
         },
+        quickview: {
+            open_bible: "Ver en la Biblia",
+            not_found: "No se pudo cargar la cita {ref}.",
+        },
         admin: {
             eyebrow: "Panel de administrador",
             new_prayer: "Nueva oración",
@@ -517,7 +521,11 @@ const STRINGS = {
         },
         votd: {
             title: "Verse of the day",
-            open_bible: "Open Bible",
+            open_bible: "Open in Bible",
+        },
+        quickview: {
+            open_bible: "Open in Bible",
+            not_found: "Could not load reference {ref}.",
         },
         admin: {
             eyebrow: "Admin panel",
