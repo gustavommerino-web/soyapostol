@@ -148,6 +148,16 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ Translations added in `LangContext.jsx` (ES + EN) under `settings.*` and `nav_more.settings`.
 - ✅ Verified via screenshot tool: all 13 testids render, footer text exact, link href `https://soyapostol.org`, EN locale keeps "Corazones A La Obra" in Spanish. Lint clean.
 
+## Implemented (2026-05-01 · part 5) — Spanish Catechism (full edition)
+- ✅ **Scraped vatican.va** (`/archive/catechism_sp/`) end-to-end and parsed every paragraph. Final dataset: **2,865 / 2,865 paragraphs** at `/app/frontend/public/data/catechism-es.json` (1.5 MB, no missing IDs).
+- ✅ Parser handles two formatting quirks of the Vatican site: most paragraphs use `<b>NNN</b>` markers, but some (e.g. §1917, §168, §626, §2190) use plain-text `NNN.` prefixes — the scraper rewrites the latter into synthetic `<b>` so the walker stays uniform. Found one sub-page (`p4s1c1a1_sp.html`) **missing from the master index** but reachable via direct URL — added explicitly so §2568-§2597 are captured.
+- ✅ **Italics cleanup**: vatican.va wraps many full paragraphs in `<i>...</i>`; the merger strips outer wrappers and collapses adjacent `**` runs so the rendered text is clean. Real italics on Bible abbreviations (`*Jn* 14,26`) are preserved for the citation parser.
+- ✅ **Cross-references ported**: 1,328 paragraphs received their CCC-internal cross-reference list (e.g. `(2500, 1730, 1776, 1703, 366)`) by mining the English JSON tail and appending it to the corresponding Spanish entry — so the existing purple-pill renderer keeps working in both languages.
+- ✅ **Bible-citation parser bilingual**: `bibleAbbrev.js` got ~80 Spanish aliases (Gn, Ex, Lv, Mt, Mc, Lc, Jn, Hch, Rm, 1 Co, Hb, 1 P, Sal, Si, Ap, …) and the regex now accepts both `:` and `,` as the chapter/verse separator with optional whitespace. Spanish citations like `*Mt*6, 26-34` and `Jn 14,26` are detected, resolved against `bible-es.json`, and rendered with clean labels (asterisks stripped from the button face).
+- ✅ **Per-language IDB cache**: `IDB_KEY = (lang) => 'catechism:ccc:' + lang`. Loader effect now depends on `[lang]` so toggling ES↔EN swaps the file and the cache instantly. `CATECHISM_DATA_VERSION` bumped to 2 to invalidate v1 caches.
+- ✅ **UI in Spanish**: Parts index already had `es` labels (Prólogo · La Profesión de la Fe · La Celebración del Misterio Cristiano · La Vida en Cristo · La Oración Cristiana); the "Coming soon" placeholder has been removed and `CatechismEnglishView` is now reused for both languages.
+- ✅ Tested by `testing_agent_v3_fork` iteration_4.json — **11/11 cases pass, no issues**. Verified: §33 with 5 purple cross-refs, §263 / §322 / §268 with comma-separator Bible refs, modal opens with `Juan 14:26` and Spanish verse text, bilingual toggle re-fetches correctly, false-positive guard intact.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
