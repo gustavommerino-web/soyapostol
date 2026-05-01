@@ -216,6 +216,9 @@ const STRINGS = {
             remove_favorite: "Quitar de favoritos",
             paragraph_copied: "Párrafo copiado",
             share_title: "Catecismo de la Iglesia Católica",
+            coming_soon_eyebrow: "Próximamente",
+            coming_soon_title: "Catecismo en español",
+            coming_soon_body: "Estamos preparando la edición oficial en español del Catecismo de la Iglesia Católica. Mientras tanto, puedes consultarlo en inglés cambiando el idioma desde el botón EN en la cabecera.",
         },
         bible: {
             search_placeholder: "Buscar palabra clave o referencia (ej. \"Juan 3:16\"). Pulsa Enter para saltar.",
@@ -506,6 +509,9 @@ const STRINGS = {
             remove_favorite: "Remove from favorites",
             paragraph_copied: "Paragraph copied",
             share_title: "Catechism of the Catholic Church",
+            coming_soon_eyebrow: "Coming soon",
+            coming_soon_title: "Catechism in Spanish",
+            coming_soon_body: "We are preparing the official Spanish edition of the Catechism of the Catholic Church. In the meantime, you can read it in English using the language toggle in the header.",
         },
         bible: {
             search_placeholder: "Search keyword or reference (e.g. \"John 3:16\"). Press Enter to jump.",

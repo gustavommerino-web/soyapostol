@@ -174,19 +174,14 @@ export default function Catechism() {
     }, [query, entries]);
 
     // Tracks an in-flight "jump to paragraph" request so the [query]
-    // effect can honour the target instead of resetting `visible` back
-    // to PAGE_SIZE and losing the row.
+    // effect doesn't reset `visible` while the row is being mounted.
     const pendingJumpRef = React.useRef(null);
 
     React.useEffect(() => {
-        const target = pendingJumpRef.current;
-        if (target != null) {
-            pendingJumpRef.current = null;
-            const idx = entries.findIndex((e) => e.id === target);
-            setVisible(idx >= 0 ? Math.max(PAGE_SIZE, idx + 5) : PAGE_SIZE);
-        } else {
-            setVisible(PAGE_SIZE);
-        }
+        // If a jump is in flight, leave `visible` alone — the caller has
+        // already expanded it to include the target row.
+        if (pendingJumpRef.current != null) return;
+        setVisible(PAGE_SIZE);
     }, [query, entries]);
 
     React.useEffect(() => {
@@ -207,18 +202,20 @@ export default function Catechism() {
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, [jumpTarget, visible]);
 
-    // Card-click path is fully decoupled from the search bar: clear the
-    // search filter so the full CCC is rendered, expand pagination to the
-    // target paragraph (via pendingJumpRef so the [query] effect doesn't
-    // overwrite it), then scroll to it on the next frame.
+    // Card-click + cross-ref path: clear any active search, expand
+    // pagination directly to include the target row (works whether or not
+    // the [query] effect fires), then scroll to it on the next tick.
     const jumpToParagraph = React.useCallback((targetId) => {
+        const idx = entries.findIndex((e) => e.id === targetId);
+        const target = idx >= 0 ? Math.max(PAGE_SIZE, idx + 5) : PAGE_SIZE;
         pendingJumpRef.current = targetId;
-        setQuery("");
         setActiveId(null);
-        // Wait two frames AFTER the [query] effect has run so the target
-        // <li> is actually mounted, then scroll. setTimeout(0) gives React
-        // enough time to flush effects.
+        setQuery("");
+        setVisible((v) => Math.max(v, target));
+        // Give React a tick to commit + the [query] effect to run, then
+        // scroll. Clear the pending flag so subsequent typing resets pagination normally.
         window.setTimeout(() => {
+            pendingJumpRef.current = null;
             requestAnimationFrame(() => {
                 const el = document.querySelector(`[data-ccc-id="${targetId}"]`);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -227,8 +224,8 @@ export default function Catechism() {
                     setFlashId((cur) => (cur === targetId ? null : cur));
                 }, 1400);
             });
-        }, 0);
-    }, []);
+        }, 60);
+    }, [entries]);
 
     const jumpToPart = (part) => { jumpToParagraph(part.start); };
     const onResetTop = () => setQuery("");
@@ -318,7 +315,7 @@ export default function Catechism() {
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
                     data-testid={`ccc-xref-${num}`}
-                    className="ui-sans text-xs font-semibold text-purple-700 hover:text-purple-900 hover:bg-purple-100 align-baseline px-1.5 py-0.5 rounded-md ring-1 ring-purple-200 transition-colors"
+                    className="ui-sans text-sm font-semibold text-purple-700 hover:text-purple-900 hover:underline align-baseline transition-colors"
                     aria-label={`Ir al párrafo ${num}`}
                 >
                     {num}
@@ -331,19 +328,18 @@ export default function Catechism() {
                 return <React.Fragment key={i}>{highlight(seg.value, `t${i}`)}</React.Fragment>;
             }
             if (seg.kind === "xref") {
-                // Render the parenthesis wrapper plus space-separated pills.
-                // Single ref keeps the same compact look; grouped refs become
-                // a row of small pills.
+                // Inline rendering: parens + comma-separated purple numbers,
+                // no box / no pill — just colored tappable text.
                 return (
-                    <span key={i} className="inline-flex flex-wrap items-baseline gap-1 mx-0.5">
-                        <span className="text-stoneFaint">(</span>
+                    <span key={i} className="ui-sans text-stoneFaint">
+                        {" ("}
                         {seg.nums.map((n, j) => (
                             <React.Fragment key={`${i}-${j}`}>
                                 {cccPill(n, `${i}-${j}p`)}
-                                {j < seg.nums.length - 1 && <span className="text-stoneFaint">,</span>}
+                                {j < seg.nums.length - 1 && ", "}
                             </React.Fragment>
                         ))}
-                        <span className="text-stoneFaint">)</span>
+                        {")"}
                     </span>
                 );
             }
@@ -379,6 +375,68 @@ export default function Catechism() {
             </h1>
             <p className="text-stoneMuted mb-6">{t("sections.catechism_desc")}</p>
 
+            {lang === "es" ? (
+                <div
+                    className="surface-card p-8 sm:p-10 text-center max-w-xl mx-auto mt-6"
+                    data-testid="catechism-es-coming-soon"
+                >
+                    <p className="label-eyebrow mb-3">{t("catechism.coming_soon_eyebrow")}</p>
+                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-4">
+                        {t("catechism.coming_soon_title")}
+                    </h2>
+                    <p className="text-stoneMuted leading-relaxed">
+                        {t("catechism.coming_soon_body")}
+                    </p>
+                </div>
+            ) : (
+                <CatechismEnglishView
+                    loading={loading}
+                    error={error}
+                    entries={entries}
+                    results={results}
+                    shown={shown}
+                    visible={visible}
+                    setVisible={setVisible}
+                    sentinelRef={sentinelRef}
+                    hasMore={hasMore}
+                    searching={searching}
+                    query={query}
+                    setQuery={setQuery}
+                    jumpToPart={jumpToPart}
+                    activeId={activeId}
+                    setActiveId={setActiveId}
+                    savedParas={savedParas}
+                    flashId={flashId}
+                    toggleParaFavorite={toggleParaFavorite}
+                    renderRichText={renderRichText}
+                    onResetTop={onResetTop}
+                    t={t}
+                    lang={lang}
+                />
+            )}
+
+            {quickCite && (
+                <BibleQuickView
+                    cite={quickCite}
+                    bibleData={bibleData}
+                    onClose={() => setQuickCite(null)}
+                />
+            )}
+        </div>
+    );
+}
+
+/* ================================================================== */
+/* English view — full reader (Spanish is "coming soon" placeholder)   */
+/* ================================================================== */
+
+function CatechismEnglishView({
+    loading, error, entries, results, shown, visible, setVisible, sentinelRef,
+    hasMore, searching, query, setQuery, jumpToPart, activeId, setActiveId,
+    savedParas, flashId, toggleParaFavorite, renderRichText, onResetTop, t, lang,
+}) {
+    return (
+        <>
             <div
                 className="sticky top-[56px] md:top-[72px] z-20 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 py-3 bg-sand-50/95 backdrop-blur-md border-b border-sand-300 mb-8"
                 data-testid="catechism-search-wrap"
@@ -486,15 +544,7 @@ export default function Catechism() {
             )}
 
             <BackToTopButton onClick={onResetTop} testId="catechism-back-to-top" />
-
-            {quickCite && (
-                <BibleQuickView
-                    cite={quickCite}
-                    bibleData={bibleData}
-                    onClose={() => setQuickCite(null)}
-                />
-            )}
-        </div>
+        </>
     );
 }
 

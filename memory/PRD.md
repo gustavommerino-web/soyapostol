@@ -131,6 +131,13 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ Index/counter sanity confirmed: `entries.length === 2865` and numeric search uses `entries.findIndex(e => e.id === n)` — the inline numbers never pollute search or counts.
 - ✅ Verified by screenshot tool: §366 jump (close), §1730 jump (far across ~1700 paragraphs), single `(199)` pill, no regression on Bible modal.
 
+## Implemented (2026-05-01 · part 3) — Catechism index/xref bugfix + ES placeholder
+- 🐛→🟢 **Index navigation broken** (only "Introducción" worked): root cause was the new `pendingJumpRef` flow only consuming when the `[query]` effect fires — but `setQuery("")` is a no-op when the query is already empty (the normal case for tapping a Parts card). Rewrote `jumpToParagraph` to call `setVisible((v) => Math.max(v, target))` **directly** (not through the effect) and use the ref purely as a "skip the reset" guard. Verified all 5 part cards (§1, §26, §1066, §1691, §2559) jump correctly.
+- 🐛→🟢 **Cross-ref clicks did nothing**: same root cause (query already empty). Same fix resolves both.
+- 🎨 **Cross-ref visual cleanup**: removed the box (`bg-purple-100 hover:bg-purple-100 ring-1 ring-purple-200 px-1.5 py-0.5 rounded-md`) per user request — numbers now render as plain liturgical-purple text (`text-purple-700` + `hover:underline`) inside grey parentheses with comma separators, blending naturally into the prose while remaining tappable.
+- 🇪🇸 **Spanish placeholder for the Catechism**: since the project only has the English `catechism.json`, the ES locale now shows a centred "Próximamente · Catecismo en español" card explaining that the official Spanish edition is being prepared and inviting the user to switch to EN. The full reader (search bar + Parts index + paragraph list + Bible quick-view) is gated behind `lang === "en"` via a new `CatechismEnglishView` sub-component. Translations added in `LangContext.jsx` (`catechism.coming_soon_eyebrow / _title / _body` for ES and EN).
+- ✅ Verified by screenshot tool: ES placeholder, EN parts navigation (5/5), §33 → §1730 multi-xref jump, no Bible modal regression. Lint clean.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
