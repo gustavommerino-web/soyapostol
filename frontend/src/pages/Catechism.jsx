@@ -16,12 +16,15 @@ const DATA_URL = "/data/catechism.json";
 const CATECHISM_DATA_VERSION = 1;
 const IDB_KEY = "catechism:ccc";
 
-// Canonical CCC part structure (paragraph the Part begins at).
+// Canonical CCC structure: paragraph the Part begins at + last paragraph it
+// covers, so each card on the index can render the full range "§N – §M" and
+// users can confirm by themselves the index has no gaps.
 const PARTS = [
-    { id: 1, start: 26,   es: "La Profesión de la Fe",                   en: "The Profession of Faith" },
-    { id: 2, start: 1066, es: "La Celebración del Misterio Cristiano",   en: "The Celebration of the Christian Mystery" },
-    { id: 3, start: 1691, es: "La Vida en Cristo",                        en: "Life in Christ" },
-    { id: 4, start: 2558, es: "La Oración Cristiana",                     en: "Christian Prayer" },
+    { id: 0, start: 1,    end: 25,   es: "Prólogo",                                en: "Prologue" },
+    { id: 1, start: 26,   end: 1065, es: "La Profesión de la Fe",                 en: "The Profession of Faith" },
+    { id: 2, start: 1066, end: 1690, es: "La Celebración del Misterio Cristiano", en: "The Celebration of the Christian Mystery" },
+    { id: 3, start: 1691, end: 2558, es: "La Vida en Cristo",                     en: "Life in Christ" },
+    { id: 4, start: 2559, end: 2865, es: "La Oración Cristiana",                  en: "Christian Prayer" },
 ];
 
 export default function Catechism() {
@@ -237,22 +240,27 @@ export default function Catechism() {
                     className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-12"
                     data-testid="catechism-parts-index"
                 >
-                    {PARTS.map((p) => (
-                        <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => jumpToPart(p)}
-                            data-testid={`ccc-part-${p.id}`}
-                            className="surface-card p-5 text-left"
-                        >
-                            <p className="label-eyebrow mb-1.5">
-                                {lang === "es" ? "Parte" : "Part"} {p.id} · §{p.start}
-                            </p>
-                            <p className="reading-serif text-lg leading-snug">
-                                {lang === "es" ? p.es : p.en}
-                            </p>
-                        </button>
-                    ))}
+                    {PARTS.map((p) => {
+                        const partLabel = p.id === 0
+                            ? (lang === "es" ? "Introducción" : "Introduction")
+                            : `${lang === "es" ? "Parte" : "Part"} ${p.id}`;
+                        return (
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => jumpToPart(p)}
+                                data-testid={`ccc-part-${p.id}`}
+                                className="surface-card p-5 text-left"
+                            >
+                                <p className="label-eyebrow mb-1.5">
+                                    {partLabel} · §{p.start} – §{p.end}
+                                </p>
+                                <p className="reading-serif text-lg leading-snug">
+                                    {lang === "es" ? p.es : p.en}
+                                </p>
+                            </button>
+                        );
+                    })}
                 </section>
             )}
 
