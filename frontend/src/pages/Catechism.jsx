@@ -41,7 +41,18 @@ export default function Catechism() {
     // Map: paragraph number → favorite id. Used to show the saved-indicator
     // on already-favorited paragraphs and to toggle remove/save in the menu.
     const [savedParas, setSavedParas] = React.useState(() => new Map());
+    // Paragraph that should "flash" briefly after a cross-ref jump, so the
+    // user immediately knows where the navigation landed.
+    const [flashId, setFlashId] = React.useState(null);
     const sentinelRef = React.useRef(null);
+
+    // O(1) lookup so the cross-ref renderer can quickly check whether a
+    // parenthetical number actually corresponds to an existing CCC paragraph
+    // before turning it into a clickable button.
+    const paragraphIds = React.useMemo(
+        () => new Set(entries.map((e) => e.id)),
+        [entries],
+    );
 
     // Load the catechism file (IDB + network, same pattern as Bible).
     React.useEffect(() => {
@@ -167,34 +178,90 @@ export default function Catechism() {
     // Card-click path is fully decoupled from the search bar: clear the
     // search filter so the full CCC is rendered, ensure pagination has
     // reached the target paragraph, then scroll to it on the next frame.
-    const jumpToPart = (part) => {
+    const jumpToParagraph = React.useCallback((targetId) => {
         setQuery("");
         setActiveId(null);
-        const idx = entries.findIndex((e) => e.id === part.start);
+        const idx = entries.findIndex((e) => e.id === targetId);
         if (idx >= 0) setVisible((v) => Math.max(v, idx + 5));
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                const el = document.querySelector(`[data-ccc-id="${part.start}"]`);
+                const el = document.querySelector(`[data-ccc-id="${targetId}"]`);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                // Brief flash so the user sees where they landed. Auto-clear
+                // after the CSS animation duration so a second tap re-triggers.
+                setFlashId(targetId);
+                window.setTimeout(() => {
+                    setFlashId((cur) => (cur === targetId ? null : cur));
+                }, 1400);
             });
         });
-    };
+    }, [entries]);
+
+    const jumpToPart = (part) => { jumpToParagraph(part.start); };
     const onResetTop = () => setQuery("");
 
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
 
-    const highlightText = (text) => {
+    // Renders paragraph text with two overlapping enrichments:
+    //   1. <mark> for the current text-search query (skipped on numeric search)
+    //   2. <button> for "(NNN)" cross-references whose NNN exists in the corpus
+    // Done in a single split so query highlight and refs never collide.
+    const renderRichText = React.useCallback((text) => {
         const q = query.trim();
-        if (!q || /^\d+$/.test(q)) return text;
-        const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
-        const parts = text.split(re);
-        return parts.map((p, i) =>
-            re.test(p)
-                ? <mark key={i} className="bg-sangre/15 text-stone900 rounded px-0.5">{p}</mark>
-                : <React.Fragment key={i}>{p}</React.Fragment>,
-        );
-    };
+        const queryActive = q.length > 0 && !/^\d+$/.test(q);
+
+        // First, split on parenthetical paragraph numbers.
+        const refRegex = /\((\d{1,4})\)/g;
+        const segments = [];
+        let lastIndex = 0;
+        let m;
+        while ((m = refRegex.exec(text)) !== null) {
+            if (m.index > lastIndex) segments.push({ kind: "text", value: text.slice(lastIndex, m.index) });
+            segments.push({ kind: "ref", value: m[0], num: parseInt(m[1], 10) });
+            lastIndex = m.index + m[0].length;
+        }
+        if (lastIndex < text.length) segments.push({ kind: "text", value: text.slice(lastIndex) });
+
+        // Helper to highlight query inside a plain string.
+        const highlight = (s, keyPrefix) => {
+            if (!queryActive) return s;
+            const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
+            const parts = s.split(re);
+            return parts.map((p, i) =>
+                re.test(p)
+                    ? <mark key={`${keyPrefix}-${i}`} className="bg-sangre/15 text-stone900 rounded px-0.5">{p}</mark>
+                    : <React.Fragment key={`${keyPrefix}-${i}`}>{p}</React.Fragment>,
+            );
+        };
+
+        return segments.map((seg, i) => {
+            if (seg.kind === "text") {
+                return <React.Fragment key={i}>{highlight(seg.value, `t${i}`)}</React.Fragment>;
+            }
+            // Cross-ref: only make it tappable when the target paragraph
+            // actually exists. Otherwise render as plain "(NNN)" text.
+            if (paragraphIds.has(seg.num)) {
+                return (
+                    <button
+                        key={i}
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            jumpToParagraph(seg.num);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        data-testid={`ccc-xref-${seg.num}`}
+                        className="ui-sans text-xs font-semibold text-sangre hover:underline align-baseline mx-0.5 px-1 py-0.5 rounded hover:bg-sangre/10 transition-colors"
+                        aria-label={`Ir al párrafo ${seg.num}`}
+                    >
+                        ({seg.num})
+                    </button>
+                );
+            }
+            return <React.Fragment key={i}>{seg.value}</React.Fragment>;
+        });
+    }, [query, paragraphIds, jumpToParagraph]);
 
     const searching = query.trim().length > 0;
 
@@ -286,9 +353,10 @@ export default function Catechism() {
                             <ParagraphRow
                                 key={p.id}
                                 paragraph={p}
-                                renderText={() => highlightText(p.text)}
+                                renderText={() => renderRichText(p.text)}
                                 isActive={activeId === p.id}
                                 isSaved={savedParas.has(p.id)}
+                                isFlashing={flashId === p.id}
                                 onActivate={() => setActiveId(p.id)}
                                 onDismiss={() => setActiveId(null)}
                                 onToggleFavorite={toggleParaFavorite}
@@ -320,7 +388,7 @@ export default function Catechism() {
 /* Long-press paragraph with context menu                             */
 /* ================================================================== */
 
-function ParagraphRow({ paragraph, renderText, isActive, isSaved, onActivate, onDismiss, onToggleFavorite }) {
+function ParagraphRow({ paragraph, renderText, isActive, isSaved, isFlashing, onActivate, onDismiss, onToggleFavorite }) {
     const handlers = useLongPress(() => onActivate());
     return (
         <li
@@ -331,6 +399,7 @@ function ParagraphRow({ paragraph, renderText, isActive, isSaved, onActivate, on
                 "px-3 py-3 -mx-3",
                 isSaved ? "border-l-2 border-sangre/50 pl-4" : "",
                 isActive ? "verse-active" : "",
+                isFlashing ? "ccc-flash" : "",
             ].filter(Boolean).join(" ")}
             style={{ scrollMarginTop: "80px" }}
             {...handlers}
