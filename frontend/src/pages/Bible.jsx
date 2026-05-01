@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
 import { useLongPress, ContextMenu } from "@/components/LongPressMenu";
 import { idbGet, idbSet } from "@/lib/idb";
@@ -355,7 +354,6 @@ export default function Bible() {
         return ch?.verses || [];
     }, [currentBook, chapter]);
 
-    const chapterContent = currentChapterVerses.map((v) => `${v.verse}. ${v.text}`).join("\n");
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
     const searching = query.trim().length > 0;
@@ -446,14 +444,6 @@ export default function Bible() {
                                 >
                                     <CaretRight size={14} weight="bold" />
                                 </button>
-
-                                <FavoriteButton
-                                    section="bible"
-                                    title={`${currentBookDisplay} ${chapter}`}
-                                    content={chapterContent}
-                                    metadata={{ book: currentBook?.name, chapter, lang }}
-                                    testId="fav-bible-chapter"
-                                />
                             </div>
 
                             <h2 className="heading-serif text-3xl tracking-tight mb-6 border-b border-sand-300 pb-3"
