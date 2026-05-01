@@ -5,8 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import BackToTopButton from "@/components/BackToTopButton";
+import BibleQuickView from "@/components/BibleQuickView";
 import { useLongPress, ContextMenu } from "@/components/LongPressMenu";
 import { idbGet, idbSet } from "@/lib/idb";
+import { findCitations } from "@/lib/bibleAbbrev";
+import { loadBible } from "@/pages/Bible";
 import {
     MagnifyingGlass, X, Heart, HeartBreak, Copy, ShareNetwork,
 } from "@phosphor-icons/react";
@@ -44,6 +47,11 @@ export default function Catechism() {
     // Paragraph that should "flash" briefly after a cross-ref jump, so the
     // user immediately knows where the navigation landed.
     const [flashId, setFlashId] = React.useState(null);
+    // Bible quick-view modal state. When `quickCite` is non-null the modal
+    // is mounted; the bible payload is preloaded eagerly so the lookup is
+    // synchronous.
+    const [quickCite, setQuickCite] = React.useState(null);
+    const [bibleData, setBibleData] = React.useState(null);
     const sentinelRef = React.useRef(null);
 
     // O(1) lookup so the cross-ref renderer can quickly check whether a
@@ -84,6 +92,16 @@ export default function Catechism() {
         })();
         return () => { cancelled = true; };
     }, []);
+
+    // Preload the Bible (same IDB cache as /bible) so the quick-view modal
+    // can resolve any citation synchronously the moment it opens.
+    React.useEffect(() => {
+        let cancelled = false;
+        loadBible(lang)
+            .then((d) => { if (!cancelled) setBibleData(d); })
+            .catch(() => { /* quick-view will gracefully show "not found" */ });
+        return () => { cancelled = true; };
+    }, [lang]);
 
     // One-shot fetch of the user's existing catechism favorites so each
     // paragraph can light up its "saved" indicator on load.
@@ -203,27 +221,51 @@ export default function Catechism() {
     const shown = results.slice(0, visible);
     const hasMore = visible < results.length;
 
-    // Renders paragraph text with two overlapping enrichments:
+    // Renders paragraph text with three overlapping enrichments:
     //   1. <mark> for the current text-search query (skipped on numeric search)
-    //   2. <button> for "(NNN)" cross-references whose NNN exists in the corpus
-    // Done in a single split so query highlight and refs never collide.
+    //   2. <button> for "(NNN)" CCC cross-references whose target exists
+    //   3. <button> for inline Bible citations like "*Mt* 5:3" or "Heb 11:1"
+    //      that opens a quick-view modal anchored to the in-memory Bible.
+    // Done in a single pass so the three enrichments never collide.
     const renderRichText = React.useCallback((text) => {
         const q = query.trim();
         const queryActive = q.length > 0 && !/^\d+$/.test(q);
 
-        // First, split on parenthetical paragraph numbers.
-        const refRegex = /\((\d{1,4})\)/g;
-        const segments = [];
-        let lastIndex = 0;
-        let m;
-        while ((m = refRegex.exec(text)) !== null) {
-            if (m.index > lastIndex) segments.push({ kind: "text", value: text.slice(lastIndex, m.index) });
-            segments.push({ kind: "ref", value: m[0], num: parseInt(m[1], 10) });
-            lastIndex = m.index + m[0].length;
-        }
-        if (lastIndex < text.length) segments.push({ kind: "text", value: text.slice(lastIndex) });
+        // Step 1: extract Bible citations and CCC parenthetical refs as a
+        // sorted, non-overlapping list of "tokens". Anything in between is
+        // plain text that may still receive query highlight.
+        const cites = findCitations(text);
 
-        // Helper to highlight query inside a plain string.
+        const refTokens = [];
+        const refRegex = /\((\d{1,4})\)/g;
+        let rm;
+        while ((rm = refRegex.exec(text)) !== null) {
+            // Avoid colliding with a Bible citation that already covers this slice.
+            const overlap = cites.some((c) => rm.index >= c.start && rm.index < c.end);
+            if (overlap) continue;
+            refTokens.push({
+                kind: "xref",
+                start: rm.index,
+                end: rm.index + rm[0].length,
+                num: parseInt(rm[1], 10),
+                raw: rm[0],
+            });
+        }
+
+        const all = [...cites, ...refTokens].sort((a, b) => a.start - b.start);
+
+        const segments = [];
+        let cursor = 0;
+        for (const tok of all) {
+            if (tok.start > cursor) {
+                segments.push({ kind: "text", value: text.slice(cursor, tok.start) });
+            }
+            segments.push(tok);
+            cursor = tok.end;
+        }
+        if (cursor < text.length) segments.push({ kind: "text", value: text.slice(cursor) });
+
+        // Step 2: highlight helper for query inside plain-text segments.
         const highlight = (s, keyPrefix) => {
             if (!queryActive) return s;
             const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
@@ -239,29 +281,48 @@ export default function Catechism() {
             if (seg.kind === "text") {
                 return <React.Fragment key={i}>{highlight(seg.value, `t${i}`)}</React.Fragment>;
             }
-            // Cross-ref: only make it tappable when the target paragraph
-            // actually exists. Otherwise render as plain "(NNN)" text.
-            if (paragraphIds.has(seg.num)) {
-                return (
-                    <button
-                        key={i}
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            jumpToParagraph(seg.num);
-                        }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        data-testid={`ccc-xref-${seg.num}`}
-                        className="ui-sans text-xs font-semibold text-sangre hover:underline align-baseline mx-0.5 px-1 py-0.5 rounded hover:bg-sangre/10 transition-colors"
-                        aria-label={`Ir al párrafo ${seg.num}`}
-                    >
-                        ({seg.num})
-                    </button>
-                );
+            if (seg.kind === "xref") {
+                if (paragraphIds.has(seg.num)) {
+                    return (
+                        <button
+                            key={i}
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                jumpToParagraph(seg.num);
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            data-testid={`ccc-xref-${seg.num}`}
+                            className="ui-sans text-xs font-semibold text-sangre hover:underline align-baseline mx-0.5 px-1 py-0.5 rounded hover:bg-sangre/10 transition-colors"
+                            aria-label={`Ir al párrafo ${seg.num}`}
+                        >
+                            ({seg.num})
+                        </button>
+                    );
+                }
+                return <React.Fragment key={i}>{seg.raw}</React.Fragment>;
             }
-            return <React.Fragment key={i}>{seg.value}</React.Fragment>;
+            // Bible citation token.
+            const refLabel = `${seg.book[lang === "es" ? "es" : "en"]} ${seg.chapter}:${seg.verse}${seg.endVerse ? `-${seg.endVerse}` : ""}`;
+            return (
+                <button
+                    key={i}
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setQuickCite(seg);
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    data-testid={`ccc-bibleref-${seg.book.en.replace(/\s+/g, "_")}-${seg.chapter}-${seg.verse}`}
+                    className="reading-serif italic text-sangre hover:bg-sangre/10 underline decoration-dotted underline-offset-2 mx-0.5 px-1 rounded transition-colors"
+                    aria-label={refLabel}
+                    title={refLabel}
+                >
+                    {seg.raw}
+                </button>
+            );
         });
-    }, [query, paragraphIds, jumpToParagraph]);
+    }, [query, paragraphIds, jumpToParagraph, lang]);
 
     const searching = query.trim().length > 0;
 
