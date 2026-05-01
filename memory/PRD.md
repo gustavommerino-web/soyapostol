@@ -114,6 +114,16 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ New translations added to `LangContext.jsx`: `change_profile_confirm`, `start_over`, `start_over_confirm`, `finish_confession`, `finish_confession_confirm`, `finish_done_title`, `finish_done_subtitle`, `return_home`, `beatitude_n`, and `profile.beatitudes` / `profile_desc.beatitudes`.
 - ✅ Tested end-to-end with screenshot tool: cover (5 profiles), Beatitudes accordion with focus quote, start-over visibility, summary, finish-confession flow, peace screen, and cross-profile wipe.
 
+## Implemented (2026-05-01) — Catechism ↔ Bible cross-references
+- ✅ **Tappable Bible citations inside the CCC**. Inline tokens like `*Mt* 5:3`, `*Heb* 1:3`, `*Mt* 6:26-34`, or unstarred `1 Cor 9:22` are rendered as clickable italic underlined buttons via `renderRichText` in `Catechism.jsx`.
+- ✅ Built `/lib/bibleAbbrev.js`: full ES/EN abbreviation table covering all 73 books (incl. deuterocanonicals), `findCitations(text)` regex tokenizer, and synchronous `lookupCitation(bible, lang, cite)` resolver against the in-memory Bible.
+- ✅ Built `/components/BibleQuickView.jsx` modal/bottom-sheet (mobile drag-handle aesthetics, body-scroll lock, Esc to close, backdrop dismiss) that renders the verse(s) with red `<sup>` numbers and a "Ver en la Biblia / Open in Bible" CTA.
+- ✅ Bible preloaded eagerly in Catechism via existing `loadBible(lang)` so quick-view opens instantly.
+- ✅ "Ver en la Biblia" deep-links to `/bible?ref=Book|Chapter|Verse`; the Bible page strips the `?ref=` after scroll so reload doesn't re-jump.
+- ✅ Added `quickview.open_bible` and `quickview.not_found` translation keys (ES + EN).
+- ✅ Coexists cleanly with: CCC-to-CCC `(NNN)` clickable refs, long-press Save/Copy/Share context menu (button uses `pointerdown` stopPropagation), search/highlight, and Parts index.
+- ✅ Tested by `testing_agent_v3_fork` iteration_3.json — **7/7 cases pass, no issues**. Verified: §263 (Jn 14:26 ES), §322 (Mt 6:26-34 verse range), §24 (1 Cor 9:22 ordinal), false-positive guard ("Section/Chapter/Part" not promoted to citations), language toggle ES↔EN swaps both label and verse text, all 4 dismiss paths work, deep-link strips `?ref=`.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
@@ -121,6 +131,7 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 ### P2
 - Reading plans / Freemium model.
 - Highlight-to-favorite on Bible/CCC paragraphs.
+- Tighten `bibleAbbrev` regex to a whitelist built from `Object.keys(RAW)` (currently safe via `resolveBookName` filter — code-review note from iteration_3).
 
 ## Credentials
 See `/app/memory/test_credentials.md`
