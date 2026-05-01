@@ -173,7 +173,21 @@ export default function Catechism() {
         return { results: filtered, jumpTarget: null };
     }, [query, entries]);
 
-    React.useEffect(() => { setVisible(PAGE_SIZE); }, [query]);
+    // Tracks an in-flight "jump to paragraph" request so the [query]
+    // effect can honour the target instead of resetting `visible` back
+    // to PAGE_SIZE and losing the row.
+    const pendingJumpRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const target = pendingJumpRef.current;
+        if (target != null) {
+            pendingJumpRef.current = null;
+            const idx = entries.findIndex((e) => e.id === target);
+            setVisible(idx >= 0 ? Math.max(PAGE_SIZE, idx + 5) : PAGE_SIZE);
+        } else {
+            setVisible(PAGE_SIZE);
+        }
+    }, [query, entries]);
 
     React.useEffect(() => {
         const node = sentinelRef.current;
@@ -194,26 +208,27 @@ export default function Catechism() {
     }, [jumpTarget, visible]);
 
     // Card-click path is fully decoupled from the search bar: clear the
-    // search filter so the full CCC is rendered, ensure pagination has
-    // reached the target paragraph, then scroll to it on the next frame.
+    // search filter so the full CCC is rendered, expand pagination to the
+    // target paragraph (via pendingJumpRef so the [query] effect doesn't
+    // overwrite it), then scroll to it on the next frame.
     const jumpToParagraph = React.useCallback((targetId) => {
+        pendingJumpRef.current = targetId;
         setQuery("");
         setActiveId(null);
-        const idx = entries.findIndex((e) => e.id === targetId);
-        if (idx >= 0) setVisible((v) => Math.max(v, idx + 5));
-        requestAnimationFrame(() => {
+        // Wait two frames AFTER the [query] effect has run so the target
+        // <li> is actually mounted, then scroll. setTimeout(0) gives React
+        // enough time to flush effects.
+        window.setTimeout(() => {
             requestAnimationFrame(() => {
                 const el = document.querySelector(`[data-ccc-id="${targetId}"]`);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                // Brief flash so the user sees where they landed. Auto-clear
-                // after the CSS animation duration so a second tap re-triggers.
                 setFlashId(targetId);
                 window.setTimeout(() => {
                     setFlashId((cur) => (cur === targetId ? null : cur));
                 }, 1400);
             });
-        });
-    }, [entries]);
+        }, 0);
+    }, []);
 
     const jumpToPart = (part) => { jumpToParagraph(part.start); };
     const onResetTop = () => setQuery("");
@@ -223,7 +238,9 @@ export default function Catechism() {
 
     // Renders paragraph text with three overlapping enrichments:
     //   1. <mark> for the current text-search query (skipped on numeric search)
-    //   2. <button> for "(NNN)" CCC cross-references whose target exists
+    //   2. <button> for parenthetical CCC cross-references — both single
+    //      "(NNN)" and grouped "(NNN, NNN, NNN)" lists. Rendered in
+    //      liturgical purple to distinguish from Bible citations.
     //   3. <button> for inline Bible citations like "*Mt* 5:3" or "Heb 11:1"
     //      that opens a quick-view modal anchored to the in-memory Bible.
     // Done in a single pass so the three enrichments never collide.
@@ -237,17 +254,25 @@ export default function Catechism() {
         const cites = findCitations(text);
 
         const refTokens = [];
-        const refRegex = /\((\d{1,4})\)/g;
+        // Match either a single "(NNN)" or a comma/semicolon-separated list
+        // like "(2500, 1730, 1776, 1703, 366)" — both cases are CCC-internal
+        // cross-references.
+        const refRegex = /\(\s*(\d{1,4}(?:\s*[,;]\s*\d{1,4})*)\s*\)/g;
         let rm;
         while ((rm = refRegex.exec(text)) !== null) {
             // Avoid colliding with a Bible citation that already covers this slice.
             const overlap = cites.some((c) => rm.index >= c.start && rm.index < c.end);
             if (overlap) continue;
+            const nums = rm[1]
+                .split(/[,;]/)
+                .map((s) => parseInt(s.trim(), 10))
+                .filter((n) => Number.isFinite(n));
+            if (nums.length === 0) continue;
             refTokens.push({
                 kind: "xref",
                 start: rm.index,
                 end: rm.index + rm[0].length,
-                num: parseInt(rm[1], 10),
+                nums,
                 raw: rm[0],
             });
         }
@@ -277,30 +302,50 @@ export default function Catechism() {
             );
         };
 
+        // Liturgical-purple pill for an internal CCC paragraph link. Falls
+        // back to plain text when the target paragraph doesn't exist.
+        const cccPill = (num, key) => {
+            if (!paragraphIds.has(num)) {
+                return <React.Fragment key={key}>{num}</React.Fragment>;
+            }
+            return (
+                <button
+                    key={key}
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        jumpToParagraph(num);
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    data-testid={`ccc-xref-${num}`}
+                    className="ui-sans text-xs font-semibold text-purple-700 hover:text-purple-900 hover:bg-purple-100 align-baseline px-1.5 py-0.5 rounded-md ring-1 ring-purple-200 transition-colors"
+                    aria-label={`Ir al párrafo ${num}`}
+                >
+                    {num}
+                </button>
+            );
+        };
+
         return segments.map((seg, i) => {
             if (seg.kind === "text") {
                 return <React.Fragment key={i}>{highlight(seg.value, `t${i}`)}</React.Fragment>;
             }
             if (seg.kind === "xref") {
-                if (paragraphIds.has(seg.num)) {
-                    return (
-                        <button
-                            key={i}
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                jumpToParagraph(seg.num);
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            data-testid={`ccc-xref-${seg.num}`}
-                            className="ui-sans text-xs font-semibold text-sangre hover:underline align-baseline mx-0.5 px-1 py-0.5 rounded hover:bg-sangre/10 transition-colors"
-                            aria-label={`Ir al párrafo ${seg.num}`}
-                        >
-                            ({seg.num})
-                        </button>
-                    );
-                }
-                return <React.Fragment key={i}>{seg.raw}</React.Fragment>;
+                // Render the parenthesis wrapper plus space-separated pills.
+                // Single ref keeps the same compact look; grouped refs become
+                // a row of small pills.
+                return (
+                    <span key={i} className="inline-flex flex-wrap items-baseline gap-1 mx-0.5">
+                        <span className="text-stoneFaint">(</span>
+                        {seg.nums.map((n, j) => (
+                            <React.Fragment key={`${i}-${j}`}>
+                                {cccPill(n, `${i}-${j}p`)}
+                                {j < seg.nums.length - 1 && <span className="text-stoneFaint">,</span>}
+                            </React.Fragment>
+                        ))}
+                        <span className="text-stoneFaint">)</span>
+                    </span>
+                );
             }
             // Bible citation token.
             const refLabel = `${seg.book[lang === "es" ? "es" : "en"]} ${seg.chapter}:${seg.verse}${seg.endVerse ? `-${seg.endVerse}` : ""}`;

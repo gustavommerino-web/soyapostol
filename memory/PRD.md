@@ -124,6 +124,13 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ Coexists cleanly with: CCC-to-CCC `(NNN)` clickable refs, long-press Save/Copy/Share context menu (button uses `pointerdown` stopPropagation), search/highlight, and Parts index.
 - ✅ Tested by `testing_agent_v3_fork` iteration_3.json — **7/7 cases pass, no issues**. Verified: §263 (Jn 14:26 ES), §322 (Mt 6:26-34 verse range), §24 (1 Cor 9:22 ordinal), false-positive guard ("Section/Chapter/Part" not promoted to citations), language toggle ES↔EN swaps both label and verse text, all 4 dismiss paths work, deep-link strips `?ref=`.
 
+## Implemented (2026-05-01 · part 2) — CCC multi-ref groups in liturgical purple
+- ✅ **Bug report by user**: parenthetical lists like `(2500, 1730, 1776, 1703, 366)` at the end of §33 were rendered as plain text (regex only matched single `(NNN)`).
+- ✅ **Fix**: extended `refRegex` in `Catechism.jsx` to `\(\s*(\d{1,4}(?:\s*[,;]\s*\d{1,4})*)\s*\)` so single + comma/semicolon-separated lists are parsed together. Each number renders as a small **liturgical-purple pill** (`text-purple-700` + `ring-purple-200`), visually distinct from the red Bible citations. The `(`, `,`, `)` characters stay grey for readability.
+- ✅ **Latent bug also fixed**: `jumpToParagraph` was racing with the `[query]` effect that resets `visible=PAGE_SIZE`. Long-distance jumps (e.g., §33 → §1730) silently failed because the row was un-rendered. Replaced with a `pendingJumpRef` that the reset effect honours, plus a `setTimeout(0) → rAF` chain so the scroll runs **after** React commits.
+- ✅ Index/counter sanity confirmed: `entries.length === 2865` and numeric search uses `entries.findIndex(e => e.id === n)` — the inline numbers never pollute search or counts.
+- ✅ Verified by screenshot tool: §366 jump (close), §1730 jump (far across ~1700 paragraphs), single `(199)` pill, no regression on Bible modal.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
