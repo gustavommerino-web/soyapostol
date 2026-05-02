@@ -176,6 +176,14 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🔗 **Botón en Ajustes activado**: `PRIVACY_POLICY_URL` en `Settings.jsx` apunta ahora a `/privacy-policy.html`, el botón ya no aparece deshabilitado, y se abre en nueva pestaña con `noopener,noreferrer`. Hint en ES: "Se abre en una nueva pestaña."
 - ✅ Verificado por screenshot tool: documento renderiza correctamente desktop + mobile, barra sticky funciona, enlaces internos del table-of-contents responden, contenido completo (31k chars de texto) accesible, botón de Settings no-disabled. Lint limpio, privacy-assert OK.
 
+## Implemented (2026-05-02 · part 4) — Account self-deletion
+- 🆕 **Endpoint** `POST /api/auth/delete-account` (auth required, body `{confirm_email, lang}`). Cascade-deletes `users`, `favorites`, `password_resets`, `login_attempts` matching the user; clears auth cookies on the response. Email-mismatch returns 400 without side effects.
+- 📧 **Farewell email** vía Resend: `send_account_deleted_email` en `email_service.py` (bilingüe ES/EN, mismo branding que el reset email). Best-effort, nunca rompe el flujo si Resend falla.
+- 🛑 **Danger Zone en Settings**: nueva sección con borde rojo + lista de qué se borra. Botón rojo "Eliminar mi cuenta" abre modal con confirmación de email exacto (estilo GitHub). Modal con backdrop, Esc/X/Cancel/click-outside lo cierran. Mientras `deleting=true` los inputs/botones se bloquean y muestran spinner.
+- 🪦 **`/account-deleted`** página de despedida (eyebrow "Cuenta eliminada", título "Gracias por haber estado aquí", farewell mariano, CTA "Iniciar sesión").
+- 🧹 **Limpieza de localStorage al borrar**: el frontend elimina `soyapostol:examen:es` y `:en` post-borrado para que ni el dispositivo conserve estado del Examen.
+- ✅ **Verificado E2E** vía screenshot tool: login → settings → danger zone → modal → wrong email rechaza con mensaje correcto → email correcto borra y redirige → revisit dashboard cae a logged-out → BD: usuario y favoritos del throwaway eliminados, 9 usuarios reales preservados. Lint y privacy-assert limpios.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.

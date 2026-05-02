@@ -44,8 +44,21 @@ export function AuthProvider({ children }) {
         setUser(false);
     };
 
+    const deleteAccount = async (confirmEmail, lang) => {
+        setError("");
+        try {
+            await api.post("/auth/delete-account",
+                { confirm_email: confirmEmail, lang: lang || "es" });
+            setUser(false);
+            return true;
+        } catch (e) {
+            setError(formatApiErrorDetail(e.response?.data?.detail) || e.message);
+            return false;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, error, login, register, logout, setError }}>
+        <AuthContext.Provider value={{ user, error, login, register, logout, deleteAccount, setError }}>
             {children}
         </AuthContext.Provider>
     );

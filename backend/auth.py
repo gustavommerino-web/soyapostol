@@ -310,6 +310,74 @@ async def reset_password(data: ResetPasswordIn, request: Request):
     return {"ok": True}
 
 
+# ---------- Account deletion ----------
+
+class DeleteAccountIn(BaseModel):
+    confirm_email: EmailStr
+    lang: Optional[str] = "es"
+
+
+@router.post("/delete-account")
+async def delete_account(
+    data: DeleteAccountIn,
+    response: Response,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """Permanently delete the current user and all their associated data.
+
+    Confirmation: the caller must send `confirm_email` matching the email
+    on the user's record (case-insensitive). Mismatches return 400 without
+    side effects.
+
+    Scope of deletion (anything keyed by user_id):
+      * user document (users)
+      * favorites
+      * pending password-reset tokens
+      * brute-force counters keyed by this email
+
+    Caches that don't reference user_id (readings_cache, liturgy_cache,
+    news_cache, prayers_*, bible_cache, catechism_cache) are intentionally
+    untouched — they're public content shared across all users.
+
+    A best-effort farewell email is sent via Resend before clearing the
+    auth cookies.
+    """
+    db = request.app.state.db
+    if data.confirm_email.lower() != user["email"].lower():
+        raise HTTPException(status_code=400, detail="Confirmation email does not match.")
+
+    user_id = str(user["_id"])
+    email = user["email"]
+    name = user.get("name") or email.split("@")[0]
+    lang = data.lang if data.lang in ("es", "en") else "es"
+
+    # 1. Remove personal data.
+    await db.favorites.delete_many({"user_id": user_id})
+    await db.password_resets.delete_many({"user_id": user_id})
+    # login_attempts identifier is "ip:email" — match by suffix.
+    await db.login_attempts.delete_many({"identifier": {"$regex": f":{email}$"}})
+
+    # 2. Delete the user document itself.
+    await db.users.delete_one({"_id": user["_id"]})
+
+    # 3. Best-effort farewell email (never blocks the response).
+    try:
+        from email_service import send_account_deleted_email
+        await send_account_deleted_email(to_email=email, name=name, lang=lang)
+    except Exception as e:  # noqa: BLE001
+        logger.error("Farewell email failed for %s: %s", email, e)
+
+    # 4. Wipe auth cookies on the response so the SPA falls back to logged-out state.
+    flags = _cookie_flags(request)
+    response.set_cookie("access_token", "", max_age=0, **flags)
+    response.set_cookie("refresh_token", "", max_age=0, **flags)
+    return {"ok": True}
+
+
+
+
+
 async def seed_admin(db):
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@apostol.app").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "Apostol2026!")

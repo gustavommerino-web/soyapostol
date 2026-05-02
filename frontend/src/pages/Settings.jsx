@@ -1,11 +1,17 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
     Info,
     Shield,
     EnvelopeSimple,
     ArrowSquareOut,
     HandsPraying,
+    WarningOctagon,
+    Trash,
+    X,
+    SpinnerGap,
 } from "@phosphor-icons/react";
 
 const PRIVACY_POLICY_URL = "/privacy-policy.html";
@@ -141,6 +147,8 @@ function linkifySources(text) {
 
 export default function Settings() {
     const { t, lang } = useLang();
+    const { user, deleteAccount } = useAuth();
+    const navigate = useNavigate();
 
     const emphasis = lang === "es" ? ES_EMPHASIS : EN_EMPHASIS;
     const paragraphs = [
@@ -150,6 +158,11 @@ export default function Settings() {
         t("settings.about.p4"),
     ];
 
+    const [confirmOpen, setConfirmOpen] = React.useState(false);
+    const [confirmEmail, setConfirmEmail] = React.useState("");
+    const [deleting, setDeleting] = React.useState(false);
+    const [deleteError, setDeleteError] = React.useState("");
+
     const onContactSupport = () => {
         const subject = encodeURIComponent(t("settings.support.subject"));
         const body    = encodeURIComponent(t("settings.support.body"));
@@ -158,6 +171,41 @@ export default function Settings() {
 
     const onOpenPrivacy = () => {
         window.open(PRIVACY_POLICY_URL, "_blank", "noopener,noreferrer");
+    };
+
+    const openDeleteModal = () => {
+        setConfirmEmail("");
+        setDeleteError("");
+        setConfirmOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        if (deleting) return;
+        setConfirmOpen(false);
+    };
+
+    const onConfirmDelete = async (e) => {
+        e?.preventDefault();
+        if (!user || !user.email) return;
+        if (confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
+            setDeleteError(t("settings.danger.email_mismatch"));
+            return;
+        }
+        setDeleting(true);
+        setDeleteError("");
+        const ok = await deleteAccount(confirmEmail.trim().toLowerCase(), lang);
+        if (!ok) {
+            setDeleting(false);
+            setDeleteError(t("settings.danger.error"));
+            return;
+        }
+        // Clear any local state that referenced this user.
+        try {
+            ["soyapostol:examen:es", "soyapostol:examen:en"].forEach(
+                (k) => localStorage.removeItem(k),
+            );
+        } catch { /* ignore */ }
+        navigate("/account-deleted", { replace: true });
     };
 
     return (
@@ -382,6 +430,150 @@ export default function Settings() {
                     />
                 </button>
             </section>
+
+            {/* ============================================================ */}
+            {/* Danger zone — account deletion                               */}
+            {/* ============================================================ */}
+            {user && user.email && (
+                <section className="mb-12" data-testid="settings-danger">
+                    <header className="flex items-center gap-3 mb-5">
+                        <span
+                            className="shrink-0 w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center"
+                            aria-hidden="true"
+                        >
+                            <WarningOctagon size={20} weight="duotone" />
+                        </span>
+                        <div>
+                            <p className="label-eyebrow text-red-700">
+                                {t("settings.danger.eyebrow")}
+                            </p>
+                            <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">
+                                {t("settings.danger.title")}
+                            </h2>
+                        </div>
+                    </header>
+
+                    <article
+                        className="border border-red-200 bg-red-50/50 rounded-md p-5 sm:p-6"
+                        data-testid="settings-danger-card"
+                    >
+                        <p className="ui-sans text-sm leading-relaxed text-stone900 mb-4">
+                            {t("settings.danger.body")}
+                        </p>
+                        <ul className="ui-sans text-sm text-stone900 list-disc pl-5 space-y-1 mb-5">
+                            <li>{t("settings.danger.list_user")}</li>
+                            <li>{t("settings.danger.list_favs")}</li>
+                            <li>{t("settings.danger.list_sessions")}</li>
+                        </ul>
+                        <button
+                            type="button"
+                            onClick={openDeleteModal}
+                            data-testid="settings-delete-account-btn"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white ui-sans font-semibold rounded-md transition-colors"
+                        >
+                            <Trash size={16} weight="bold" />
+                            {t("settings.danger.cta")}
+                        </button>
+                    </article>
+                </section>
+            )}
+
+            {/* Confirmation modal */}
+            {confirmOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-stone900/60 backdrop-blur-sm"
+                    onClick={closeDeleteModal}
+                    data-testid="delete-account-modal-backdrop"
+                >
+                    <form
+                        className="w-full max-w-md bg-white rounded-lg shadow-xl border border-red-200 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                        onSubmit={onConfirmDelete}
+                        data-testid="delete-account-modal"
+                    >
+                        <header className="flex items-start gap-3 p-5 border-b border-sand-300">
+                            <span
+                                className="shrink-0 w-9 h-9 rounded-full bg-red-100 text-red-700 flex items-center justify-center mt-0.5"
+                                aria-hidden="true"
+                            >
+                                <WarningOctagon size={18} weight="duotone" />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                                <p className="label-eyebrow text-red-700 mb-1">
+                                    {t("settings.danger.modal.eyebrow")}
+                                </p>
+                                <h3 className="heading-serif text-xl tracking-tight m-0">
+                                    {t("settings.danger.modal.title")}
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeDeleteModal}
+                                disabled={deleting}
+                                aria-label="Close"
+                                data-testid="delete-account-modal-close"
+                                className="text-stoneFaint hover:text-stone900 disabled:opacity-50"
+                            >
+                                <X size={18} weight="bold" />
+                            </button>
+                        </header>
+
+                        <div className="p-5">
+                            <p className="ui-sans text-sm leading-relaxed text-stone900 mb-4">
+                                {t("settings.danger.modal.body")}
+                            </p>
+                            <label className="block ui-sans text-xs font-semibold uppercase tracking-wider text-stoneMuted mb-2">
+                                {t("settings.danger.modal.email_label", { email: user.email })}
+                            </label>
+                            <input
+                                type="email"
+                                inputMode="email"
+                                autoComplete="off"
+                                spellCheck={false}
+                                value={confirmEmail}
+                                onChange={(e) => setConfirmEmail(e.target.value)}
+                                placeholder={user.email}
+                                data-testid="delete-account-email-input"
+                                className="w-full px-3 py-2.5 border border-sand-300 rounded-md focus:outline-none focus:border-red-700 ui-sans text-sm"
+                                disabled={deleting}
+                                autoFocus
+                            />
+                            {deleteError && (
+                                <p
+                                    className="mt-3 ui-sans text-sm text-red-700"
+                                    data-testid="delete-account-error"
+                                    role="alert"
+                                >
+                                    {deleteError}
+                                </p>
+                            )}
+                        </div>
+
+                        <footer className="flex items-center justify-end gap-3 p-5 bg-sand-100 border-t border-sand-300">
+                            <button
+                                type="button"
+                                onClick={closeDeleteModal}
+                                disabled={deleting}
+                                data-testid="delete-account-cancel-btn"
+                                className="px-4 py-2 ui-sans font-semibold text-stoneMuted hover:text-stone900 disabled:opacity-50"
+                            >
+                                {t("settings.danger.modal.cancel")}
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={deleting || !confirmEmail.trim()}
+                                data-testid="delete-account-confirm-btn"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-800 text-white ui-sans font-semibold rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {deleting && <SpinnerGap size={14} weight="bold" className="animate-spin" />}
+                                {deleting
+                                    ? t("settings.danger.modal.deleting")
+                                    : t("settings.danger.modal.confirm")}
+                            </button>
+                        </footer>
+                    </form>
+                </div>
+            )}
 
             {/* ============================================================ */}
             {/* Footer                                                        */}

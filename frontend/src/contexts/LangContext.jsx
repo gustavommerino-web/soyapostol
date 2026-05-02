@@ -322,6 +322,26 @@ const STRINGS = {
             footer: {
                 version: "Versión {v}",
             },
+            danger: {
+                eyebrow: "Zona de peligro",
+                title: "Eliminar mi cuenta",
+                body: "Esta acción es permanente e irreversible. Antes de continuar, ten en cuenta que se borrarán definitivamente:",
+                list_user: "Tu cuenta (correo, nombre, contraseña).",
+                list_favs: "Todos tus favoritos guardados (lecturas, oraciones, Biblia, Catecismo, etc.).",
+                list_sessions: "Tu sesión activa, los registros de inicio de sesión y los tokens de recuperación pendientes.",
+                cta: "Eliminar mi cuenta",
+                email_mismatch: "El correo no coincide con tu cuenta.",
+                error: "No pudimos eliminar tu cuenta. Vuelve a intentarlo en unos instantes.",
+                modal: {
+                    eyebrow: "Confirmación final",
+                    title: "¿Estás seguro?",
+                    body: "Para confirmar el borrado permanente, escribe el correo de tu cuenta. Recibirás un email de despedida y serás redirigido al inicio.",
+                    email_label: "Escribe tu correo: {email}",
+                    cancel: "Cancelar",
+                    confirm: "Sí, eliminar mi cuenta",
+                    deleting: "Eliminando…",
+                },
+            },
             credits: {
                 title: "Créditos",
                 intro: "Agradecemos la generosidad de las plataformas que, a través de sus servicios, permiten que la Palabra y la vida de la Iglesia lleguen a cada rincón digital. Soy Apóstol integra contenidos de las siguientes fuentes a través de sus canales RSS autorizados:",
@@ -339,6 +359,13 @@ const STRINGS = {
                 p1: "Esta aplicación es una iniciativa sin fines de lucro, creada exclusivamente con fines de formación religiosa, estudio personal y evangelización. El uso de textos del Magisterio de la Iglesia Católica y la integración de canales RSS se realiza bajo la doctrina del «Fair Use» (Uso Justo), con el objetivo de difundir la Verdad y facilitar el acceso a los tesoros de la Fe.",
                 p2: "No se percibe ningún beneficio económico por la distribución de estos contenidos. Todos los derechos de propiedad intelectual pertenecen a sus respectivos autores y editoriales (Libreria Editrice Vaticana, otras plataformas y agencias de noticias citadas). Si usted es el titular de los derechos de algún contenido y desea su retiro, por favor contáctenos inmediatamente.",
             },
+        },
+        account_deleted: {
+            eyebrow: "Cuenta eliminada",
+            title: "Gracias por haber estado aquí",
+            body: "Tu cuenta y todos los datos asociados han sido eliminados de forma permanente. Te enviamos un correo de despedida con la confirmación.",
+            farewell: "Que María, Madre de la Iglesia, te acompañe siempre.",
+            cta: "Iniciar sesión",
         },
         nav_more: {
             settings: "Ajustes",
@@ -665,6 +692,26 @@ const STRINGS = {
             footer: {
                 version: "Version {v}",
             },
+            danger: {
+                eyebrow: "Danger zone",
+                title: "Delete my account",
+                body: "This action is permanent and irreversible. Before continuing, note that the following will be deleted:",
+                list_user: "Your account (email, name, password).",
+                list_favs: "All your saved favorites (readings, prayers, Bible, Catechism, etc.).",
+                list_sessions: "Your active session, login records, and any pending recovery tokens.",
+                cta: "Delete my account",
+                email_mismatch: "The email does not match your account.",
+                error: "We couldn't delete your account. Please try again in a moment.",
+                modal: {
+                    eyebrow: "Final confirmation",
+                    title: "Are you sure?",
+                    body: "To confirm permanent deletion, type the email of your account. You will receive a farewell email and be redirected to the home page.",
+                    email_label: "Type your email: {email}",
+                    cancel: "Cancel",
+                    confirm: "Yes, delete my account",
+                    deleting: "Deleting…",
+                },
+            },
             credits: {
                 title: "Credits",
                 intro: "We are grateful to the platforms whose services allow the Word and the life of the Church to reach every digital corner. Soy Apóstol integrates content from the following sources through their authorised RSS channels:",
@@ -682,6 +729,13 @@ const STRINGS = {
                 p1: "This application is a non-profit initiative, created exclusively for religious formation, personal study, and evangelisation. The use of texts from the Magisterium of the Catholic Church and the integration of RSS channels is carried out under the doctrine of «Fair Use», with the aim of spreading the Truth and facilitating access to the treasures of the Faith.",
                 p2: "No economic benefit is received from the distribution of this content. All intellectual property rights belong to their respective authors and publishers (Libreria Editrice Vaticana, other platforms, and the news agencies cited). If you are the rights holder of any content and wish to have it removed, please contact us immediately.",
             },
+        },
+        account_deleted: {
+            eyebrow: "Account deleted",
+            title: "Thank you for being here",
+            body: "Your account and all associated data have been permanently deleted. We sent you a farewell email with the confirmation.",
+            farewell: "May Mary, Mother of the Church, always watch over you.",
+            cta: "Sign in",
         },
         nav_more: {
             settings: "Settings",

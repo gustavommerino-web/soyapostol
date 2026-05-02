@@ -144,3 +144,78 @@ async def send_password_reset_email(
     except Exception as e:  # noqa: BLE001 — intentional catch-all; never leaks upstream
         logger.error("Failed to send password-reset email to %s: %s", to_email, e)
         return None
+
+
+
+# ----------------------------------------------------------------------
+# Account-deletion farewell email
+# ----------------------------------------------------------------------
+
+def _build_farewell_email(lang: str, name: str) -> tuple[str, str, str]:
+    if lang == "en":
+        subject = "Your soyapostol account has been deleted"
+        greeting = f"Hello {name},"
+        intro = "We confirm that your soyapostol account has been permanently deleted, along with all associated data (favorites, sessions, and identifiers)."
+        body = "It was an honour to walk this stretch of the journey with you. The doors stay open: if one day you wish to return, you can register again with the same email."
+        farewell = "May Mary, Mother of the Church, watch over you."
+        sig = "— The soyapostol team"
+        brand_tag = "Companion for Catholic daily life"
+    else:
+        subject = "Tu cuenta de soyapostol ha sido eliminada"
+        greeting = f"Hola {name},"
+        intro = "Confirmamos que tu cuenta de soyapostol ha sido eliminada de forma permanente, junto con todos los datos asociados (favoritos, sesiones e identificadores)."
+        body = "Ha sido un honor caminar este tramo del camino contigo. Las puertas quedan abiertas: si algún día deseas volver, puedes registrarte nuevamente con el mismo correo."
+        farewell = "Que María, Madre de la Iglesia, te acompañe."
+        sig = "— El equipo de soyapostol"
+        brand_tag = "Compañero para la vida católica diaria"
+
+    html_body = f"""<!DOCTYPE html>
+<html lang="{lang}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{subject}</title></head>
+<body style="margin:0;padding:0;background:{_BG_COLOR};font-family:{_FONT_SANS};color:{_TEXT_COLOR};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{_BG_COLOR};padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #DFE4EA;border-radius:8px;padding:32px;">
+        <tr><td style="font-family:{_FONT_SERIF};font-size:22px;font-weight:700;color:{_BRAND_COLOR};letter-spacing:0.3px;padding-bottom:24px;border-bottom:1px solid #EFE9DD;">soyapostol</td></tr>
+        <tr><td style="padding:24px 0 12px;font-size:16px;">{greeting}</td></tr>
+        <tr><td style="padding:0 0 16px;font-size:15px;line-height:1.6;color:{_TEXT_COLOR};">{intro}</td></tr>
+        <tr><td style="padding:0 0 16px;font-size:15px;line-height:1.6;color:{_TEXT_COLOR};">{body}</td></tr>
+        <tr><td style="padding:8px 0 0;font-family:{_FONT_SERIF};font-style:italic;font-size:15px;color:{_MUTED_COLOR};">{farewell}</td></tr>
+        <tr><td style="padding:24px 0 0;font-size:14px;color:{_MUTED_COLOR};">{sig}</td></tr>
+        <tr><td style="padding-top:32px;border-top:1px solid #EFE9DD;font-size:12px;color:{_MUTED_COLOR};text-align:center;">{brand_tag}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    text_body = f"{subject}\n\n{greeting}\n\n{intro}\n\n{body}\n\n{farewell}\n\n{sig}\n"
+    return subject, html_body, text_body
+
+
+async def send_account_deleted_email(
+    *, to_email: str, name: str, lang: str = "es",
+) -> Optional[str]:
+    """Best-effort farewell email after account deletion. Never raises."""
+    if not _is_configured():
+        logger.warning("Resend not configured — skipping farewell email to %s", to_email)
+        return None
+    resend.api_key = os.environ["RESEND_API_KEY"]
+    sender = os.environ["SENDER_EMAIL"]
+    subject, html_body, text_body = _build_farewell_email(lang, name)
+    params = {
+        "from": f"soyapostol <{sender}>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_body,
+        "text": text_body,
+    }
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        msg_id = result.get("id") if isinstance(result, dict) else None
+        logger.info("Account-deleted email sent to %s (message id=%s)", to_email, msg_id)
+        return msg_id
+    except Exception as e:  # noqa: BLE001
+        logger.error("Failed to send account-deleted email to %s: %s", to_email, e)
+        return None
