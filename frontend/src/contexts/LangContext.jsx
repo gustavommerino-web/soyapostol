@@ -353,6 +353,9 @@ const STRINGS = {
                 row_news_value: "vaticannews.va, aciprensa.com y ewtnnews.com.",
                 lev: "Los textos del Catecismo de la Iglesia Católica, el Compendio y la Sagrada Biblia (versión oficial) son propiedad intelectual de la Santa Sede – Libreria Editrice Vaticana (© LEV). Su reproducción en esta plataforma se realiza con fines estrictamente pastorales y de formación laical, sin fines de lucro.",
                 disclaimer: "Esta aplicación funciona como un agregador de fe; el contenido pertenece y es responsabilidad de sus respectivas fuentes originales.",
+                right_to_forget_label: "Derecho al olvido:",
+                right_to_forget_body: "puedes eliminar tu cuenta y todos los datos asociados en cualquier momento desde",
+                right_to_forget_cta: "Ajustes → Zona de peligro → Eliminar mi cuenta",
             },
             fair_use: {
                 title: "Uso Justo",
@@ -723,6 +726,9 @@ const STRINGS = {
                 row_news_value: "vaticannews.va, aciprensa.com and ewtnnews.com.",
                 lev: "The texts of the Catechism of the Catholic Church, the Compendium, and the Holy Bible (official edition) are the intellectual property of the Holy See – Libreria Editrice Vaticana (© LEV). Their reproduction on this platform is carried out for strictly pastoral and lay-formation purposes, on a non-profit basis.",
                 disclaimer: "This application operates as a faith aggregator; the content belongs to and is the responsibility of its respective original sources.",
+                right_to_forget_label: "Right to be forgotten:",
+                right_to_forget_body: "you can delete your account and all associated data at any time from",
+                right_to_forget_cta: "Settings → Danger zone → Delete my account",
             },
             fair_use: {
                 title: "Fair Use",

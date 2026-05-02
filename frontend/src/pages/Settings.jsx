@@ -319,6 +319,28 @@ export default function Settings() {
                     >
                         {t("settings.credits.disclaimer")}
                     </p>
+                    {user && user.email && (
+                        <p
+                            className="mt-4 pt-4 border-t border-sand-300 ui-sans text-sm leading-relaxed text-stoneMuted m-0"
+                            data-testid="settings-credits-right-to-forget"
+                        >
+                            <strong className="font-semibold text-stone900">
+                                {t("settings.credits.right_to_forget_label")}
+                            </strong>
+                            {" "}
+                            {t("settings.credits.right_to_forget_body")}
+                            {" "}
+                            <button
+                                type="button"
+                                onClick={openDeleteModal}
+                                data-testid="settings-credits-delete-link"
+                                className="text-red-700 hover:text-red-800 underline decoration-red-300 underline-offset-4 transition-colors"
+                            >
+                                {t("settings.credits.right_to_forget_cta")}
+                            </button>
+                            .
+                        </p>
+                    )}
                 </article>
 
                 {/* ----- Uso Justo / Fair Use ----- */}
