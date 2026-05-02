@@ -291,31 +291,31 @@ export default function Examen() {
             />
 
             {/* Sticky bottom action bar — the "Ver resumen" CTA is the
-                single floating action on this screen (back-to-top FAB
-                removed by user request to reduce noise and the associated
-                scroll listener). On mobile the button expands to dominate
-                the bar so it reads as the primary action. */}
-            <div className="sticky bottom-20 md:bottom-6 z-20 mt-10 mb-2 pointer-events-none">
-                <div className="surface-card pointer-events-auto flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 shadow-lg">
-                    <div className="shrink-0">
-                        <p className="ui-sans text-xs uppercase tracking-widest text-stoneMuted">
-                            {t("examen.selected_count")}
-                        </p>
-                        <p className="heading-serif text-2xl leading-none tracking-tight">
-                            {totalChecked}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setShowSummary(true)}
-                        disabled={totalAcrossAll(checks) === 0}
-                        data-testid="examen-see-summary"
-                        className="ui-sans flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                single floating action on this screen.
+
+                v2 layout: the selection count is embedded as a pill INSIDE
+                the button so there's only one element in the sticky bar,
+                no more two-column layout pushing the button off-screen on
+                narrow mobile widths. The button takes full width on mobile
+                (centered by `justify-center`) and shrink-to-content on md+. */}
+            <div className="sticky bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-6 z-20 mt-10 mb-4 pointer-events-none flex justify-center">
+                <button
+                    type="button"
+                    onClick={() => setShowSummary(true)}
+                    disabled={totalAcrossAll(checks) === 0}
+                    data-testid="examen-see-summary"
+                    className="pointer-events-auto ui-sans inline-flex items-center justify-center gap-3 w-full md:w-auto md:min-w-[280px] px-5 sm:px-7 py-3.5 rounded-full text-sm font-semibold whitespace-nowrap text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <CheckSquareOffset size={18} weight="bold" />
+                    <span>{t("examen.see_summary")}</span>
+                    <span
+                        className="inline-flex items-center justify-center min-w-[1.75rem] h-7 px-2 rounded-full text-xs font-bold bg-sand-50/20 text-sand-50"
+                        data-testid="examen-see-summary-count"
+                        aria-label={t("examen.selected_count")}
                     >
-                        <CheckSquareOffset size={16} weight="bold" />
-                        {t("examen.see_summary")}
-                    </button>
-                </div>
+                        {totalChecked}
+                    </span>
+                </button>
             </div>
         </div>
     );
