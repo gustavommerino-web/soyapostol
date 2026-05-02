@@ -322,6 +322,23 @@ const STRINGS = {
             footer: {
                 version: "Versión {v}",
             },
+            credits: {
+                title: "Créditos",
+                intro: "Agradecemos la generosidad de las plataformas que, a través de sus servicios, permiten que la Palabra y la vida de la Iglesia lleguen a cada rincón digital. Soy Apóstol integra contenidos de las siguientes fuentes a través de sus canales RSS autorizados:",
+                row_readings_label: "Lecturas:",
+                row_readings_value: "evangelizo.org y evangeli.net.",
+                row_liturgy_label: "Liturgia de las Horas:",
+                row_liturgy_value: "divineoffice.org e ibreviary.com.",
+                row_news_label: "Noticias:",
+                row_news_value: "vaticannews.va, aciprensa.com y ewtnnews.com.",
+                lev: "Los textos del Catecismo de la Iglesia Católica, el Compendio y la Sagrada Biblia (versión oficial) son propiedad intelectual de la Santa Sede – Libreria Editrice Vaticana (© LEV). Su reproducción en esta plataforma se realiza con fines estrictamente pastorales y de formación laical, sin fines de lucro.",
+                disclaimer: "Esta aplicación funciona como un agregador de fe; el contenido pertenece y es responsabilidad de sus respectivas fuentes originales.",
+            },
+            fair_use: {
+                title: "Uso Justo",
+                p1: "Esta aplicación es una iniciativa sin fines de lucro, creada exclusivamente con fines de formación religiosa, estudio personal y evangelización. El uso de textos del Magisterio de la Iglesia Católica y la integración de canales RSS se realiza bajo la doctrina del «Fair Use» (Uso Justo), con el objetivo de difundir la Verdad y facilitar el acceso a los tesoros de la Fe.",
+                p2: "No se percibe ningún beneficio económico por la distribución de estos contenidos. Todos los derechos de propiedad intelectual pertenecen a sus respectivos autores y editoriales (Libreria Editrice Vaticana, otras plataformas y agencias de noticias citadas). Si usted es el titular de los derechos de algún contenido y desea su retiro, por favor contáctenos inmediatamente.",
+            },
         },
         nav_more: {
             settings: "Ajustes",
@@ -647,6 +664,23 @@ const STRINGS = {
             },
             footer: {
                 version: "Version {v}",
+            },
+            credits: {
+                title: "Credits",
+                intro: "We are grateful to the platforms whose services allow the Word and the life of the Church to reach every digital corner. Soy Apóstol integrates content from the following sources through their authorised RSS channels:",
+                row_readings_label: "Readings:",
+                row_readings_value: "evangelizo.org and evangeli.net.",
+                row_liturgy_label: "Liturgy of the Hours:",
+                row_liturgy_value: "divineoffice.org and ibreviary.com.",
+                row_news_label: "News:",
+                row_news_value: "vaticannews.va, aciprensa.com and ewtnnews.com.",
+                lev: "The texts of the Catechism of the Catholic Church, the Compendium, and the Holy Bible (official edition) are the intellectual property of the Holy See – Libreria Editrice Vaticana (© LEV). Their reproduction on this platform is carried out for strictly pastoral and lay-formation purposes, on a non-profit basis.",
+                disclaimer: "This application operates as a faith aggregator; the content belongs to and is the responsibility of its respective original sources.",
+            },
+            fair_use: {
+                title: "Fair Use",
+                p1: "This application is a non-profit initiative, created exclusively for religious formation, personal study, and evangelisation. The use of texts from the Magisterium of the Catholic Church and the integration of RSS channels is carried out under the doctrine of «Fair Use», with the aim of spreading the Truth and facilitating access to the treasures of the Faith.",
+                p2: "No economic benefit is received from the distribution of this content. All intellectual property rights belong to their respective authors and publishers (Libreria Editrice Vaticana, other platforms, and the news agencies cited). If you are the rights holder of any content and wish to have it removed, please contact us immediately.",
             },
         },
         nav_more: {

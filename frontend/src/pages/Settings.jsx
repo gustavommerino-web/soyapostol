@@ -14,6 +14,19 @@ const APP_VERSION       = "1.0.0";
 const APP_DOMAIN        = "soyapostol.org";
 const APP_LOCATION      = "Houston, TX, US";
 
+// Domains that appear in the Credits / Fair-Use blocks and must be rendered
+// as clickable external links. Every match (case-insensitive) is wrapped in
+// an <a target="_blank">.
+const SOURCE_LINKS = [
+    { domain: "evangelizo.org",   url: "https://evangelizo.org" },
+    { domain: "evangeli.net",     url: "https://evangeli.net" },
+    { domain: "divineoffice.org", url: "https://divineoffice.org" },
+    { domain: "ibreviary.com",    url: "https://www.ibreviary.com" },
+    { domain: "vaticannews.va",   url: "https://www.vaticannews.va" },
+    { domain: "aciprensa.com",    url: "https://www.aciprensa.com" },
+    { domain: "ewtnnews.com",     url: "https://www.ewtnnews.com" },
+];
+
 // Words that must render in bold liturgical purple inside the "Quiénes Somos"
 // body. Order matters only in that longer matches should be tried first so a
 // substring doesn't steal a larger token.
@@ -83,6 +96,35 @@ function decorateParagraph(text, emphasisWords) {
         });
     });
     return nodes;
+}
+
+// Render a paragraph turning every known source-domain occurrence into a
+// clickable external link. Used for the Credits + Fair-Use blocks.
+function linkifySources(text) {
+    if (!text) return null;
+    const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = SOURCE_LINKS.map((s) => escape(s.domain)).join("|");
+    if (!pattern) return text;
+    const re = new RegExp(`(${pattern})`, "gi");
+    const parts = text.split(re);
+    return parts.map((p, i) => {
+        const match = SOURCE_LINKS.find(
+            (s) => s.domain.toLowerCase() === p.toLowerCase(),
+        );
+        if (!match) return <React.Fragment key={i}>{p}</React.Fragment>;
+        return (
+            <a
+                key={i}
+                href={match.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`settings-source-link-${match.domain}`}
+                className="text-purple-700 hover:text-purple-900 underline decoration-purple-300 underline-offset-4 transition-colors"
+            >
+                {p}
+            </a>
+        );
+    });
 }
 
 export default function Settings() {
@@ -162,6 +204,84 @@ export default function Settings() {
                         data-testid="settings-about-p4"
                     >
                         {decorateParagraph(paragraphs[3], emphasis)}
+                    </p>
+                </article>
+
+                {/* ----- Créditos / Credits ----- */}
+                <article
+                    className="surface-card p-6 sm:p-8 mt-6"
+                    data-testid="settings-credits"
+                >
+                    <h3 className="heading-serif text-xl tracking-tight mb-3 flex items-center gap-2">
+                        <HandsPraying size={18} weight="duotone" className="text-purple-700" />
+                        <span>{t("settings.credits.title")}</span>
+                    </h3>
+                    <p
+                        className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 mb-4"
+                        data-testid="settings-credits-intro"
+                    >
+                        {linkifySources(t("settings.credits.intro"))}
+                    </p>
+                    <ul
+                        className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 mb-4 list-disc pl-6 space-y-1.5"
+                        data-testid="settings-credits-list"
+                    >
+                        <li>
+                            <strong className="font-semibold text-stone900">
+                                {t("settings.credits.row_readings_label")}
+                            </strong>
+                            {" "}
+                            {linkifySources(t("settings.credits.row_readings_value"))}
+                        </li>
+                        <li>
+                            <strong className="font-semibold text-stone900">
+                                {t("settings.credits.row_liturgy_label")}
+                            </strong>
+                            {" "}
+                            {linkifySources(t("settings.credits.row_liturgy_value"))}
+                        </li>
+                        <li>
+                            <strong className="font-semibold text-stone900">
+                                {t("settings.credits.row_news_label")}
+                            </strong>
+                            {" "}
+                            {linkifySources(t("settings.credits.row_news_value"))}
+                        </li>
+                    </ul>
+                    <p
+                        className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 mb-4"
+                        data-testid="settings-credits-lev"
+                    >
+                        {linkifySources(t("settings.credits.lev"))}
+                    </p>
+                    <p
+                        className="reading-serif text-base sm:text-lg leading-[1.85] text-stoneMuted italic m-0"
+                        data-testid="settings-credits-disclaimer"
+                    >
+                        {t("settings.credits.disclaimer")}
+                    </p>
+                </article>
+
+                {/* ----- Uso Justo / Fair Use ----- */}
+                <article
+                    className="surface-card p-6 sm:p-8 mt-6"
+                    data-testid="settings-fair-use"
+                >
+                    <h3 className="heading-serif text-xl tracking-tight mb-3 flex items-center gap-2">
+                        <Shield size={18} weight="duotone" className="text-purple-700" />
+                        <span>{t("settings.fair_use.title")}</span>
+                    </h3>
+                    <p
+                        className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 mb-4"
+                        data-testid="settings-fair-use-p1"
+                    >
+                        {linkifySources(t("settings.fair_use.p1"))}
+                    </p>
+                    <p
+                        className="reading-serif text-base sm:text-lg leading-[1.85] text-stone900 m-0"
+                        data-testid="settings-fair-use-p2"
+                    >
+                        {linkifySources(t("settings.fair_use.p2"))}
                     </p>
                 </article>
             </section>

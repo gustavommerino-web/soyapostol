@@ -158,6 +158,12 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ **UI in Spanish**: Parts index already had `es` labels (Prólogo · La Profesión de la Fe · La Celebración del Misterio Cristiano · La Vida en Cristo · La Oración Cristiana); the "Coming soon" placeholder has been removed and `CatechismEnglishView` is now reused for both languages.
 - ✅ Tested by `testing_agent_v3_fork` iteration_4.json — **11/11 cases pass, no issues**. Verified: §33 with 5 purple cross-refs, §263 / §322 / §268 with comma-separator Bible refs, modal opens with `Juan 14:26` and Spanish verse text, bilingual toggle re-fetches correctly, false-positive guard intact.
 
+## Implemented (2026-05-02) — Settings: Credits + Fair-Use blocks
+- ✅ Two new articles inside the "Sobre la app" section of `/settings`: **Créditos / Credits** and **Uso Justo / Fair Use**, both bilingual (ES + EN), with the exact copy supplied by the user.
+- ✅ New helper `linkifySources(text)` in `Settings.jsx` walks each paragraph and converts every known source domain into an external link (`target="_blank"`, `rel="noopener noreferrer"`) styled in purple. Whitelist: evangelizo.org, evangeli.net, divineoffice.org, ibreviary.com, vaticannews.va, aciprensa.com, ewtnnews.com.
+- ✅ Translations added under `settings.credits.*` and `settings.fair_use.*` in `LangContext.jsx` (ES + EN).
+- ✅ Verified by screenshot tool: 8/8 testids render, 7/7 source links have correct external URLs (`https://...`), bilingual headings ("Créditos / Credits", "Uso Justo / Fair Use") swap correctly, links remain clickable in EN. Lint clean.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
