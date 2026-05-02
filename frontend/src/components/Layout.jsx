@@ -27,21 +27,26 @@ import {
 } from "@/components/ui/sheet";
 import { Toaster } from "sonner";
 
-const ALL_NAV = [
-    { to: "/", key: "dashboard", end: true, Icon: HouseSimple },
-    { to: "/readings", key: "readings", Icon: BookOpen },
-    { to: "/liturgy", key: "liturgy", Icon: Sun },
-    { to: "/prayers", key: "prayers", Icon: HandsPraying },
-    { to: "/rosary", key: "rosary", Icon: Cross },
-    { to: "/examen", key: "examen", Icon: BookOpenText },
-    { to: "/news", key: "news", Icon: Newspaper },
-    { to: "/bible", key: "bible", Icon: BookBookmark },
-    { to: "/catechism", key: "catechism", Icon: Books },
-    { to: "/favorites", key: "favorites", Icon: Heart },
+// Navigation ordering (UX rules):
+//   Top-left logo → Dashboard (always)
+//   Mobile bottom-nav primary (visible): readings → prayers → examen → news
+//   Mobile bottom-nav "More" sheet:      bible → catechism → liturgy → favorites → rosary
+//   Desktop sidebar:                     dashboard + primary + secondary (same order)
+const PRIMARY_NAV = [
+    { to: "/readings",   key: "readings", Icon: BookOpen },
+    { to: "/prayers",    key: "prayers",  Icon: HandsPraying },
+    { to: "/examen",     key: "examen",   Icon: BookOpenText },
+    { to: "/news",       key: "news",     Icon: Newspaper },
 ];
-
-// Bottom-nav primary tabs (mobile). Last slot is the "More" sheet.
-const MOBILE_PRIMARY_KEYS = ["dashboard", "readings", "liturgy", "bible"];
+const SECONDARY_NAV = [
+    { to: "/bible",      key: "bible",     Icon: BookBookmark },
+    { to: "/catechism",  key: "catechism", Icon: Books },
+    { to: "/liturgy",    key: "liturgy",   Icon: Sun },
+    { to: "/favorites",  key: "favorites", Icon: Heart },
+    { to: "/rosary",     key: "rosary",    Icon: Cross },
+];
+const DASHBOARD_NAV = { to: "/", key: "dashboard", end: true, Icon: HouseSimple };
+const ALL_NAV = [DASHBOARD_NAV, ...PRIMARY_NAV, ...SECONDARY_NAV];
 
 export default function Layout() {
     const { user, logout } = useAuth();
@@ -51,10 +56,8 @@ export default function Layout() {
 
     const onLogout = async () => { await logout(); navigate("/login"); };
 
-    const primaryItems = MOBILE_PRIMARY_KEYS
-        .map((k) => ALL_NAV.find((i) => i.key === k))
-        .filter(Boolean);
-    const secondaryItems = ALL_NAV.filter((i) => !MOBILE_PRIMARY_KEYS.includes(i.key));
+    const primaryItems = PRIMARY_NAV;
+    const secondaryItems = SECONDARY_NAV;
 
     return (
         <div className="min-h-screen bg-sand-50 text-stone900">

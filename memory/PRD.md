@@ -184,6 +184,15 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🧹 **Limpieza de localStorage al borrar**: el frontend elimina `soyapostol:examen:es` y `:en` post-borrado para que ni el dispositivo conserve estado del Examen.
 - ✅ **Verificado E2E** vía screenshot tool: login → settings → danger zone → modal → wrong email rechaza con mensaje correcto → email correcto borra y redirige → revisit dashboard cae a logged-out → BD: usuario y favoritos del throwaway eliminados, 9 usuarios reales preservados. Lint y privacy-assert limpios.
 
+## Implemented (2026-05-02 · part 5) — Navigation restructure
+- 🧭 **Logo top-left** siempre enlaza a `/` → Dashboard (sin cambios, confirmado).
+- 📱 **Mobile bottom-nav primary** (visible): Lecturas · Oraciones · Examen · Noticias · Más. Orden exacto pedido por el usuario.
+- 📲 **Mobile "Más" sheet**: Biblia · Catecismo · Liturgia · Favoritos · Rosario.
+- 🖥️ **Desktop sidebar** reordenado para reflejar el mismo mental model: Inicio · Lecturas · Oraciones · Examen · Noticias · Biblia · Catecismo · Liturgia · Favoritos · Santo Rosario.
+- 🏠 **Dashboard como ruta por defecto** ya estaba correcto (`<Route path="/" element={<Dashboard />} />` + `<Route path="*" element={<Navigate to="/" />} />`). Cualquier URL desconocida rebota al Dashboard.
+- 🪦 **Nota sobre Santo Rosario**: no venía en la lista del usuario (ni primary ni secondary). Lo añadí al final del sheet "Más" para no romper acceso a la pantalla. Usuario decide si se queda, muda o se oculta.
+- ✅ Verificado por screenshot tool (mobile + desktop): orden correcto en ambos layouts, logo click funciona, `/wibble-wobble` → `/`. Lint limpio.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
