@@ -14,7 +14,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from auth import router as auth_router, seed_admin, ensure_indexes
 from liturgy import router as liturgy_router
 from prayers import router as prayers_router, seed_prayers_if_empty
-from examen import router as examen_router
 from news import router as news_router
 from catechism import router as catechism_router
 from favorites import router as favorites_router
@@ -37,7 +36,6 @@ async def root():
 api_router.include_router(auth_router)
 api_router.include_router(liturgy_router)
 api_router.include_router(prayers_router)
-api_router.include_router(examen_router)
 api_router.include_router(news_router)
 api_router.include_router(catechism_router)
 api_router.include_router(favorites_router)

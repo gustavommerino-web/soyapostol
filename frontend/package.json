@@ -58,6 +58,10 @@
     "zod": "^3.24.4"
   },
   "scripts": {
+    "examen-privacy": "node scripts/check-examen-privacy.js",
+    "prestart": "node scripts/check-examen-privacy.js",
+    "prebuild": "node scripts/check-examen-privacy.js",
+    "pretest": "node scripts/check-examen-privacy.js",
     "start": "craco start",
     "build": "craco build",
     "test": "craco test"

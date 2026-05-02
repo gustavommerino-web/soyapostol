@@ -164,6 +164,12 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ Translations added under `settings.credits.*` and `settings.fair_use.*` in `LangContext.jsx` (ES + EN).
 - ✅ Verified by screenshot tool: 8/8 testids render, 7/7 source links have correct external URLs (`https://...`), bilingual headings ("Créditos / Credits", "Uso Justo / Fair Use") swap correctly, links remain clickable in EN. Lint clean.
 
+## Implemented (2026-05-02 · part 2) — Examen privacy hardening
+- 🧹 **Limpieza de código zombie**: borrado `/app/backend/examen.py` (98 líneas) y dropeada la colección `examen_docs` de MongoDB (estaba a 0 docs y sin consumidores en frontend). Removidos `import` y `include_router` correspondientes en `server.py`. `/api/examen` ahora retorna 404 — superficie de ataque reducida.
+- 🧠 **Decisión de UX confirmada por el usuario**: el estado del Examen NO se borra al hacer logout (sigue siendo acumulativo en `localStorage`). El usuario es responsable de usar "Empezar de nuevo", "Cambiar estado" o "Terminar confesión" para limpiarlo.
+- 🔒 **Privacy assert al build**: nuevo `frontend/scripts/check-examen-privacy.js` — escanea `src/pages/Examen.jsx` y aborta con exit 1 si encuentra `axios`, `@/lib/api`, `XMLHttpRequest`, `EventSource`, `WebSocket`, `navigator.sendBeacon`, o cualquier `fetch()` que NO sea hacia el catálogo público `/data/examen-{lang}.json`. Cableado como `prestart`, `prebuild` y `pretest` en `package.json` — el build/test/start fallan antes de empacar un solo byte si alguien introduce código de red en el Examen.
+- ✅ Verificado: passes en estado actual (`yarn examen-privacy` → "all clear"), falla con exit 1 al inyectar `import axios` (probado y revertido). Backend OK (auth/prayers/favorites siguen respondiendo). Frontend sirve `/examen` normal.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
