@@ -1,6 +1,5 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
-import BackToTopButton from "@/components/BackToTopButton";
 import {
     CheckCircle, ArrowLeft, TrashSimple, CheckSquareOffset,
     Heart, UserCircle, Lightning, UserFocus, Moon, Sparkle, ArrowCounterClockwise,
@@ -291,9 +290,14 @@ export default function Examen() {
                 onToggle={toggleQuestion}
             />
 
+            {/* Sticky bottom action bar — the "Ver resumen" CTA is the
+                single floating action on this screen (back-to-top FAB
+                removed by user request to reduce noise and the associated
+                scroll listener). On mobile the button expands to dominate
+                the bar so it reads as the primary action. */}
             <div className="sticky bottom-20 md:bottom-6 z-20 mt-10 mb-2 pointer-events-none">
-                <div className="surface-card pointer-events-auto flex items-center justify-between gap-3 p-3 sm:p-4 shadow-lg">
-                    <div>
+                <div className="surface-card pointer-events-auto flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 shadow-lg">
+                    <div className="shrink-0">
                         <p className="ui-sans text-xs uppercase tracking-widest text-stoneMuted">
                             {t("examen.selected_count")}
                         </p>
@@ -306,15 +310,13 @@ export default function Examen() {
                         onClick={() => setShowSummary(true)}
                         disabled={totalAcrossAll(checks) === 0}
                         data-testid="examen-see-summary"
-                        className="ui-sans inline-flex items-center gap-2 px-4 sm:px-5 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="ui-sans flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-md text-sm font-semibold text-sand-50 bg-sangre hover:bg-sangre-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <CheckSquareOffset size={16} weight="bold" />
                         {t("examen.see_summary")}
                     </button>
                 </div>
             </div>
-
-            <BackToTopButton testId="examen-back-to-top" />
         </div>
     );
 }
@@ -656,8 +658,6 @@ function SummaryView({ data, checks, actOfContrition, onBack, onStartOver, onFin
                 <StartOverInline onConfirm={onStartOver} />
                 <FinishInline onConfirm={onFinish} />
             </div>
-
-            <BackToTopButton testId="examen-summary-back-to-top" />
         </div>
     );
 }
