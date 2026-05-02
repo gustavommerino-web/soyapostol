@@ -1,0 +1,57 @@
+# Lint gate — runs the same pre-commit checks every contributor runs
+# locally, but on GitHub. No PR can merge with code that doesn't pass.
+#
+# Mirrors exactly what `pre-commit run --all-files` does locally:
+#   - ruff  --select F,E9,W6   (backend/*.py)
+#   - eslint --max-warnings=0  (frontend/src/**/*.{js,jsx})
+#   - examen-privacy fence     (frontend/src/pages/Examen.jsx)
+#   - hygiene hooks            (whole repo)
+
+name: Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Cancel redundant runs when a branch is force-pushed while CI is running.
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    name: pre-commit (ruff + eslint + examen-privacy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install frontend deps (eslint + plugins)
+        working-directory: frontend
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Install pre-commit
+        run: pip install --quiet pre-commit
+
+      - name: Cache pre-commit env
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: pre-commit-${{ runner.os }}-
+
+      - name: Run pre-commit (all files)
+        run: pre-commit run --all-files --show-diff-on-failure --color always

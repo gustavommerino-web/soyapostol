@@ -268,7 +268,7 @@ export default function Bible() {
         }
     }, [user, savedVerses, lang, navigate, t]);
 
-    const books = data?.books || [];
+    const books = React.useMemo(() => data?.books || [], [data]);
     const currentBook = books[bookIdx] || null;
     const totalChapters = currentBook?.chapters?.length || 1;
 
@@ -557,7 +557,6 @@ function VerseRow({
     onActivate, onDismiss, onToggleFavorite,
 }) {
     const handlers = useLongPress(() => onActivate());
-    const k = `${book}|${chapter}|${verse.verse}`;
 
     return (
         <p
@@ -581,7 +580,6 @@ function VerseRow({
             )}
             {isActive && (
                 <VersePopover
-                    verseKey={k}
                     verseInfo={{
                         book, bookDisplay, chapter,
                         verse: verse.verse, text: verse.text,
@@ -595,7 +593,7 @@ function VerseRow({
     );
 }
 
-function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismiss }) {
+function VersePopover({ verseInfo, isSaved, onToggleFavorite, onDismiss }) {
     const { t } = useLang();
     const formatted = `"${verseInfo.text}" — ${verseInfo.bookDisplay} ${verseInfo.chapter}:${verseInfo.verse}`;
 
@@ -657,4 +655,3 @@ function VersePopover({ verseKey, verseInfo, isSaved, onToggleFavorite, onDismis
         />
     );
 }
-

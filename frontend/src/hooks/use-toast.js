@@ -5,6 +5,10 @@ import * as React from "react"
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
+// Action-type discriminators — kept as an explicit enum for readability
+// even though the reducer below uses the string literals directly. Not
+// deleted because it documents the state machine at a glance.
+// eslint-disable-next-line no-unused-vars
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
   UPDATE_TOAST: "UPDATE_TOAST",

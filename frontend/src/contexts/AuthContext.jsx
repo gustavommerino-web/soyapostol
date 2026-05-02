@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import api, { formatApiErrorDetail } from "@/lib/api";
 
 const AuthContext = createContext(null);

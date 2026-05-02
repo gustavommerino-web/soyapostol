@@ -1,0 +1,81 @@
+# Pre-commit hooks for soyapostol
+#
+# Purpose: catch code-quality issues BEFORE a commit lands, so external code
+# reviews never flag things our own tools would reject (false-positive
+# prevention) and so real issues are stopped at the author's machine.
+#
+# Install once per clone:
+#     pip install pre-commit
+#     pre-commit install
+#
+# Run manually against the whole tree:
+#     pre-commit run --all-files
+#
+# Skip in emergencies (rare):
+#     SKIP=ruff,eslint-frontend git commit ...
+
+repos:
+  # ----------------------------------------------------------------------
+  # Ruff — fast Python linter. --select F,E9,W6 mirrors the strict subset
+  # requested in the code-review agreement:
+  #   F  : pyflakes (undefined names, unused imports, ...)
+  #   E9 : runtime / syntax errors (indentation, eval, bare except...)
+  #   W6 : warning about deprecated features
+  # Any finding here FAILS the commit. Style-only lints are left out on
+  # purpose so the bar stays meaningful — this hook catches real bugs, not
+  # whitespace noise.
+  # ----------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        name: ruff (backend lint)
+        args: ["--select", "F,E9,W6"]
+        files: ^backend/.*\.py$
+
+  # ----------------------------------------------------------------------
+  # ESLint — frontend lint. `--max-warnings=0` means any warning = fail.
+  # We run it via the repo's own yarn config so it picks up the craco /
+  # CRA eslint rules already in place (react-hooks/exhaustive-deps etc).
+  # ----------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: eslint (frontend, max-warnings=0)
+        language: system
+        # pre-commit passes files relative to the repo root (e.g.
+        # `frontend/src/App.jsx`) but eslint's flat config only resolves
+        # from inside `frontend/`. Strip the leading `frontend/` and then
+        # run eslint from that directory so the config is picked up.
+        entry: bash -c 'cd frontend && args=(); for f in "$@"; do args+=("${f#frontend/}"); done; [ ${#args[@]} -eq 0 ] || yarn --silent eslint --max-warnings=0 "${args[@]}"' --
+        files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: true
+
+  # ----------------------------------------------------------------------
+  # Examen privacy fence — the existing script that proves /pages/Examen
+  # never reaches the network. Wired into pre-commit so even an ad-hoc
+  # branch can't slip past it locally.
+  # ----------------------------------------------------------------------
+      - id: examen-privacy
+        name: examen privacy fence
+        language: system
+        entry: node frontend/scripts/check-examen-privacy.js
+        files: ^frontend/src/pages/Examen\.jsx$
+        pass_filenames: false
+
+  # ----------------------------------------------------------------------
+  # Hygiene — trailing whitespace / EOF / large files. Fast, zero config.
+  # ----------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.(md|html|json)$
+      - id: end-of-file-fixer
+        exclude: \.(md|html|json)$
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+      - id: check-json
+        exclude: ^frontend/public/data/
+      - id: check-yaml
+      - id: check-merge-conflict

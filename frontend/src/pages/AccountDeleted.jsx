@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useLang } from "@/contexts/LangContext";
 import { Heart } from "@phosphor-icons/react";

@@ -7,8 +7,6 @@ from the HTML on first request and cached in MongoDB per-page.
 """
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
-import asyncio
 import html
 import json
 import re

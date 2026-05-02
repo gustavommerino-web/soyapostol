@@ -5,10 +5,8 @@ prayers index + individual, news ES/EN, bible translations/books/chapter,
 catechism structure/paragraphs, examen upload/list/get/delete,
 favorites CRUD.
 """
-import io
 import os
 import uuid
-import time
 import pytest
 import requests
 
@@ -107,40 +105,9 @@ class TestAuth:
 
 
 # ---------- Readings ----------
-
-class TestReadings:
-    def test_readings_es(self):
-        r = requests.get(f"{API}/readings", params={"lang": "es"}, timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        assert "title" in data
-        assert "sections" in data
-        assert isinstance(data["sections"], list)
-        assert len(data["sections"]) >= 4, f"Expected 4+ sections, got {len(data['sections'])}"
-        # Verify key Spanish liturgy sections present
-        labels = " ".join(s.get("label", "") for s in data["sections"]).lower()
-        assert "lectura" in labels or "evangelio" in labels or "salmo" in labels
-
-    def test_readings_en(self):
-        r = requests.get(f"{API}/readings", params={"lang": "en"}, timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        assert "title" in data
-        assert "sections" in data and isinstance(data["sections"], list)
-        assert len(data["sections"]) >= 3, f"Expected >=3 EN sections, got {len(data['sections'])}"
-
-    def test_readings_cache_fast(self):
-        # First request (may warm cache / scrape)
-        r1 = requests.get(f"{API}/readings", params={"lang": "es"}, timeout=TIMEOUT)
-        assert r1.status_code == 200
-        time.sleep(1.0)
-        t0 = time.time()
-        r2 = requests.get(f"{API}/readings", params={"lang": "es"}, timeout=TIMEOUT)
-        elapsed = time.time() - t0
-        assert r2.status_code == 200
-        # Allow some network latency; pure server cache should be well under 500ms,
-        # but public ingress can add ~200-300ms. Cap at 1500ms to stay non-flaky.
-        assert elapsed < 1.5, f"Cached readings took {elapsed:.2f}s (expected <1.5s)"
+# NOTE: /api/readings was removed. Daily readings are now served entirely
+# client-side via external sources (Evangelizo JSON + evangeliodeldia.org
+# iframe) inside frontend/src/pages/Readings.jsx. Nothing to test here.
 
 
 # ---------- Liturgy ----------
@@ -213,7 +180,7 @@ class TestNews:
         assert len(sources) >= 1
 
     def test_news_en_multi_sources(self):
-        r = requests.get(f"{API}/news", params={"lang": "en"}, timeout=TIMEOUT)
+        r = requests.get(f"{API}/news", params={"lang": "en", "source": "all"}, timeout=TIMEOUT)
         assert r.status_code == 200, r.text
         data = r.json()
         items = data.get("items") if isinstance(data, dict) else data
@@ -224,43 +191,9 @@ class TestNews:
 
 
 # ---------- Bible ----------
-
-class TestBible:
-    def test_translations(self):
-        r = requests.get(f"{API}/bible/translations", timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        assert "en" in data and "es" in data
-        assert isinstance(data["en"], list) and len(data["en"]) >= 1
-        assert isinstance(data["es"], list) and len(data["es"]) >= 1
-
-    def test_books_es(self):
-        r = requests.get(f"{API}/bible/books", params={"lang": "es"}, timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        books = data.get("books") if isinstance(data, dict) else data
-        assert isinstance(books, list)
-        assert len(books) == 73, f"Expected 73-book Catholic canon, got {len(books)}"
-
-    def test_chapter_es(self):
-        r = requests.get(f"{API}/bible/chapter",
-                         params={"book": 1, "chapter": 1, "lang": "es"},
-                         timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        verses = data.get("verses") if isinstance(data, dict) else data
-        assert isinstance(verses, list)
-        assert len(verses) > 0
-
-    def test_chapter_en(self):
-        r = requests.get(f"{API}/bible/chapter",
-                         params={"book": 1, "chapter": 1, "lang": "en"},
-                         timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        data = r.json()
-        verses = data.get("verses") if isinstance(data, dict) else data
-        assert isinstance(verses, list)
-        assert len(verses) > 0, "Expected EN NABRE verses via Playwright"
+# NOTE: Bible endpoints were removed. The full 73-book Catholic Bible is now
+# shipped as static JSON in frontend/public/data/bible-*.json and consumed
+# directly by the frontend (offline-first). Nothing to test here.
 
 
 # ---------- Catechism ----------
@@ -283,71 +216,10 @@ class TestCatechism:
 
 
 # ---------- Examen ----------
-
-class TestExamen:
-    def test_upload_requires_auth(self):
-        r = requests.post(f"{API}/examen/upload",
-                          data={"title": "Test", "lang": "es"},
-                          files={"file": ("t.pdf", b"%PDF-1.4\n%test\n", "application/pdf")},
-                          timeout=TIMEOUT)
-        assert r.status_code == 401
-
-    def test_upload_as_non_admin_forbidden(self, user_session):
-        r = user_session.post(f"{API}/examen/upload",
-                              data={"title": "TEST_nonadmin", "lang": "es", "description": ""},
-                              files={"file": ("t.pdf", b"%PDF-1.4\n%hello\n", "application/pdf")},
-                              timeout=TIMEOUT)
-        assert r.status_code == 403
-
-    def test_admin_upload_list_get_delete(self, admin_session):
-        # Upload a minimal valid PDF
-        content = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
-        r = admin_session.post(f"{API}/examen/upload",
-                               data={"title": "TEST_examen_pdf", "lang": "es", "description": "Test pdf"},
-                               files={"file": ("examen.pdf", content, "application/pdf")},
-                               timeout=TIMEOUT)
-        assert r.status_code == 200, r.text
-        doc_id = r.json()["id"]
-
-        # List
-        r2 = admin_session.get(f"{API}/examen", timeout=TIMEOUT)
-        assert r2.status_code == 200
-        items = r2.json()
-        ids = [d["id"] for d in items]
-        assert doc_id in ids
-        found = next(d for d in items if d["id"] == doc_id)
-        assert found["content_type"] == "application/pdf"
-        assert found["title"] == "TEST_examen_pdf"
-
-        # Get file
-        r3 = admin_session.get(f"{API}/examen/{doc_id}/file", timeout=TIMEOUT)
-        assert r3.status_code == 200
-        assert r3.content == content
-        assert r3.headers.get("content-type", "").startswith("application/pdf")
-
-        # Delete
-        r4 = admin_session.delete(f"{API}/examen/{doc_id}", timeout=TIMEOUT)
-        assert r4.status_code == 200
-        assert r4.json().get("ok") is True
-
-        # Confirm removal
-        r5 = admin_session.get(f"{API}/examen/{doc_id}/file", timeout=TIMEOUT)
-        assert r5.status_code == 404
-
-    def test_delete_requires_auth(self, admin_session):
-        # Create a doc with admin, then try deletion without auth
-        content = b"%PDF-1.4\n%to-delete\n"
-        r = admin_session.post(f"{API}/examen/upload",
-                               data={"title": "TEST_del_unauth", "lang": "es"},
-                               files={"file": ("x.pdf", content, "application/pdf")},
-                               timeout=TIMEOUT)
-        assert r.status_code == 200
-        doc_id = r.json()["id"]
-        # Unauthenticated delete
-        r2 = requests.delete(f"{API}/examen/{doc_id}", timeout=TIMEOUT)
-        assert r2.status_code == 401
-        # Cleanup
-        admin_session.delete(f"{API}/examen/{doc_id}", timeout=TIMEOUT)
+# NOTE: Examen backend endpoints were REMOVED for privacy reasons. The
+# Examen de Conciencia is strictly local to the device (localStorage only)
+# and a pre-commit privacy fence (frontend/scripts/check-examen-privacy.js)
+# blocks any attempt to reintroduce network calls from Examen.jsx.
 
 
 # ---------- Favorites ----------

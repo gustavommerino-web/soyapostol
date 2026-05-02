@@ -231,8 +231,6 @@ export default function Examen() {
                 onPick={setProfile}
                 checks={checks}
                 onViewSummary={() => setShowSummary(true)}
-                showSummary={showSummary}
-                data={data}
                 onStartOver={startOver}
                 onFinish={finishAndExit}
             />
@@ -377,7 +375,7 @@ function StartOverInline({ onConfirm }) {
 
 /* ------------------------------------------------------------------ */
 
-function ProfileCover({ onPick, checks, onViewSummary, data, onStartOver, onFinish }) {
+function ProfileCover({ onPick, checks, onViewSummary, onStartOver, onFinish }) {
     const { t } = useLang();
     const total = totalAcrossAll(checks);
 

@@ -55,7 +55,6 @@ export default function Rosary() {
 
     const next = React.useCallback(() => setIdx((i) => Math.min(total - 1, i + 1)), [total]);
     const prev = React.useCallback(() => setIdx((i) => Math.max(0, i - 1)), []);
-    const goTo = (i) => setIdx(Math.max(0, Math.min(total - 1, i)));
 
     // Keyboard navigation
     React.useEffect(() => {
