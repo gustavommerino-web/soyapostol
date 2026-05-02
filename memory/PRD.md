@@ -193,13 +193,29 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🪦 **Nota sobre Santo Rosario**: no venía en la lista del usuario (ni primary ni secondary). Lo añadí al final del sheet "Más" para no romper acceso a la pantalla. Usuario decide si se queda, muda o se oculta.
 - ✅ Verificado por screenshot tool (mobile + desktop): orden correcto en ambos layouts, logo click funciona, `/wibble-wobble` → `/`. Lint limpio.
 
+## Implemented (2026-05-02 · part 6) — Deployment readiness health check
+- ✅ **Supervisor**: backend, frontend y mongodb todos en `RUNNING` sin reinicios recientes.
+- ✅ **Smoke tests API**: `/api/`, `/api/liturgy`, `/api/news`, `/api/prayers`, `/api/catechism/structure`, `/api/auth/login` → todos 200 en el preview URL. Admin login valida credenciales.
+- ✅ **Pre-commit suite**: ruff + eslint v9 flat config + examen privacy fence + higiene → 9/9 hooks PASS.
+  - Fixes aplicados: (1) eslint-frontend hook ya no usa `cd frontend` ingenuo — ahora strippea el prefijo `frontend/` de cada path antes de invocar eslint, cerrando un agujero donde algunos archivos se "silenciaban" con exit 2 mientras el batch aparentaba pasar. (2) ruff args: quitado `--force-exclude` duplicado que hacía fallar ruff ≥0.8.
+- ✅ **Backend pytest**: 18/18 PASS. Eliminados tests stale de endpoints removidos (`/api/readings` ahora externo, `/api/bible/*` ahora JSON estático, `/api/examen/*` removidos intencionalmente por privacidad). Fix a `test_news_en_multi_sources` pasando `source=all` (default del endpoint es `vatican` = 1 source).
+- ✅ **Frontend build**: `yarn build` succeeds — 230.74 KB gz main.js + 12.57 KB gz main.css. Solo warnings benignos de source-map de DOMPurify (dep externa, no afecta runtime).
+- ✅ **Deployment agent audit**: PASS total. No hardcoded secrets, no URLs hardcoded fuera de `_PRODUCTION_ORIGINS` (intencional), CORS correcto, MongoDB via env vars, no escritura a disco arbitrario, startup async-safe.
+- ✅ **Dashboard screenshot**: UI renderiza correctamente, versículo del día (Rom 8:38), nav completa, toggle ES/EN visible.
+- 🟢 **Veredicto**: Listo para deploy nativo. Sin blockers.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
+- Firebase / GA4 telemetry (blocked — pending user API keys; must exclude `/examen` page).
 
 ### P2
 - Reading plans / Freemium model.
 - Highlight-to-favorite on Bible/CCC paragraphs.
+- Catecismo del día en Dashboard (rotating featured paragraph).
+- Documentos legales adicionales (Términos, Cookies).
+- Tarjeta "Únete a la misión" en Ajustes.
+- Component refactor: `Settings.jsx`, `Bible.jsx`, `Catechism.jsx`, `PrayersAdmin.jsx`, `Rosary.jsx` — extract sub-components / hooks to reduce cyclomatic complexity.
 - Tighten `bibleAbbrev` regex to a whitelist built from `Object.keys(RAW)` (currently safe via `resolveBookName` filter — code-review note from iteration_3).
 
 ## Credentials
