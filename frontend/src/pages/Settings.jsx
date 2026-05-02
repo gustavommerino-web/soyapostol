@@ -8,7 +8,7 @@ import {
     HandsPraying,
 } from "@phosphor-icons/react";
 
-const PRIVACY_POLICY_URL = "#";      // Termly URL — replace when available
+const PRIVACY_POLICY_URL = "/privacy-policy.html";
 const SUPPORT_EMAIL     = "gustavommerino@gmail.com";
 const APP_VERSION       = "1.0.0";
 const APP_DOMAIN        = "soyapostol.org";
@@ -157,7 +157,6 @@ export default function Settings() {
     };
 
     const onOpenPrivacy = () => {
-        if (PRIVACY_POLICY_URL === "#") return;
         window.open(PRIVACY_POLICY_URL, "_blank", "noopener,noreferrer");
     };
 
@@ -320,18 +319,15 @@ export default function Settings() {
                 <button
                     type="button"
                     onClick={onOpenPrivacy}
-                    disabled={PRIVACY_POLICY_URL === "#"}
                     data-testid="settings-privacy-btn"
-                    className="w-full surface-card p-5 text-left flex items-center justify-between gap-4 disabled:cursor-not-allowed disabled:opacity-60 hover:border-purple-400 transition-colors"
+                    className="w-full surface-card p-5 text-left flex items-center justify-between gap-4 hover:border-purple-400 transition-colors"
                 >
                     <div className="min-w-0">
                         <p className="ui-sans font-semibold text-stone900 mb-0.5">
                             {t("settings.legal.privacy_title")}
                         </p>
                         <p className="text-sm text-stoneMuted m-0">
-                            {PRIVACY_POLICY_URL === "#"
-                                ? t("settings.legal.privacy_pending")
-                                : t("settings.legal.privacy_hint")}
+                            {t("settings.legal.privacy_hint")}
                         </p>
                     </div>
                     <ArrowSquareOut

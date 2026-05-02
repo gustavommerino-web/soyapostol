@@ -170,6 +170,12 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🔒 **Privacy assert al build**: nuevo `frontend/scripts/check-examen-privacy.js` — escanea `src/pages/Examen.jsx` y aborta con exit 1 si encuentra `axios`, `@/lib/api`, `XMLHttpRequest`, `EventSource`, `WebSocket`, `navigator.sendBeacon`, o cualquier `fetch()` que NO sea hacia el catálogo público `/data/examen-{lang}.json`. Cableado como `prestart`, `prebuild` y `pretest` en `package.json` — el build/test/start fallan antes de empacar un solo byte si alguien introduce código de red en el Examen.
 - ✅ Verificado: passes en estado actual (`yarn examen-privacy` → "all clear"), falla con exit 1 al inyectar `import axios` (probado y revertido). Backend OK (auth/prayers/favorites siguen respondiendo). Frontend sirve `/examen` normal.
 
+## Implemented (2026-05-02 · part 3) — Privacy Policy static asset
+- 📄 **Documento estático**: el HTML de Termly (143 KB) se guarda como `/app/frontend/public/privacy-policy.html` y se sirve directamente sin pasar por React — cero impacto en el bundle JS, cero re-renders, cero overhead.
+- 🎨 **Wrapper limpio**: HTML5 con `<meta viewport>`, `<meta name="robots" content="noindex,nofollow">` (la copia canónica vive en Termly), barra sticky superior con botón "Volver" (history.back o close), y un layout `max-width: 760px` con tipografía sans nativa del SO. CSS inline minimal (~2 KB) — todas las clases internas de Termly se respetan.
+- 🔗 **Botón en Ajustes activado**: `PRIVACY_POLICY_URL` en `Settings.jsx` apunta ahora a `/privacy-policy.html`, el botón ya no aparece deshabilitado, y se abre en nueva pestaña con `noopener,noreferrer`. Hint en ES: "Se abre en una nueva pestaña."
+- ✅ Verificado por screenshot tool: documento renderiza correctamente desktop + mobile, barra sticky funciona, enlaces internos del table-of-contents responden, contenido completo (31k chars de texto) accesible, botón de Settings no-disabled. Lint limpio, privacy-assert OK.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.

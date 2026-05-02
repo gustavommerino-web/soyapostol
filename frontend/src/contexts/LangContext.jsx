@@ -309,7 +309,7 @@ const STRINGS = {
                 eyebrow: "Legal",
                 title: "Documentos",
                 privacy_title: "Política de privacidad",
-                privacy_hint: "Se abre en Termly en una nueva pestaña.",
+                privacy_hint: "Se abre en una nueva pestaña.",
                 privacy_pending: "Próximamente disponible.",
             },
             support: {
@@ -652,7 +652,7 @@ const STRINGS = {
                 eyebrow: "Legal",
                 title: "Documents",
                 privacy_title: "Privacy Policy",
-                privacy_hint: "Opens on Termly in a new tab.",
+                privacy_hint: "Opens in a new tab.",
                 privacy_pending: "Coming soon.",
             },
             support: {
