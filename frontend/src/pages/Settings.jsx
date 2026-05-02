@@ -119,9 +119,21 @@ function linkifySources(text) {
                 target="_blank"
                 rel="noopener noreferrer"
                 data-testid={`settings-source-link-${match.domain}`}
-                className="text-purple-700 hover:text-purple-900 underline decoration-purple-300 underline-offset-4 transition-colors"
+                className="inline-flex items-baseline gap-1.5 text-purple-700 hover:text-purple-900 underline decoration-purple-300 underline-offset-4 transition-colors"
             >
-                {p}
+                <img
+                    src={`https://www.google.com/s2/favicons?domain=${match.domain}&sz=32`}
+                    alt=""
+                    width="16"
+                    height="16"
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    aria-hidden="true"
+                    className="self-center w-4 h-4 rounded-sm shrink-0"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+                <span>{p}</span>
             </a>
         );
     });
