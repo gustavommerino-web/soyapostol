@@ -1,4 +1,5 @@
 import React from "react";
+import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
@@ -224,10 +225,18 @@ function FavoriteCard({ fav, query, onDelete }) {
     const [overflows, setOverflows] = React.useState(false);
 
     const html = isHtmlContent(fav.content);
-    const highlightedHtml = React.useMemo(
-        () => (html ? highlightHtml(fav.content, query) : null),
-        [html, fav.content, query],
-    );
+    // Sanitize any user-saved HTML before rendering — even though the
+    // content comes from backend-scraped Catholic sources, we defence-in-
+    // depth strip scripts, iframes, inline event handlers, and form tags.
+    const highlightedHtml = React.useMemo(() => {
+        if (!html) return null;
+        const raw = highlightHtml(fav.content, query);
+        return DOMPurify.sanitize(raw, {
+            USE_PROFILES: { html: true },
+            FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
+            FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
+        });
+    }, [html, fav.content, query]);
 
     // Measure the rendered body every time content/language/query changes so
     // the animation target is the real scrollHeight, not a magic big number.

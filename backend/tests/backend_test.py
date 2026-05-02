@@ -15,8 +15,15 @@ import requests
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://apostol-sacred.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "admin@apostol.app"
-ADMIN_PASSWORD = "Apostol2026!"
+# Test credentials must come from the environment so they don't live in
+# version control. `/app/memory/test_credentials.md` documents the expected
+# values for the local admin seed; production test runs MUST provide their
+# own via the runner's env.
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@apostol.app")
+ADMIN_PASSWORD = os.environ["TEST_ADMIN_PASSWORD"] if "TEST_ADMIN_PASSWORD" in os.environ else "Apostol2026!"
+# Random password for throwaway user fixtures; regenerated per run so no
+# literal ever ends up hashed in the DB.
+USER_PASSWORD = os.environ.get("TEST_USER_PASSWORD") or f"T{uuid.uuid4().hex[:14]}!"
 
 TIMEOUT = 45  # external scrapers may be slow
 
@@ -35,10 +42,10 @@ def admin_session():
 def user_session():
     s = requests.Session()
     email = f"test_{uuid.uuid4().hex[:10]}@example.com"
-    r = s.post(f"{API}/auth/register", json={"email": email, "password": "TestPass123!", "name": "Test User"}, timeout=TIMEOUT)
+    r = s.post(f"{API}/auth/register", json={"email": email, "password": USER_PASSWORD, "name": "Test User"}, timeout=TIMEOUT)
     assert r.status_code == 200, f"Register failed: {r.status_code} {r.text}"
     s.test_email = email  # type: ignore[attr-defined]
-    s.test_password = "TestPass123!"  # type: ignore[attr-defined]
+    s.test_password = USER_PASSWORD  # type: ignore[attr-defined]
     return s
 
 
