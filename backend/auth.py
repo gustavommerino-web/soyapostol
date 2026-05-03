@@ -73,11 +73,19 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str
     name: Optional[str] = None
+    lang: Optional[str] = None
 
 
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+
+
+class UpdateMeIn(BaseModel):
+    """Partial update of the current user's profile. Only fields explicitly
+    set on the request body are persisted; missing fields are ignored.
+    """
+    lang: Optional[str] = None
 
 
 def _user_public(user: dict) -> dict:
@@ -86,6 +94,7 @@ def _user_public(user: dict) -> dict:
         "email": user["email"],
         "name": user.get("name") or user["email"].split("@")[0],
         "role": user.get("role", "user"),
+        "lang": user.get("lang") if user.get("lang") in ("es", "en") else "es",
     }
 
 
@@ -127,6 +136,7 @@ async def register(data: RegisterIn, response: Response, request: Request):
         "password_hash": hash_password(data.password),
         "name": data.name or email.split("@")[0],
         "role": "user",
+        "lang": data.lang if data.lang in ("es", "en") else "es",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     result = await db.users.insert_one(doc)
@@ -134,7 +144,7 @@ async def register(data: RegisterIn, response: Response, request: Request):
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
     set_auth_cookies(response, access, refresh, request)
-    return {"id": user_id, "email": email, "name": doc["name"], "role": "user"}
+    return _user_public({**doc, "_id": result.inserted_id})
 
 
 @router.post("/login")
@@ -171,6 +181,29 @@ async def login(data: LoginIn, response: Response, request: Request):
 @router.get("/me")
 async def me(user: dict = Depends(get_current_user)):
     return _user_public(user)
+
+
+@router.patch("/me")
+async def update_me(
+    data: UpdateMeIn,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """Persist a partial update of the current user's profile. Currently
+    supports the language preference (`lang`). Unknown / unsupported
+    values are rejected with a 400 so the frontend never silently drops
+    a setting the user actually picked.
+    """
+    db = request.app.state.db
+    updates: dict = {}
+    if data.lang is not None:
+        if data.lang not in ("es", "en"):
+            raise HTTPException(status_code=400, detail="Unsupported language")
+        updates["lang"] = data.lang
+    if updates:
+        await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    return _user_public(fresh)
 
 
 @router.post("/logout")

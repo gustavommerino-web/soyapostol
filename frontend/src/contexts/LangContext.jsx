@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/api";
 
 const STRINGS = {
     es: {
@@ -218,7 +220,7 @@ const STRINGS = {
             share_title: "Catecismo de la Iglesia Católica",
             coming_soon_eyebrow: "Próximamente",
             coming_soon_title: "Catecismo en español",
-            coming_soon_body: "Estamos preparando la edición oficial en español del Catecismo de la Iglesia Católica. Mientras tanto, puedes consultarlo en inglés cambiando el idioma desde el botón EN en la cabecera.",
+            coming_soon_body: "Estamos preparando la edición oficial en español del Catecismo de la Iglesia Católica. Mientras tanto, puedes consultarlo en inglés cambiando el idioma desde Ajustes.",
         },
         bible: {
             search_placeholder: "Buscar palabra clave o referencia (ej. \"Juan 3:16\"). Pulsa Enter para saltar.",
@@ -297,6 +299,14 @@ const STRINGS = {
             eyebrow: "Información",
             title: "Ajustes",
             subtitle: "Sobre la app, legal y soporte.",
+            language: {
+                eyebrow: "Preferencias",
+                title: "Idioma",
+                subtitle: "Elige el idioma de la aplicación. Tu preferencia se guarda en tu cuenta.",
+                spanish: "Español",
+                english: "Inglés",
+                anonymous_hint: "Como invitado, esta preferencia se guarda en este dispositivo. Al iniciar sesión usaremos el idioma de tu cuenta.",
+            },
             about: {
                 eyebrow: "Sobre la app",
                 title: "Quiénes somos",
@@ -591,7 +601,7 @@ const STRINGS = {
             share_title: "Catechism of the Catholic Church",
             coming_soon_eyebrow: "Coming soon",
             coming_soon_title: "Catechism in Spanish",
-            coming_soon_body: "We are preparing the official Spanish edition of the Catechism of the Catholic Church. In the meantime, you can read it in English using the language toggle in the header.",
+            coming_soon_body: "We are preparing the official Spanish edition of the Catechism of the Catholic Church. In the meantime, you can read it in English using the language toggle in Settings.",
         },
         bible: {
             search_placeholder: "Search keyword or reference (e.g. \"John 3:16\"). Press Enter to jump.",
@@ -670,6 +680,14 @@ const STRINGS = {
             eyebrow: "Information",
             title: "Settings",
             subtitle: "About the app, legal, and support.",
+            language: {
+                eyebrow: "Preferences",
+                title: "Language",
+                subtitle: "Choose the app's language. Your preference is saved to your account.",
+                spanish: "Spanish",
+                english: "English",
+                anonymous_hint: "As a guest, this preference is saved on this device. When you sign in we'll use your account's language.",
+            },
             about: {
                 eyebrow: "About the app",
                 title: "Who we are",
@@ -751,9 +769,61 @@ const STRINGS = {
 
 const LangContext = createContext(null);
 
+const SUPPORTED = ["es", "en"];
+const DEFAULT_LANG = "es";
+
+function readInitialLang() {
+    // Anonymous default is Spanish. localStorage holds the anonymous
+    // preference so a user who toggles lang while logged-out keeps it
+    // across reloads. Logged-in users override this from the server.
+    try {
+        const stored = localStorage.getItem("apostol_lang");
+        return SUPPORTED.includes(stored) ? stored : DEFAULT_LANG;
+    } catch {
+        return DEFAULT_LANG;
+    }
+}
+
 export function LangProvider({ children }) {
-    const [lang, setLang] = useState(() => localStorage.getItem("apostol_lang") || "es");
-    useEffect(() => { localStorage.setItem("apostol_lang", lang); }, [lang]);
+    const { user, setUser } = useAuth();
+    const [lang, setLangState] = useState(readInitialLang);
+
+    // Persist anonymous preference (and last-known UI lang) locally.
+    useEffect(() => {
+        try { localStorage.setItem("apostol_lang", lang); } catch { /* ignore */ }
+    }, [lang]);
+
+    // When the user object resolves with a stored `lang`, adopt it. We only
+    // honour the server pref the first time a user appears in this session
+    // so that a logged-in toggle isn't immediately overwritten by a stale
+    // /me payload.
+    const adoptedForUserId = useRef(null);
+    useEffect(() => {
+        if (!user || !user.id) return;
+        if (adoptedForUserId.current === user.id) return;
+        adoptedForUserId.current = user.id;
+        if (SUPPORTED.includes(user.lang) && user.lang !== lang) {
+            setLangState(user.lang);
+        }
+    }, [user, lang]);
+
+    // Reset the "adopted" guard on logout so a future login is honoured again.
+    useEffect(() => {
+        if (user === false) adoptedForUserId.current = null;
+    }, [user]);
+
+    const setLang = (next) => {
+        if (!SUPPORTED.includes(next)) return;
+        setLangState(next);
+        // Persist to the user record (best-effort) when logged in.
+        if (user && user.id) {
+            api.patch("/auth/me", { lang: next })
+                .then((res) => {
+                    if (res.data && setUser) setUser(res.data);
+                })
+                .catch(() => { /* anonymous fallback already saved locally */ });
+        }
+    };
 
     const t = (path, vars) => {
         const parts = path.split(".");

@@ -12,6 +12,7 @@ import {
     Trash,
     X,
     SpinnerGap,
+    Translate,
 } from "@phosphor-icons/react";
 
 const PRIVACY_POLICY_URL = "/privacy-policy.html";
@@ -146,7 +147,7 @@ function linkifySources(text) {
 }
 
 export default function Settings() {
-    const { t, lang } = useLang();
+    const { t, lang, setLang } = useLang();
     const { user, deleteAccount } = useAuth();
     const navigate = useNavigate();
 
@@ -215,6 +216,77 @@ export default function Settings() {
                 {t("settings.title")}
             </h1>
             <p className="text-stoneMuted mb-10">{t("settings.subtitle")}</p>
+
+            {/* ============================================================ */}
+            {/* Idioma — Preferencia de usuario                              */}
+            {/* ============================================================ */}
+            <section className="mb-12" data-testid="settings-language">
+                <header className="flex items-center gap-3 mb-5">
+                    <span
+                        className="shrink-0 w-10 h-10 rounded-full bg-sand-200 text-stoneMuted flex items-center justify-center"
+                        aria-hidden="true"
+                    >
+                        <Translate size={20} weight="duotone" />
+                    </span>
+                    <div>
+                        <p className="label-eyebrow">{t("settings.language.eyebrow")}</p>
+                        <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">
+                            {t("settings.language.title")}
+                        </h2>
+                    </div>
+                </header>
+
+                <article className="surface-card p-5 sm:p-6" data-testid="settings-language-card">
+                    <p className="ui-sans text-sm leading-relaxed text-stoneMuted mb-4">
+                        {t("settings.language.subtitle")}
+                    </p>
+                    <div
+                        role="radiogroup"
+                        aria-label={t("settings.language.title")}
+                        className="grid grid-cols-2 gap-2"
+                        data-testid="settings-language-toggle"
+                    >
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={lang === "es"}
+                            onClick={() => setLang("es")}
+                            data-testid="settings-language-es"
+                            className={`px-4 py-3 rounded-md ui-sans text-sm font-semibold transition-colors border ${
+                                lang === "es"
+                                    ? "bg-sangre text-sand-50 border-sangre"
+                                    : "bg-sand-50 text-stone900 border-sand-300 hover:border-sangre"
+                            }`}
+                        >
+                            <span className="block text-xs uppercase tracking-widest mb-0.5 opacity-80">ES</span>
+                            <span className="block">{t("settings.language.spanish")}</span>
+                        </button>
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={lang === "en"}
+                            onClick={() => setLang("en")}
+                            data-testid="settings-language-en"
+                            className={`px-4 py-3 rounded-md ui-sans text-sm font-semibold transition-colors border ${
+                                lang === "en"
+                                    ? "bg-sangre text-sand-50 border-sangre"
+                                    : "bg-sand-50 text-stone900 border-sand-300 hover:border-sangre"
+                            }`}
+                        >
+                            <span className="block text-xs uppercase tracking-widest mb-0.5 opacity-80">EN</span>
+                            <span className="block">{t("settings.language.english")}</span>
+                        </button>
+                    </div>
+                    {!(user && user.email) && (
+                        <p
+                            className="ui-sans text-xs leading-relaxed text-stoneFaint mt-4 m-0"
+                            data-testid="settings-language-anonymous-hint"
+                        >
+                            {t("settings.language.anonymous_hint")}
+                        </p>
+                    )}
+                </article>
+            </section>
 
             {/* ============================================================ */}
             {/* Sobre la App — Quiénes Somos                                 */}

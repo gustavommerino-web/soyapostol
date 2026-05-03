@@ -103,6 +103,54 @@ class TestAuth:
         r2 = s.get(f"{API}/auth/me", timeout=TIMEOUT)
         assert r2.status_code == 401
 
+    def test_register_default_lang_is_es(self):
+        s = requests.Session()
+        email = f"l_{uuid.uuid4().hex[:8]}@example.com"
+        r = s.post(f"{API}/auth/register",
+                   json={"email": email, "password": USER_PASSWORD},
+                   timeout=TIMEOUT)
+        assert r.status_code == 200, r.text
+        assert r.json().get("lang") == "es"
+
+    def test_register_with_lang_en(self):
+        s = requests.Session()
+        email = f"l_{uuid.uuid4().hex[:8]}@example.com"
+        r = s.post(f"{API}/auth/register",
+                   json={"email": email, "password": USER_PASSWORD, "lang": "en"},
+                   timeout=TIMEOUT)
+        assert r.status_code == 200, r.text
+        assert r.json().get("lang") == "en"
+
+    def test_patch_me_lang_persists(self):
+        s = requests.Session()
+        email = f"l_{uuid.uuid4().hex[:8]}@example.com"
+        s.post(f"{API}/auth/register",
+               json={"email": email, "password": USER_PASSWORD},
+               timeout=TIMEOUT)
+        # Default is es
+        r = s.get(f"{API}/auth/me", timeout=TIMEOUT)
+        assert r.json()["lang"] == "es"
+        # Switch to en
+        r2 = s.patch(f"{API}/auth/me", json={"lang": "en"}, timeout=TIMEOUT)
+        assert r2.status_code == 200
+        assert r2.json()["lang"] == "en"
+        # Confirm persisted
+        r3 = s.get(f"{API}/auth/me", timeout=TIMEOUT)
+        assert r3.json()["lang"] == "en"
+
+    def test_patch_me_rejects_invalid_lang(self):
+        s = requests.Session()
+        email = f"l_{uuid.uuid4().hex[:8]}@example.com"
+        s.post(f"{API}/auth/register",
+               json={"email": email, "password": USER_PASSWORD},
+               timeout=TIMEOUT)
+        r = s.patch(f"{API}/auth/me", json={"lang": "fr"}, timeout=TIMEOUT)
+        assert r.status_code == 400
+
+    def test_patch_me_requires_auth(self):
+        r = requests.patch(f"{API}/auth/me", json={"lang": "en"}, timeout=TIMEOUT)
+        assert r.status_code == 401
+
 
 # ---------- Readings ----------
 # NOTE: /api/readings was removed. Daily readings are now served entirely

@@ -29,8 +29,9 @@ import { Toaster } from "sonner";
 
 // Navigation ordering (UX rules):
 //   Top-left logo → Dashboard (always)
+//   Header right: Favorites · Settings · Sign-in/out (icon-only)
 //   Mobile bottom-nav primary (visible): readings → prayers → examen → news
-//   Mobile bottom-nav "More" sheet:      bible → catechism → liturgy → favorites → rosary
+//   Mobile bottom-nav "More" sheet:      bible → catechism → liturgy → rosary
 //   Desktop sidebar:                     dashboard + primary + secondary (same order)
 const PRIMARY_NAV = [
     { to: "/readings",   key: "readings", Icon: BookOpen },
@@ -42,7 +43,6 @@ const SECONDARY_NAV = [
     { to: "/bible",      key: "bible",     Icon: BookBookmark },
     { to: "/catechism",  key: "catechism", Icon: Books },
     { to: "/liturgy",    key: "liturgy",   Icon: Sun },
-    { to: "/favorites",  key: "favorites", Icon: Heart },
     { to: "/rosary",     key: "rosary",    Icon: Cross },
 ];
 const DASHBOARD_NAV = { to: "/", key: "dashboard", end: true, Icon: HouseSimple };
@@ -50,7 +50,7 @@ const ALL_NAV = [DASHBOARD_NAV, ...PRIMARY_NAV, ...SECONDARY_NAV];
 
 export default function Layout() {
     const { user, logout } = useAuth();
-    const { lang, setLang, t } = useLang();
+    const { t } = useLang();
     const navigate = useNavigate();
     const [moreOpen, setMoreOpen] = React.useState(false);
 
@@ -77,22 +77,22 @@ export default function Layout() {
                     </Link>
 
                     <div className="flex items-center gap-2 sm:gap-3">
-                        {/* Lang toggle */}
-                        <div
-                            className="flex items-center gap-1 border border-sand-300 rounded-md p-0.5 bg-sand-100"
-                            data-testid="lang-toggle"
+                        {/* Favorites */}
+                        <NavLink
+                            to="/favorites"
+                            data-testid="header-favorites-link"
+                            aria-label={t("nav.favorites")}
+                            title={t("nav.favorites")}
+                            className={({ isActive }) =>
+                                `ui-sans text-sm flex items-center gap-2 px-2.5 sm:px-3 py-2 border rounded-md transition-colors ${
+                                    isActive
+                                        ? "border-sangre text-sangre bg-sangre/5"
+                                        : "border-sand-300 hover:border-sangre text-stoneMuted hover:text-sangre"
+                                }`
+                            }
                         >
-                            <button
-                                onClick={() => setLang("es")}
-                                data-testid="lang-toggle-es"
-                                className={`px-2.5 sm:px-3 py-1 text-xs uppercase tracking-widest rounded-sm transition-colors ${lang === "es" ? "bg-sangre text-sand-50" : "text-stoneMuted hover:text-stone900"}`}
-                            >ES</button>
-                            <button
-                                onClick={() => setLang("en")}
-                                data-testid="lang-toggle-en"
-                                className={`px-2.5 sm:px-3 py-1 text-xs uppercase tracking-widest rounded-sm transition-colors ${lang === "en" ? "bg-sangre text-sand-50" : "text-stoneMuted hover:text-stone900"}`}
-                            >EN</button>
-                        </div>
+                            <Heart size={18} weight="duotone" />
+                        </NavLink>
 
                         {/* Settings */}
                         <NavLink

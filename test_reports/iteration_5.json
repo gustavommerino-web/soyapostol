@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 5: full E2E validation of header/Settings/language refactor. Backend pytest 12/12 (TestAuth incl. PATCH /me lang) PASS. Frontend Playwright covered 9 review criteria — 17/18 sub-checks PASS; the only failed check (catechism coming-soon body text on screen) is a non-bug because the ES Catechism dataset now exists, so the conditional coming-soon banner no longer renders; both Spanish and English translation strings are correct at source (LangContext.jsx lines 223 + 604).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LangContext.jsx — adoption guard via adoptedForUserId.useRef(user.id) correctly fires only on the first user-resolution event per session, so a logged-in toggle isn't clobbered by a stale /me. Verified: localStorage='es' was overridden to 'en' on login when server.lang='en'.",
+    "LangContext setLang() PATCH /auth/me is fire-and-forget with .catch() swallowing failures. Acceptable: anonymous fallback already saved locally; however a transient network error would leave UI lang and server lang out of sync until next manual toggle. Consider toast on failure for logged-in users.",
+    "AuthContext.register() does NOT pass `lang` to backend (only email/password/name). Default 'es' is set server-side which matches spec, but if you ever expose a lang chooser at registration time you'll need to thread it through. Backend already accepts data.lang on /register.",
+    "Settings.jsx settings-language section: the buttons rely solely on aria-checked + visual styling — no focus ring is overridden, default tailwind focus-visible still works. radiogroup role + role='radio' on buttons is correct.",
+    "Catechism.jsx coming-soon Spanish banner appears to be dead code now that ES dataset is shipped (per iteration_4). String change to 'desde Ajustes' is preserved in LangContext but won't render in production. Either remove the dead branch or keep as defensive fallback — current behaviour is safe.",
+    "Layout.jsx header right-side cluster: 3 icon-only buttons (Heart / Gear / Login-Logout). All three carry data-testid + aria-label + title. NavLink active state uses different colors per icon (sangre for favorites, purple for settings) — consistent with existing UX language."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100% (12/12 TestAuth pass)", "frontend": "94% (17/18 sub-checks; 1 N/A due to dead coming-soon branch)" },
+  "test_credentials": "admin@apostol.app / Apostol2026! (works). Throwaway users created via /api/auth/register during test.",
+  "seed_data_creation": "Two throwaway users created via /api/auth/register (TEST-prefixed-uuid emails, will be ignored by future cleanup).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Header now exposes data-testid='header-favorites-link' (Heart icon) and data-testid='header-settings-link' (Gear icon). lang-toggle/lang-toggle-es/lang-toggle-en NO LONGER EXIST anywhere — selecting them will fail. Language is changed exclusively from /settings via data-testid='settings-language-es' / 'settings-language-en' (aria-checked='true' on active). Anonymous-only hint at data-testid='settings-language-anonymous-hint'. Backend: PATCH /api/auth/me accepts {lang: 'es'|'en'}; rejects other values with 400; requires auth (401 otherwise). On login the React app adopts user.lang from /auth/me and overrides any anonymous localStorage 'apostol_lang'. The user object now ALWAYS carries `lang` (defaults to 'es' for legacy users without the field, see auth.py _user_public). Sidebar 'nav-favorites' and 'more-nav-favorites' testids no longer exist — favorites is reachable only via header-favorites-link or direct /favorites URL.",
+  "rca of the issue": "N/A — implementation matches spec end-to-end."
+}

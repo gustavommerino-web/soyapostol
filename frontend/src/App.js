@@ -29,8 +29,8 @@ function PublicOnly({ children }) {
 
 function App() {
     return (
-        <LangProvider>
-            <AuthProvider>
+        <AuthProvider>
+            <LangProvider>
                 <BrowserRouter>
                     <Routes>
                         <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
@@ -54,8 +54,8 @@ function App() {
                         </Route>
                     </Routes>
                 </BrowserRouter>
-            </AuthProvider>
-        </LangProvider>
+            </LangProvider>
+        </AuthProvider>
     );
 }
 
