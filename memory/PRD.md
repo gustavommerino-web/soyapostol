@@ -204,6 +204,22 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - ✅ **Dashboard screenshot**: UI renderiza correctamente, versículo del día (Rom 8:38), nav completa, toggle ES/EN visible.
 - 🟢 **Veredicto**: Listo para deploy nativo. Sin blockers.
 
+## Implemented (2026-05-03 · part 7) — Header refactor + user-bound language preference
+- 🧭 **Header**: el toggle ES/EN se removió del header. Ahora viven 3 íconos a la derecha — Favoritos (corazón) · Ajustes (engranaje) · Sign-in/out. Cada uno con `data-testid` + `aria-label` + `title`.
+- ❤️ **Favoritos en header**: `header-favorites-link` con NavLink activo en color sangre. Eliminado de SECONDARY_NAV (sidebar desktop) y del sheet "Más" (mobile). Ruta `/favorites` sigue intacta y accesible vía header o URL directa.
+- 🌐 **Idioma como preferencia de usuario** (backend):
+  - Modelo `users` ahora persiste campo `lang` ("es"|"en"). Default = "es" para usuarios nuevos y para registros legacy (vía `_user_public`).
+  - `POST /auth/register` acepta `lang` opcional (default "es") y lo guarda.
+  - **Nuevo endpoint** `PATCH /api/auth/me` con body `{lang: "es"|"en"}` — auth requerida (401 sin token), rechaza valores fuera del enum con 400, devuelve el user público actualizado.
+- 🌐 **Idioma sincronizado en frontend**:
+  - `App.js` invierte el orden de providers — `AuthProvider` afuera, `LangProvider` adentro — para que LangContext pueda leer `user`.
+  - `LangContext` adopta `user.lang` automáticamente al primer momento que aparece el user en sesión (guard `adoptedForUserId.current` evita que un /me posterior pise una preferencia recién toggle-ada). Al hacer logout el guard se resetea, así un siguiente login adopta de nuevo.
+  - `setLang(next)` actualiza estado + localStorage; si hay sesión, dispara `PATCH /auth/me` y propaga el user actualizado a AuthContext (vía nuevo `setUser` exportado). Anonimos solo persisten en localStorage.
+- ⚙️ **Settings → Idioma**: nueva sección al inicio del Settings (`settings-language` block) con dos botones radio (`settings-language-es`, `settings-language-en`) en role=radiogroup, ARIA-correcto, estilizados como pills con la etiqueta corta (ES/EN) + nombre completo. Hint `settings-language-anonymous-hint` solo aparece cuando NO hay user logged in.
+- 📚 **Catecismo coming-soon copy actualizada**: "desde Ajustes" / "using the language toggle in Settings" (antes: "desde el botón EN en la cabecera"). En la práctica este branch es dead code ahora que el dataset ES ya viene shippeado, pero la copia queda correcta como fallback defensivo.
+- 🧪 **Tests añadidos**: `backend_test.py` cubre register-default-lang-es, register-with-lang-en, PATCH-me-persists, PATCH-me-rejects-fr (400), PATCH-me-requires-auth (401). 23/23 PASS.
+- ✅ **Validado E2E** vía testing_agent (iteration_5): localStorage='es' fue sobrescrito a 'en' al hacer login cuando el servidor tenía lang='en'. Anonymous puede toggle libremente. Sidebar/more-sheet ya no contienen Favoritos. 17/18 sub-checks PASS (1 N/A por dead code de coming-soon).
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
