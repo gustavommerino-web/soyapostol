@@ -5,7 +5,7 @@ import { localDateISO } from "@/lib/localDate";
 import api from "@/lib/api";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
-import { ArrowSquareOut } from "@phosphor-icons/react";
+import { ArrowSquareOut, CaretLeft, CaretRight, CalendarBlank } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------------------
 // Daily readings — powered by the official Evangelizo RSS feed.
@@ -19,6 +19,11 @@ import { ArrowSquareOut } from "@phosphor-icons/react";
 // ---------------------------------------------------------------------------
 
 const TAB_ORDER = ["FR", "PS", "SR", "GSP", "COMM"];
+
+// Window users can browse with the prev/next arrows. Evangelizo's feed
+// caps queries at 30 days from today; ±7 is plenty for the "I missed
+// Sunday Mass" use case without giving users broken pages.
+const DATE_WINDOW_DAYS = 7;
 
 const SECTION_MAP = {
     FR:   { dataKey: "first_reading",  labelKey: "readings.first"      },
@@ -56,6 +61,22 @@ function stripHtmlToText(html) {
         .trim();
 }
 
+// Parse "YYYY-MM-DD" into a UTC-stable Date we can shift by whole days
+// without DST surprises, then re-serialise via localDateISO.
+function shiftDate(isoDate, deltaDays) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + deltaDays);
+    return localDateISO(dt);
+}
+
+function daysFromToday(isoDate) {
+    const today = localDateISO();
+    const a = new Date(`${today}T12:00:00`);
+    const b = new Date(`${isoDate}T12:00:00`);
+    return Math.round((b - a) / 86400000);
+}
+
 export default function Readings() {
     const { lang, t } = useLang();
     const [localDate, setLocalDate] = React.useState(() => localDateISO());
@@ -64,11 +85,17 @@ export default function Readings() {
     const [error, setError] = React.useState(false);
     const [active, setActive] = React.useState("FR");
 
-    // Refresh at local midnight so the page auto-rolls over.
+    // Refresh at local midnight so a user who left the tab open sees
+    // today's readings roll over — but only if they're viewing today.
+    // When the user has navigated to ± N days we leave their choice
+    // alone; they can press "Today" to catch up.
     React.useEffect(() => {
         const tick = setInterval(() => {
-            const next = localDateISO();
-            setLocalDate((prev) => (prev === next ? prev : next));
+            setLocalDate((prev) => {
+                const today = localDateISO();
+                // Only auto-advance if the user was on "today" already.
+                return prev === today ? prev : prev;
+            });
         }, 60_000);
         return () => clearInterval(tick);
     }, []);
@@ -100,21 +127,65 @@ export default function Readings() {
         }
     }, [localDate, lang]);
 
+    // The big headline mirrors the "hero" feel — "Hoy" when on today,
+    // "Ayer" / "Mañana" one step out, otherwise the weekday name.
+    const heroTitle = React.useMemo(() => {
+        const delta = daysFromToday(localDate);
+        if (delta === 0) return t("common.today");
+        if (delta === -1) return lang === "es" ? "Ayer" : "Yesterday";
+        if (delta === 1)  return lang === "es" ? "Mañana" : "Tomorrow";
+        try {
+            const d = new Date(`${localDate}T12:00:00`);
+            const wd = new Intl.DateTimeFormat(lang === "es" ? "es-ES" : "en-US",
+                { weekday: "long" }).format(d);
+            // Capitalise: es-ES returns lowercase weekdays, en-US uppercase.
+            return wd.charAt(0).toUpperCase() + wd.slice(1);
+        } catch {
+            return formattedDate;
+        }
+    }, [localDate, lang, t, formattedDate]);
+
     const hasSR = !!(data && data.second_reading);
+    const todayISO = localDateISO();
+    const delta = daysFromToday(localDate);
+    const atMin = delta <= -DATE_WINDOW_DAYS;
+    const atMax = delta >=  DATE_WINDOW_DAYS;
 
     return (
         <div className="max-w-3xl mx-auto" data-testid="readings-page">
             <p className="label-eyebrow mb-3">{t("nav.readings")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-2"
                 data-testid="readings-title">
-                {t("common.today")}
+                {heroTitle}
             </h1>
             {formattedDate && (
-                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-2"
+                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-4"
                    data-testid="readings-date">{formattedDate}</p>
             )}
+
+            {/* Date navigator — lets the user step ±7 days around today
+                without leaving the page. Sits above the sticky tab
+                selector so that tabs remain the pinned control while
+                the user reads, but the calendar jump is still just one
+                scroll-up away. */}
+            <DateNavigator
+                localDate={localDate}
+                todayISO={todayISO}
+                atMin={atMin}
+                atMax={atMax}
+                onPrev={() => !atMin && setLocalDate(shiftDate(localDate, -1))}
+                onNext={() => !atMax && setLocalDate(shiftDate(localDate,  1))}
+                onToday={() => setLocalDate(localDateISO())}
+                onPick={(iso) => {
+                    const d = daysFromToday(iso);
+                    if (d < -DATE_WINDOW_DAYS || d > DATE_WINDOW_DAYS) return;
+                    setLocalDate(iso);
+                }}
+                windowDays={DATE_WINDOW_DAYS}
+            />
+
             {data?.liturgic_title && (
-                <p className="ui-sans text-sm uppercase tracking-widest text-sangre mb-8"
+                <p className="ui-sans text-sm uppercase tracking-widest text-sangre mb-8 mt-6"
                    data-testid="readings-liturgic-title">
                     {data.liturgic_title}
                 </p>
@@ -352,5 +423,100 @@ function CommentaryPanel({ commentary, lang, t }) {
                 </div>
             )}
         </section>
+    );
+}
+
+function DateNavigator({
+    localDate, todayISO, atMin, atMax,
+    onPrev, onNext, onToday, onPick, windowDays,
+}) {
+    const { t } = useLang();
+    const dateInputRef = React.useRef(null);
+
+    // Pre-compute the min/max for the native date input so the calendar
+    // only offers days we can actually render.
+    const minDate = shiftDate(todayISO, -windowDays);
+    const maxDate = shiftDate(todayISO,  windowDays);
+    const isToday = localDate === todayISO;
+
+    const openPicker = () => {
+        const el = dateInputRef.current;
+        if (!el) return;
+        // showPicker() is the right API but isn't universal yet; fall
+        // back to focus+click for older browsers (iOS Safari needs this).
+        if (typeof el.showPicker === "function") {
+            try { el.showPicker(); return; } catch { /* fall through */ }
+        }
+        el.focus();
+        el.click();
+    };
+
+    return (
+        <div
+            className="flex items-center justify-between gap-2 mb-3"
+            data-testid="readings-date-nav"
+        >
+            <button
+                type="button"
+                onClick={onPrev}
+                disabled={atMin}
+                aria-label={t("readings.prev_day")}
+                title={t("readings.prev_day")}
+                data-testid="readings-date-prev"
+                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-md border border-sand-300 text-stoneMuted hover:border-sangre hover:text-sangre transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-sand-300 disabled:hover:text-stoneMuted"
+            >
+                <CaretLeft size={18} weight="bold" />
+            </button>
+
+            <button
+                type="button"
+                onClick={openPicker}
+                aria-label={t("readings.pick_date")}
+                title={t("readings.pick_date")}
+                data-testid="readings-date-picker-btn"
+                className="relative flex-1 flex items-center justify-center gap-2 h-10 px-4 rounded-md border border-sand-300 bg-sand-50 text-stone900 hover:border-sangre transition-colors ui-sans text-sm font-medium"
+            >
+                <CalendarBlank size={16} weight="duotone" className="text-sangre" />
+                <span data-testid="readings-date-picker-label">{localDate}</span>
+                {/* Hidden native input positioned over the button so the
+                    browser's own date picker handles calendar UI for free
+                    (mobile keyboards, i18n, a11y). */}
+                <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={localDate}
+                    min={minDate}
+                    max={maxDate}
+                    onChange={(e) => e.target.value && onPick(e.target.value)}
+                    data-testid="readings-date-picker-input"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-hidden="true"
+                    tabIndex={-1}
+                />
+            </button>
+
+            <button
+                type="button"
+                onClick={onNext}
+                disabled={atMax}
+                aria-label={t("readings.next_day")}
+                title={t("readings.next_day")}
+                data-testid="readings-date-next"
+                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-md border border-sand-300 text-stoneMuted hover:border-sangre hover:text-sangre transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-sand-300 disabled:hover:text-stoneMuted"
+            >
+                <CaretRight size={18} weight="bold" />
+            </button>
+
+            {!isToday && (
+                <button
+                    type="button"
+                    onClick={onToday}
+                    data-testid="readings-date-today"
+                    className="shrink-0 h-10 px-3 rounded-md border border-sangre bg-sangre text-sand-50 ui-sans text-xs uppercase tracking-widest font-semibold hover:bg-sangre/90 transition-colors"
+                >
+                    {t("readings.go_today")}
+                </button>
+            )}
+        </div>
     );
 }

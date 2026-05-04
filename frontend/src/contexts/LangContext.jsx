@@ -80,6 +80,10 @@ const STRINGS = {
             eod_title: "Comentario de Evangelio del Día",
             eod_unavailable: "Comentario de Evangelio del Día no disponible por el momento.",
             view_usccb: "Lecturas oficiales (USCCB)",
+            prev_day: "Día anterior",
+            next_day: "Día siguiente",
+            pick_date: "Elegir fecha",
+            go_today: "Hoy",
         },
         usccb: {
             title: "Lecturas Oficiales (USCCB)",
@@ -461,6 +465,10 @@ const STRINGS = {
             eod_title: "Evangelio del Día commentary",
             eod_unavailable: "Evangelio del Día commentary is unavailable right now.",
             view_usccb: "Official readings (USCCB)",
+            prev_day: "Previous day",
+            next_day: "Next day",
+            pick_date: "Pick a date",
+            go_today: "Today",
         },
         usccb: {
             title: "Official Readings (USCCB)",

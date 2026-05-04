@@ -237,6 +237,14 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🧪 **Tests**: 5 nuevos en `TestReadings` — Sunday ES shape, EN shape, weekday SR=null, footer stripping (debe faltar "Extraído de la Biblia", "evangeliodeldia.org", "<font"), invalid date → 400. Backend pytest **28/28 PASS**.
 - ✅ **Testing agent iteration_6**: 100% backend (28/28), 100% frontend (11/11 criterios). Pre-commit limpio.
 
+## Implemented (2026-05-03 · part 9) — Readings date navigator (±7 days)
+- 📅 **DateNavigator** above el selector sticky en `/readings`: controles prev/next de un día, botón con ícono de calendario que abre el `<input type="date">` nativo del browser (showPicker() con fallback focus+click para iOS Safari), y un pill "HOY" que aparece solo cuando el usuario no está viendo la fecha de hoy.
+- 🎯 **Ventana ±7 días** desde hoy (constante `DATE_WINDOW_DAYS=7`). El `min`/`max` del native date input respeta la ventana; los chevrones se deshabilitan en los bordes. Evangelizo permite hasta 30 días, así que ±7 es UX-safe (sin 404s por días fuera de rango) y cubre perfectamente el caso "me salté misa el domingo".
+- 🪄 **Hero title dinámico**: h1 ahora muestra "Hoy" / "Ayer" / "Mañana" / nombre del día (ej. "Viernes") según el delta entre la fecha seleccionada y la de hoy. Traducciones nuevas `readings.prev_day`, `readings.next_day`, `readings.pick_date`, `readings.go_today` para ambos idiomas.
+- 🧠 **Auto-rollover controlado**: el timer de midnight sigue ahí pero solo avanza si el usuario está viendo hoy; si navegó manualmente a otro día respeta su elección (solo vuelve a hoy si pulsa el pill "HOY").
+- 🧱 Componente inline `DateNavigator` dentro de `Readings.jsx` (no se abstrae a `/components/` porque es específico de esta página y mantiene el flujo de props claro). Uses `shiftDate(iso, delta)` + `daysFromToday(iso)` helpers puros.
+- ✅ Verificado por screenshot: prev→"Ayer" + aparece pill "HOY"; click "HOY"→vuelve a "Hoy"; todas las lecturas + commentary se actualizan correctamente al cambiar de fecha (usan el caché por `(date, lang)` del backend `readings_cache`). Pre-commit 9/9 PASS, eslint limpio.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
