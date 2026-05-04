@@ -220,6 +220,23 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🧪 **Tests añadidos**: `backend_test.py` cubre register-default-lang-es, register-with-lang-en, PATCH-me-persists, PATCH-me-rejects-fr (400), PATCH-me-requires-auth (401). 23/23 PASS.
 - ✅ **Validado E2E** vía testing_agent (iteration_5): localStorage='es' fue sobrescrito a 'en' al hacer login cuando el servidor tenía lang='en'. Anonymous puede toggle libremente. Sidebar/more-sheet ya no contienen Favoritos. 17/18 sub-checks PASS (1 N/A por dead code de coming-soon).
 
+## Implemented (2026-05-03 · part 8) — Readings rebuilt on Evangelizo RSS
+- 🔁 **Backend switch**: reemplazado el JSON scrape no-oficial por el RSS oficial `https://feed.evangelizo.org/v2/reader.php`. Nuevo módulo `/app/backend/readings.py` expone `GET /api/readings?lang=es|en&date=YYYY-MM-DD` que consolida 11 llamadas upstream en paralelo (asyncio.gather + httpx.AsyncClient):
+  - `type=liturgic_t` → título litúrgico del día
+  - `type=reading_lt` + `type=reading` para `content=FR|PS|SR|GSP` (8 calls)
+  - `type=comment_t` · `comment_a` · `comment_s` · `comment` (4 calls)
+- 🧹 **Sanitización HTML server-side**: `_clean()` quita los wrappers `<font>`, bloquea script/style/iframe/object/embed (defensa en profundidad), y strippea el footer de atribución que Evangelizo append-ea a cada lectura ("Extraído de la Biblia …" / "Copyright © Confraternity of Christian Doctrine, USCCB …"). Conserva `<br/>` porque es la señal de salto de línea que el frontend renderiza.
+- 💾 **Caché MongoDB**: `readings_cache` con `_id = "{YYYYMMDD}_{lang}"`, TTL 7 días. Sirve cache stale si el upstream falla (patrón idéntico a liturgy/news). Evita superar el rate-limit de Evangelizo (100 req/s, 2000 req/min por IP).
+- 🗂️ **UI reconstruida** (`Readings.jsx`):
+  - Selector sticky de 5 tabs (FR · PS · SR · GSP · Comentario) con el mismo estilo de pills que Favoritos. Posición `sticky top-[57px] lg:top-[73px] z-20` con backdrop-blur para seguir visible al hacer scroll. El backdrop tiene negative-margin + padding hasta el borde de la columna de contenido para que se vea edge-to-edge.
+  - Tab SR se muestra **deshabilitado + aria-disabled + opacity-60** (no hidden) cuando el día no tiene segunda lectura, manteniendo 5 opciones constantes. Si el usuario estaba en SR y cambia el día, auto-rebota a FR.
+  - Cada panel usa `dangerouslySetInnerHTML` con DOMPurify (ALLOWED_TAGS: br/p/em/i/b/strong/a/span). `FavoriteButton` en el header de cada lectura + en el bloque de comentario de Evangelizo.
+  - **Evangeli.net iframe movido al tab "Comentario"** tal como pidió el usuario. Debajo del iframe se renderiza el comentario de Evangelizo (título, autor con descripción, fuente, cuerpo sanitizado).
+  - Badge del título litúrgico (ej. "LUNES DE LA 5A SEMANA DE PASCUA") arriba del selector, color sangre.
+- 🗑️ **Borrado**: `frontend/src/components/EvangelizoReadings.jsx` eliminado (ya no se usa).
+- 🧪 **Tests**: 5 nuevos en `TestReadings` — Sunday ES shape, EN shape, weekday SR=null, footer stripping (debe faltar "Extraído de la Biblia", "evangeliodeldia.org", "<font"), invalid date → 400. Backend pytest **28/28 PASS**.
+- ✅ **Testing agent iteration_6**: 100% backend (28/28), 100% frontend (11/11 criterios). Pre-commit limpio.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
