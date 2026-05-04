@@ -245,6 +245,14 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🧱 Componente inline `DateNavigator` dentro de `Readings.jsx` (no se abstrae a `/components/` porque es específico de esta página y mantiene el flujo de props claro). Uses `shiftDate(iso, delta)` + `daysFromToday(iso)` helpers puros.
 - ✅ Verificado por screenshot: prev→"Ayer" + aparece pill "HOY"; click "HOY"→vuelve a "Hoy"; todas las lecturas + commentary se actualizan correctamente al cambiar de fecha (usan el caché por `(date, lang)` del backend `readings_cache`). Pre-commit 9/9 PASS, eslint limpio.
 
+## Implemented (2026-05-03 · part 10) — Liturgical vestment colour indicator
+- 🎨 **Nuevo helper** `frontend/src/lib/liturgicalColor.js`: inspecciona el `liturgic_title` del día con 5 patrones regex ordenados por prioridad (red → rose → violet → white → green) y devuelve uno de {white, red, violet, rose, green}. Default = green (Tiempo Ordinario, feria safe).
+- ✅ **Cobertura**: 29 casos unitarios cubren Pascua, Pentecostés, Ramos, Viernes Santo, mártires, apóstoles, Gaudete/Laetare, Adviento, Cuaresma, Ceniza, Navidad, Epifanía, Asunción, Todos los Santos, Cristo Rey, Tiempo Ordinario, título vacío/null/undefined → todos pasan.
+- 🎯 **Badge rediseñado**: el antiguo `<p>` de una línea ahora es un chip con borde izquierdo de 4px en el color litúrgico + dot circular + nombre del color al extremo derecho ("Blanco" / "Rojo" / "Morado" / "Rosa" / "Verde" en ES, equivalentes en EN). Usa Tailwind classes puras (`border-l-amber-300`, `border-l-red-600`, `border-l-purple-700`, `border-l-pink-400`, `border-l-emerald-600`). El label textual solo se muestra en pantallas `sm:` o más grandes para no saturar móvil.
+- 🔖 **Accesibilidad**: el chip completo lleva `title` con el nombre del color (tooltip nativo), `data-liturgic-color` para tests/scrapers, y `aria-hidden` en el dot decorativo. Cambiar de fecha con el DateNavigator refresca el color automáticamente (reactivo al `data.liturgic_title`).
+- 📐 Detalle UX: sigue siendo texto compacto — no añade nuevo "peso visual" significativo; el usuario católico reconoce el color instantáneamente (como el misal) y el lector casual solo ve un acento cromático agradable.
+- ✅ Verificado: screenshot Pascua → chip blanco/ámbar con "BLANCO"; pre-commit 9/9 PASS, ESLint 0 warnings.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.

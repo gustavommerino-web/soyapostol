@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
 import { ArrowSquareOut, CaretLeft, CaretRight, CalendarBlank } from "@phosphor-icons/react";
+import { liturgicalColor, liturgicalColorStyle } from "@/lib/liturgicalColor";
 
 // ---------------------------------------------------------------------------
 // Daily readings — powered by the official Evangelizo RSS feed.
@@ -184,12 +185,33 @@ export default function Readings() {
                 windowDays={DATE_WINDOW_DAYS}
             />
 
-            {data?.liturgic_title && (
-                <p className="ui-sans text-sm uppercase tracking-widest text-sangre mb-8 mt-6"
-                   data-testid="readings-liturgic-title">
-                    {data.liturgic_title}
-                </p>
-            )}
+            {data?.liturgic_title && (() => {
+                const colorKey = liturgicalColor(data.liturgic_title);
+                const style = liturgicalColorStyle(colorKey);
+                const seasonLabel = style.label[lang] || style.label.es;
+                return (
+                    <div
+                        className={`flex items-center gap-3 pl-3 mb-8 mt-6 border-l-4 ${style.border}`}
+                        data-testid="readings-liturgic-title"
+                        data-liturgic-color={colorKey}
+                        title={seasonLabel}
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`}
+                        />
+                        <p className="ui-sans text-sm uppercase tracking-widest text-sangre m-0 flex-1 min-w-0">
+                            {data.liturgic_title}
+                        </p>
+                        <span
+                            data-testid="readings-liturgic-color-label"
+                            className="ui-sans text-[10px] uppercase tracking-widest text-stoneFaint hidden sm:inline"
+                        >
+                            {seasonLabel}
+                        </span>
+                    </div>
+                );
+            })()}
 
             {/* Sticky tab selector — mirrors Favorites' pill styling but
                 sits below the app header so it stays visible as the user
