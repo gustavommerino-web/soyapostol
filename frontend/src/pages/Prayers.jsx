@@ -1,11 +1,17 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 import api from "@/lib/api";
+import { toast } from "sonner";
 import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
 import PrayersAdmin from "@/components/PrayersAdmin";
-import { CaretLeft, MagnifyingGlass } from "@phosphor-icons/react";
+import { useLongPress, ContextMenu } from "@/components/LongPressMenu";
+import { useNavigate } from "react-router-dom";
+import {
+    CaretLeft, MagnifyingGlass, Heart, Copy, ShareNetwork,
+} from "@phosphor-icons/react";
 
 const PRAYERS_CHANGED = "soyapostol-prayers-changed";
 
@@ -88,7 +94,8 @@ export default function Prayers() {
         <div className="max-w-5xl mx-auto" data-testid="prayers-page">
             <p className="label-eyebrow mb-3">{t("nav.prayers")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">{t("nav.prayers")}</h1>
-            <p className="text-stoneMuted mb-10 max-w-2xl">{t("sections.prayers_desc")}</p>
+            <p className="text-stoneMuted mb-2 max-w-2xl">{t("sections.prayers_desc")}</p>
+            <p className="text-xs text-stoneFaint italic mb-10">{t("prayers_actions.long_press_hint")}</p>
 
             {isAdmin && (
                 <PrayersAdmin apiCategories={categories} />
@@ -117,13 +124,12 @@ export default function Prayers() {
                         </h2>
                         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {cat.items.map((item) => (
-                                <li key={item.slug}>
-                                    <button onClick={() => open(item)}
-                                        data-testid={`prayer-item-${item.slug}`}
-                                        className="surface-card w-full text-left p-4 hover:border-sangre transition-colors">
-                                        <p className="reading-serif text-base leading-snug">{item.title}</p>
-                                    </button>
-                                </li>
+                                <PrayerCard
+                                    key={item.slug}
+                                    item={item}
+                                    category={cat.category}
+                                    onOpen={() => open(item)}
+                                />
                             ))}
                         </ul>
                     </section>
@@ -131,5 +137,154 @@ export default function Prayers() {
             </div>
             <BackToTopButton testId="prayers-back-to-top" />
         </div>
+    );
+}
+
+/* ================================================================== */
+/* PrayerCard with long-press context menu                            */
+/* ================================================================== */
+
+function PrayerCard({ item, category, onOpen }) {
+    const [menuOpen, setMenuOpen] = React.useState(false);
+
+    // useLongPress fires on a 500ms hold (or right-click on desktop). The
+    // hook's `onPointerUp` swallows the next click event when the timer
+    // fires, so the regular onClick→onOpen handler won't run.
+    const handlers = useLongPress(() => setMenuOpen(true));
+
+    return (
+        <li className="relative">
+            <button
+                onClick={onOpen}
+                data-testid={`prayer-item-${item.slug}`}
+                className="surface-card w-full text-left p-4 hover:border-sangre transition-colors select-none"
+                style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+                {...handlers}
+            >
+                <p className="reading-serif text-base leading-snug">{item.title}</p>
+            </button>
+            {menuOpen && (
+                <PrayerContextMenu
+                    item={item}
+                    category={category}
+                    onDismiss={() => setMenuOpen(false)}
+                />
+            )}
+        </li>
+    );
+}
+
+function PrayerContextMenu({ item, category, onDismiss }) {
+    const { t, lang } = useLang();
+    const { user } = useAuth();
+    const { refresh: refreshCount } = useFavoritesCount();
+    const navigate = useNavigate();
+
+    // Lazily fetch the body when an action that needs it is invoked. The
+    // promise is cached so repeated taps don't re-hit the API.
+    const cached = React.useRef(null);
+    const fetchPrayer = React.useCallback(async () => {
+        if (cached.current) return cached.current;
+        cached.current = (async () => {
+            const res = await api.get(`/prayers/${item.slug}?lang=${lang}`);
+            return res.data;
+        })();
+        try {
+            return await cached.current;
+        } catch (e) {
+            cached.current = null;
+            throw e;
+        }
+    }, [item.slug, lang]);
+
+    const formatBody = (data) => {
+        // Title + category header + content. Mirrors the user request:
+        // "title, category, content" all in one shareable block.
+        return `${data.title}\n[${category}]\n\n${data.content}`.trim();
+    };
+
+    const doCopy = async () => {
+        try {
+            const data = await fetchPrayer();
+            await navigator.clipboard.writeText(formatBody(data));
+            toast.success(t("prayers_actions.copied"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+    };
+
+    const doShare = async () => {
+        let data;
+        try {
+            data = await fetchPrayer();
+        } catch {
+            toast.error(t("common.error"));
+            return;
+        }
+        const text = formatBody(data);
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: t("prayers_actions.share_title"),
+                    text,
+                    url: data.source_url || undefined,
+                });
+                return;
+            } catch { /* user cancelled — silently fall through to copy */ }
+        }
+        try {
+            await navigator.clipboard.writeText(text);
+            toast.success(t("prayers_actions.copied"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+    };
+
+    const doFavorite = async () => {
+        if (!user) { navigate("/login"); return; }
+        try {
+            const data = await fetchPrayer();
+            await api.post("/favorites", {
+                section: "prayers",
+                title: data.title,
+                content: data.content,
+                source_url: data.source_url,
+                metadata: { category },
+                lang,
+            });
+            refreshCount();
+            toast.success(t("common.saved"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+    };
+
+    const items = [
+        {
+            id: "fav",
+            label: t("common.save_favorite"),
+            icon: <Heart size={16} weight="duotone" />,
+            onSelect: doFavorite,
+        },
+        {
+            id: "copy",
+            label: t("prayers_actions.copy"),
+            icon: <Copy size={16} weight="duotone" />,
+            onSelect: doCopy,
+        },
+        {
+            id: "share",
+            label: t("prayers_actions.share"),
+            icon: <ShareNetwork size={16} weight="duotone" />,
+            onSelect: doShare,
+        },
+    ];
+
+    return (
+        <ContextMenu
+            items={items}
+            onDismiss={onDismiss}
+            testId={`prayer-menu-${item.slug}`}
+        />
     );
 }

@@ -238,6 +238,13 @@ const STRINGS = {
             share_title: "Versículo de la Biblia",
             saved_hint: "Guardado en favoritos",
         },
+        prayers_actions: {
+            copy: "Copiar oración",
+            share: "Compartir",
+            copied: "Oración copiada",
+            share_title: "Oración",
+            long_press_hint: "Mantén presionado para más opciones",
+        },
         votd: {
             title: "Versículo del día",
             open_bible: "Ir a la Biblia",
@@ -622,6 +629,13 @@ const STRINGS = {
             verse_copied: "Verse copied",
             share_title: "Bible verse",
             saved_hint: "Saved to favorites",
+        },
+        prayers_actions: {
+            copy: "Copy prayer",
+            share: "Share",
+            copied: "Prayer copied",
+            share_title: "Prayer",
+            long_press_hint: "Long-press for more options",
         },
         votd: {
             title: "Verse of the day",

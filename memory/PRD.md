@@ -297,6 +297,27 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
   - `tabs.scrollLeft = 200` → funciona como esperado ✓
 - 🎓 **Note to future devs**: cuando añadas cualquier `overflow-x-auto` dentro de un flex item, revisar que el flex item tenga `min-w-0`. Es el "gotcha" de flexbox más común.
 
+## Implemented (2026-05-03 · part 15) — Long-press context menu en tarjetas de Oraciones
+- 🤲 **Mismo patrón que Biblia**: las cards de oración en `/prayers` ahora responden a:
+  - **Long-press móvil** (500ms hold sin moverse > 10px)
+  - **Click derecho desktop** (vía `oncontextmenu`)
+  - Ambos accionados por el hook `useLongPress` del componente compartido `LongPressMenu.jsx`.
+- 📋 **Menú con 3 acciones**:
+  1. **Guardar en favoritos** (Heart) → POST `/api/favorites` con `section:"prayers"`, `metadata: { category }`, `lang`. Refresca el badge del header.
+  2. **Copiar oración** (Copy) → escribe al clipboard `"{título}\n[{categoría}]\n\n{contenido}"`. Toast de confirmación.
+  3. **Compartir** (Share) → `navigator.share({ title, text, url: source_url })` con fallback a copy si no hay Web Share API.
+- 🎯 **Diseño robusto**:
+  - El contenido completo de la oración no está en memoria al renderizar la card (solo título + slug). El `PrayerContextMenu` hace fetch lazy a `/api/prayers/{slug}?lang=...` la primera vez que el usuario invoca cualquier acción y cachea el resultado en un `useRef` para que sucesivas acciones (e.g. copy → share) no rehit el endpoint.
+  - El menú flotante hereda el comportamiento ya probado de `ContextMenu`: anclado a la card, flip arriba/abajo según overflow del viewport, cierre al click-outside / Escape / scroll.
+  - `select-none + WebkitUserSelect:none + WebkitTouchCallout:none` en la card previenen que iOS Safari abra su selector nativo antes de los 500ms.
+  - El click normal sigue funcionando (abre el detalle); el hook intercepta el click subsiguiente solo cuando el long-press dispara (vía `fired.current` flag).
+- 🌐 **Traducciones**: nuevo bloque `prayers_actions` en LangContext (ES + EN) con `copy`, `share`, `copied`, `share_title`, `long_press_hint`. Pequeña hint italic bajo el subtítulo de la página: "Mantén presionado para más opciones" / "Long-press for more options".
+- ✅ **Verificado E2E (Playwright)**:
+  - Right-click en una card → menu visible con los 3 items (`prayer-menu-{slug}-item-fav|copy|share`).
+  - Click en "Copiar" → clipboard contiene el bloque formateado (verificación intentada; permission denied en headless es esperado).
+  - Click en "Guardar en favoritos" → POST exitoso al backend; verificado vía GET `/api/favorites`: 1 fav con `section:'prayers'`, `metadata.category:'Antes y después de comulgar'`, `lang:'es'`. Badge del header pasó de 7 a 8.
+- Pre-commit **9/9 PASS**, ESLint 0 warnings.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
