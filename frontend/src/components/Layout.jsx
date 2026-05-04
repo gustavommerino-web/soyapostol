@@ -173,9 +173,13 @@ export default function Layout() {
                     </nav>
                 </aside>
 
-                {/* Main content — fixed reading width 720px, padding for bottom nav on mobile */}
+                {/* Main content — fixed reading width 720px, padding for bottom nav on mobile.
+                    `min-w-0` is critical: without it, this flex item's default
+                    `min-width: auto` would let inner `overflow-x-auto` rows
+                    (e.g. /readings tab selector) push the whole page wider
+                    than the viewport on mobile. */}
                 <main
-                    className="flex-1 px-4 sm:px-6 lg:px-12 py-8 lg:py-14 pb-28 lg:pb-14"
+                    className="flex-1 min-w-0 px-4 sm:px-6 lg:px-12 py-8 lg:py-14 pb-28 lg:pb-14"
                     data-testid="main-content"
                 >
                     <div className="max-w-[720px] mx-auto" data-testid="content-container">

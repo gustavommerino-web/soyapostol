@@ -285,6 +285,18 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 🔀 **Orden del Comentario invertido**: en el tab "Comentario" ahora se renderiza PRIMERO el comentario RSS de Evangelizo (comment_t/comment_a/comment_s/comment) y DESPUÉS el iframe de evangeli.net. Los fieles ven primero la reflexión firmada y con autor antes de la reflexión embed externa. Verificado por Playwright (May 3 domingo): `[readings-evangelizo-commentary, iframe-container]`. En días sin comentario RSS (como May 4 lunes) solo muestra el iframe como fallback.
 - ✅ **Smoke test**: mobile 420px viewport → tabs se desplazan horizontalmente con "1ra Lectura" activa a la izquierda; el resto visible al scrollear. Pre-commit **9/9 PASS**, ESLint 0 warnings, ruff clean.
 
+## Implemented (2026-05-03 · part 14) — Mobile horizontal-scroll containment fix
+- 🐛 **Bug**: el scroll horizontal introducido en los tabs de `/readings` estaba propagando al `<body>` en viewports mobile (375px → body scrollWidth=709px), permitiendo que el usuario swipeara TODA la página horizontalmente.
+- 🔬 **Root cause**: el `<main>` en `Layout.jsx` era `flex-1` sin `min-width: 0`. Por spec de flexbox, un flex item tiene `min-width: auto` por default, lo que le deja crecer más allá del parent cuando un descendiente tiene contenido intrínsecamente ancho (como `overflow-x-auto` + tabs con `shrink-0 whitespace-nowrap`). El contenido ancho "empujaba" al `<main>` (y por ende al `<body>`) a 709px.
+- 🩹 **Fix (1 línea)**: añadido `min-w-0` al `<main>` en Layout.jsx. Esto permite que `overflow-x-auto` del tablist realmente contenga el scroll internamente.
+- ✅ **Verificado Playwright 375px**:
+  - `body_scrollWidth: 375` (== viewport, antes: 709) ✓
+  - `main_clientWidth: 375` (antes: 709) ✓
+  - `tabs_scrollWidth: 673 > tabs_clientWidth: 339` → scroll interno habilitado ✓
+  - `window.scrollTo(200, 0)` → `scrollX: 0` (antes: 200) ✓ la página rechaza scroll horizontal
+  - `tabs.scrollLeft = 200` → funciona como esperado ✓
+- 🎓 **Note to future devs**: cuando añadas cualquier `overflow-x-auto` dentro de un flex item, revisar que el flex item tenga `min-w-0`. Es el "gotcha" de flexbox más común.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
