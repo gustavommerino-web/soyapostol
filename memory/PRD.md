@@ -253,6 +253,17 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
 - 📐 Detalle UX: sigue siendo texto compacto — no añade nuevo "peso visual" significativo; el usuario católico reconoce el color instantáneamente (como el misal) y el lector casual solo ve un acento cromático agradable.
 - ✅ Verificado: screenshot Pascua → chip blanco/ámbar con "BLANCO"; pre-commit 9/9 PASS, ESLint 0 warnings.
 
+## Implemented (2026-05-03 · part 11) — Favorites: lang-scoped view + sticky toolbar + back-to-top
+- 🌐 **Filtrado por idioma (FIX)**: `/favorites` ahora muestra solamente favoritos cuyo `lang` coincide con el idioma actual del usuario. Items legacy sin `lang` se tratan como Español (default histórico). Se añade hint discreto al pie ("También tienes N favorito(s) guardado(s) en inglés." / equivalente EN) para que el usuario nunca piense que desaparecieron — solo cambian de "pestaña mental" al cambiar idioma en Ajustes.
+- 📌 **Toolbar sticky**: el input de búsqueda + los chips de filtro están ahora dentro de un bloque sticky (`top-[57px] lg:top-[73px] z-20`) con backdrop-blur + borde inferior. El usuario puede desplazarse por listas largas y seguir pudiendo filtrar/buscar sin scrollear de regreso. Usa el mismo patrón de negative-margin + padding que `Readings.jsx` para que el backdrop cubra todo el ancho de la columna.
+- ⬆️ **Back-to-top**: se añade `<BackToTopButton testId="favorites-back-to-top" threshold={250} />` al final de la página. Umbral reducido a 250px (vs. 400 del default) porque las cards de favorito son más compactas y 400px rara vez se alcanza con pocos items.
+- 🧠 **Reset automático del filtro**: al cambiar de idioma, el chip-filter vuelve a "Todos" por si el filtro previo ya no aplica a ningún item del nuevo idioma (previene estado vacío "fantasma").
+- 🏷️ **Chip "Todos" localizado**: "Todos (N)" en ES, "All (N)" en EN (antes siempre decía "All" hardcoded).
+- ✅ **Verificado E2E**:
+  - Backend: POST `/api/favorites` con `lang:"en"` y `lang:"es"` se persisten correctamente; GET devuelve `lang` en cada item. Curl manual + testing_agent previo confirman.
+  - Frontend: seeds via `fetch()` en ES y EN; al estar en Ajustes=ES solo aparecen los ES ("Todos (3)" + hint "1 en inglés"), al cambiar a EN solo aparecen EN ("All (1)"). Hint bidireccional.
+- Pre-commit **9/9 PASS**, ESLint 0 warnings.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.

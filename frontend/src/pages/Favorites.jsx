@@ -3,6 +3,7 @@ import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
+import BackToTopButton from "@/components/BackToTopButton";
 import {
     Trash, ArrowSquareOut, HeartBreak, CaretDown, CaretUp,
     MagnifyingGlass, X,
@@ -39,6 +40,11 @@ export default function Favorites() {
 
     React.useEffect(() => { if (user) load(); else setLoading(false); }, [user, load]);
 
+    // When the user changes language, their previously selected section
+    // filter may no longer apply to any item in the new language — reset
+    // to "all" so the list isn't unexpectedly empty.
+    React.useEffect(() => { setFilter("all"); }, [lang]);
+
     const onDelete = async (id) => {
         try {
             await api.delete(`/favorites/${id}`);
@@ -57,9 +63,17 @@ export default function Favorites() {
         );
     }
 
-    const sections = Array.from(new Set(items.map((i) => i.section)));
+    // Show only favourites stored in the user's current UI language. Legacy
+    // rows without a `lang` field are treated as Spanish (the old default).
+    // A small counter below announces how many favourites live in the
+    // *other* language so the user never thinks they disappeared.
+    const langItems = items.filter((i) => (i.lang || "es") === lang);
+    const otherLang = lang === "es" ? "en" : "es";
+    const otherCount = items.filter((i) => (i.lang || "es") === otherLang).length;
+
+    const sections = Array.from(new Set(langItems.map((i) => i.section)));
     const q = query.trim().toLowerCase();
-    const filtered = items.filter((i) => {
+    const filtered = langItems.filter((i) => {
         if (filter !== "all" && i.section !== filter) return false;
         if (!q) return true;
         const hay = `${i.title || ""}\n${i.content || ""}`.toLowerCase();
@@ -70,54 +84,62 @@ export default function Favorites() {
         <div className="max-w-4xl mx-auto" data-testid="favorites-page">
             <p className="label-eyebrow mb-3">{t("nav.favorites")}</p>
             <h1 className="heading-serif text-4xl sm:text-5xl tracking-tight leading-none mb-3">{t("nav.favorites")}</h1>
-            <p className="text-stoneMuted mb-10 max-w-2xl">{t("sections.favorites_desc")}</p>
+            <p className="text-stoneMuted mb-6 max-w-2xl">{t("sections.favorites_desc")}</p>
 
-            {items.length > 0 && (
-                <div className="mb-6" data-testid="favorites-search-wrap">
-                    <label htmlFor="fav-search" className="relative block">
-                        <MagnifyingGlass
-                            size={16}
-                            weight="bold"
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint pointer-events-none"
-                            aria-hidden="true"
-                        />
-                        <input
-                            id="fav-search"
-                            type="search"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder={t("favorites.search_placeholder")}
-                            data-testid="favorites-search-input"
-                            className="w-full pl-10 pr-10 py-3 ui-sans text-sm text-stone900 bg-white border border-sand-300 rounded-md focus:outline-none focus:border-sangre placeholder:text-stoneFaint"
-                            aria-label={t("favorites.search_placeholder")}
-                        />
-                        {query && (
-                            <button
-                                type="button"
-                                onClick={() => setQuery("")}
-                                data-testid="favorites-search-clear"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-stoneFaint hover:text-sangre hover:bg-sangre/5"
-                                aria-label={t("common.cancel")}
-                            >
-                                <X size={14} weight="bold" />
-                            </button>
-                        )}
-                    </label>
-                </div>
-            )}
+            {/* Sticky toolbox: search + filter chips stay pinned below the
+                app header so filtering long favourite lists stays within
+                easy reach as the user scrolls. Negative margins + matching
+                horizontal padding make the backdrop span the full reading
+                column width (same pattern used by /readings tabs). */}
+            {langItems.length > 0 && (
+                <div
+                    className="sticky top-[57px] lg:top-[73px] z-20 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 py-3 bg-sand-50/95 backdrop-blur-md border-b border-sand-300 mb-6"
+                    data-testid="favorites-sticky-toolbar"
+                >
+                    <div data-testid="favorites-search-wrap" className="mb-3">
+                        <label htmlFor="fav-search" className="relative block">
+                            <MagnifyingGlass
+                                size={16}
+                                weight="bold"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-stoneFaint pointer-events-none"
+                                aria-hidden="true"
+                            />
+                            <input
+                                id="fav-search"
+                                type="search"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder={t("favorites.search_placeholder")}
+                                data-testid="favorites-search-input"
+                                className="w-full pl-10 pr-10 py-3 ui-sans text-sm text-stone900 bg-white border border-sand-300 rounded-md focus:outline-none focus:border-sangre placeholder:text-stoneFaint"
+                                aria-label={t("favorites.search_placeholder")}
+                            />
+                            {query && (
+                                <button
+                                    type="button"
+                                    onClick={() => setQuery("")}
+                                    data-testid="favorites-search-clear"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-stoneFaint hover:text-sangre hover:bg-sangre/5"
+                                    aria-label={t("common.cancel")}
+                                >
+                                    <X size={14} weight="bold" />
+                                </button>
+                            )}
+                        </label>
+                    </div>
 
-            {items.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-10" data-testid="favorites-filter">
-                    <button onClick={() => setFilter("all")} data-testid="fav-filter-all"
-                        className={`px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${filter === "all" ? "bg-sangre text-sand-50 border-sangre" : "bg-sand-100 text-stoneMuted border-sand-300 hover:border-sangre"}`}>
-                        All ({items.length})
-                    </button>
-                    {sections.map((s) => (
-                        <button key={s} onClick={() => setFilter(s)} data-testid={`fav-filter-${s}`}
-                            className={`px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${filter === s ? "bg-sangre text-sand-50 border-sangre" : "bg-sand-100 text-stoneMuted border-sand-300 hover:border-sangre"}`}>
-                            {SECTION_LABELS[lang]?.[s] || s}
+                    <div className="flex flex-wrap gap-2" data-testid="favorites-filter">
+                        <button onClick={() => setFilter("all")} data-testid="fav-filter-all"
+                            className={`px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${filter === "all" ? "bg-sangre text-sand-50 border-sangre" : "bg-sand-100 text-stoneMuted border-sand-300 hover:border-sangre"}`}>
+                            {lang === "es" ? "Todos" : "All"} ({langItems.length})
                         </button>
-                    ))}
+                        {sections.map((s) => (
+                            <button key={s} onClick={() => setFilter(s)} data-testid={`fav-filter-${s}`}
+                                className={`px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${filter === s ? "bg-sangre text-sand-50 border-sangre" : "bg-sand-100 text-stoneMuted border-sand-300 hover:border-sangre"}`}>
+                                {SECTION_LABELS[lang]?.[s] || s}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -127,7 +149,14 @@ export default function Favorites() {
                     {lang === "es" ? "Aún no has guardado nada." : "You haven't saved anything yet."}
                 </p>
             )}
-            {!loading && items.length > 0 && filtered.length === 0 && (
+            {!loading && items.length > 0 && langItems.length === 0 && (
+                <p className="text-stoneMuted" data-testid="favorites-empty-lang">
+                    {lang === "es"
+                        ? `No tienes favoritos guardados en español todavía. Tienes ${otherCount} guardados en inglés — cambia el idioma desde Ajustes para verlos.`
+                        : `You haven't saved any favourites in English yet. You have ${otherCount} saved in Spanish — change the language from Settings to view them.`}
+                </p>
+            )}
+            {!loading && langItems.length > 0 && filtered.length === 0 && (
                 <p className="text-stoneMuted" data-testid="favorites-empty-search">
                     {t("favorites.no_results", { q: query })}
                 </p>
@@ -138,6 +167,21 @@ export default function Favorites() {
                     <FavoriteCard key={f.id} fav={f} query={q} onDelete={() => onDelete(f.id)} />
                 ))}
             </ul>
+
+            {/* Cross-language hint below the list so users always know
+                their favourites in the other language are safe. */}
+            {!loading && langItems.length > 0 && otherCount > 0 && (
+                <p
+                    className="mt-8 text-xs text-stoneFaint italic text-center"
+                    data-testid="favorites-other-lang-hint"
+                >
+                    {lang === "es"
+                        ? `También tienes ${otherCount} favorito(s) guardado(s) en inglés.`
+                        : `You also have ${otherCount} favourite(s) saved in Spanish.`}
+                </p>
+            )}
+
+            <BackToTopButton testId="favorites-back-to-top" threshold={250} />
         </div>
     );
 }
