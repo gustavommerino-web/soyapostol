@@ -1,11 +1,18 @@
 import React from "react";
 import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 import { localDateISO } from "@/lib/localDate";
 import api from "@/lib/api";
-import FavoriteButton from "@/components/FavoriteButton";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import BackToTopButton from "@/components/BackToTopButton";
-import { ArrowSquareOut, CaretLeft, CaretRight, CalendarBlank } from "@phosphor-icons/react";
+import { useLongPress, ContextMenu } from "@/components/LongPressMenu";
+import {
+    ArrowSquareOut, CaretLeft, CaretRight, CalendarBlank,
+    Heart, Copy, ShareNetwork, DotsThreeVertical,
+} from "@phosphor-icons/react";
 import { liturgicalColor, liturgicalColorStyle } from "@/lib/liturgicalColor";
 
 // ---------------------------------------------------------------------------
@@ -312,6 +319,8 @@ export default function Readings() {
 
 function ReadingPanel({ tab, item, label }) {
     const { t } = useLang();
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const handlers = useLongPress(() => setMenuOpen(true));
 
     if (!item) {
         return (
@@ -326,22 +335,51 @@ function ReadingPanel({ tab, item, label }) {
         );
     }
 
+    // Plain-text snapshot of the reading body — used by Copy/Share/Favorite.
+    const plainBody = stripHtmlToText(item.text_html || "");
+    // Action sheet provenance: title (e.g. "Primera Lectura"), section
+    // header (e.g. "Libro de los Hechos…"), then the body itself.
+    const sharePayload = {
+        title: `${label}${item.title ? ` — ${item.title}` : ""}`.trim(),
+        body:  plainBody,
+        sourceUrl: "https://evangelizo.org/",
+        // Composed clipboard text matches the Prayer/Bible "title + meta + body" format.
+        formatted: [
+            label,
+            item.title || null,
+            "",
+            plainBody,
+        ].filter((x) => x !== null).join("\n").trim(),
+    };
+
     return (
         <article
             id={`readings-panel-${tab}`}
             role="tabpanel"
-            className="reading-prose"
+            className="reading-prose select-none"
+            style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
             data-testid={`readings-panel-${tab}`}
+            {...handlers}
         >
-            <div className="flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
+            <div className="relative flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
                 <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">{label}</h2>
-                <FavoriteButton
-                    section="readings"
-                    title={`${label} — ${item.title || ""}`.trim()}
-                    content={stripHtmlToText(item.text_html || "")}
-                    source_url="https://evangelizo.org/"
-                    testId={`fav-readings-${tab}`}
-                />
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
+                    aria-label={t("common.save_favorite")}
+                    title={t("prayers_actions.long_press_hint")}
+                    data-testid={`readings-actions-${tab}`}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-md text-stoneMuted hover:text-sangre hover:bg-sangre/5 transition-colors"
+                >
+                    <DotsThreeVertical size={20} weight="bold" />
+                </button>
+                {menuOpen && (
+                    <ReadingActionsMenu
+                        tab={tab}
+                        share={sharePayload}
+                        onDismiss={() => setMenuOpen(false)}
+                    />
+                )}
             </div>
             {item.title && (
                 <p className="reading-serif italic text-stoneMuted mb-4"
@@ -370,40 +408,7 @@ function CommentaryPanel({ commentary, lang, t }) {
                 comment_s / comment) — rendered FIRST because it is the
                 daily reflection that accompanies the day's readings. */}
             {commentary && (commentary.text_html || commentary.title) && (
-                <div data-testid="readings-evangelizo-commentary">
-                    <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
-                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
-                        {commentary.title || t("readings.eod_title")}
-                    </h2>
-                    <article className="surface-card p-6 sm:p-7 reading-prose">
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                            <div className="min-w-0">
-                                {commentary.author && (
-                                    <p className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1">
-                                        {commentary.author}
-                                    </p>
-                                )}
-                                {commentary.source && (
-                                    <p className="text-sm text-stoneMuted italic m-0">
-                                        {commentary.source}
-                                    </p>
-                                )}
-                            </div>
-                            <FavoriteButton
-                                section="readings"
-                                title={commentary.title || t("readings.eod_title")}
-                                content={stripHtmlToText(commentary.text_html || "")}
-                                source_url="https://evangelizo.org/"
-                                testId="fav-readings-COMM"
-                            />
-                        </div>
-                        <div
-                            className="reading-prose mt-2"
-                            data-testid="readings-commentary-body"
-                            dangerouslySetInnerHTML={renderHtml(commentary.text_html)}
-                        />
-                    </article>
-                </div>
+                <CommentaryCard commentary={commentary} t={t} />
             )}
 
             {/* Evangeli.net widget — secondary reflection, rendered at the
@@ -446,6 +451,163 @@ function CommentaryPanel({ commentary, lang, t }) {
                 </p>
             </div>
         </section>
+    );
+}
+
+function CommentaryCard({ commentary, t }) {
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const handlers = useLongPress(() => setMenuOpen(true));
+
+    const plainBody = stripHtmlToText(commentary.text_html || "");
+    // Commentary share payload preserves provenance: author + source line
+    // before the body so anyone receiving the message knows who wrote it.
+    const headerLines = [
+        commentary.author || null,
+        commentary.source || null,
+    ].filter(Boolean).join("\n");
+    const share = {
+        title: commentary.title || t("readings.eod_title"),
+        body: plainBody,
+        sourceUrl: "https://evangelizo.org/",
+        formatted: [
+            commentary.title || t("readings.eod_title"),
+            headerLines || null,
+            "",
+            plainBody,
+        ].filter((x) => x !== null).join("\n").trim(),
+    };
+
+    return (
+        <div data-testid="readings-evangelizo-commentary">
+            <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
+            <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
+                {commentary.title || t("readings.eod_title")}
+            </h2>
+            <article
+                className="surface-card p-6 sm:p-7 reading-prose select-none"
+                style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+                {...handlers}
+            >
+                <div className="relative flex items-start justify-between gap-4 mb-4">
+                    <div className="min-w-0">
+                        {commentary.author && (
+                            <p className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1">
+                                {commentary.author}
+                            </p>
+                        )}
+                        {commentary.source && (
+                            <p className="text-sm text-stoneMuted italic m-0">
+                                {commentary.source}
+                            </p>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
+                        aria-label={t("common.save_favorite")}
+                        title={t("prayers_actions.long_press_hint")}
+                        data-testid="readings-actions-COMM"
+                        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-md text-stoneMuted hover:text-sangre hover:bg-sangre/5 transition-colors"
+                    >
+                        <DotsThreeVertical size={20} weight="bold" />
+                    </button>
+                    {menuOpen && (
+                        <ReadingActionsMenu
+                            tab="COMM"
+                            share={share}
+                            onDismiss={() => setMenuOpen(false)}
+                        />
+                    )}
+                </div>
+                <div
+                    className="reading-prose mt-2"
+                    data-testid="readings-commentary-body"
+                    dangerouslySetInnerHTML={renderHtml(commentary.text_html)}
+                />
+            </article>
+        </div>
+    );
+}
+
+/* ================================================================== */
+/* Reading actions: favourite + copy + share. Same surface as Bible /   */
+/* Prayers context menus, instantiated per panel.                       */
+/* ================================================================== */
+
+function ReadingActionsMenu({ tab, share, onDismiss }) {
+    const { t, lang } = useLang();
+    const { user } = useAuth();
+    const { refresh: refreshCount } = useFavoritesCount();
+    const navigate = useNavigate();
+
+    const doFavorite = async () => {
+        if (!user) { navigate("/login"); return; }
+        try {
+            await api.post("/favorites", {
+                section: "readings",
+                title: share.title,
+                content: share.body,
+                source_url: share.sourceUrl,
+                metadata: { tab },
+                lang,
+            });
+            refreshCount();
+            toast.success(t("common.saved"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+    };
+
+    const doCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(share.formatted);
+            toast.success(t("prayers_actions.copied"));
+        } catch {
+            toast.error(t("common.error"));
+        }
+    };
+
+    const doShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: share.title,
+                    text: share.formatted,
+                    url: share.sourceUrl,
+                });
+                return;
+            } catch { /* user cancelled — silently fall through to copy */ }
+        }
+        await doCopy();
+    };
+
+    const items = [
+        {
+            id: "fav",
+            label: t("common.save_favorite"),
+            icon: <Heart size={16} weight="duotone" />,
+            onSelect: doFavorite,
+        },
+        {
+            id: "copy",
+            label: lang === "es" ? "Copiar texto" : "Copy text",
+            icon: <Copy size={16} weight="duotone" />,
+            onSelect: doCopy,
+        },
+        {
+            id: "share",
+            label: t("prayers_actions.share"),
+            icon: <ShareNetwork size={16} weight="duotone" />,
+            onSelect: doShare,
+        },
+    ];
+
+    return (
+        <ContextMenu
+            items={items}
+            onDismiss={onDismiss}
+            testId={`reading-menu-${tab}`}
+        />
     );
 }
 

@@ -318,6 +318,22 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
   - Click en "Guardar en favoritos" → POST exitoso al backend; verificado vía GET `/api/favorites`: 1 fav con `section:'prayers'`, `metadata.category:'Antes y después de comulgar'`, `lang:'es'`. Badge del header pasó de 7 a 8.
 - Pre-commit **9/9 PASS**, ESLint 0 warnings.
 
+## Implemented (2026-05-03 · part 16) — Long-press menu en tarjetas de Lecturas
+- 📖 **Quick-win replicado en /readings**: el `FavoriteButton` que estaba arriba-derecha en cada panel (FR/PS/SR/GSP/Comentario) se reemplazó por un botón `DotsThreeVertical` que abre el mismo `ContextMenu` usado en Biblia y Oraciones.
+- 🤲 **Long-press móvil + click-derecho desktop** sobre toda la `<article>` del panel: dispara el menú vía `useLongPress` + `onContextMenu`. El click en el botón ⋮ es el fallback explícito para usuarios que prefieren tap directo.
+- 🎯 **3 acciones**:
+  1. **Guardar en favoritos**: POST `/api/favorites` con `section:"readings"`, `metadata:{ tab }` (FR/PS/SR/GSP/COMM), `lang`, `title:"1ra Lectura — {referencia}"`. Refresca el badge del header.
+  2. **Copiar texto** (label genérico "Copiar texto" / "Copy text" para no decir "oración" en una lectura): clipboard recibe `"{label}\n{título_referencia}\n\n{texto_plano}"`.
+  3. **Compartir**: `navigator.share()` con título + texto formateado + source URL; fallback a copy si no hay Web Share API.
+- 🧠 **Provenance preservada en el Comentario**: el payload de share del bloque Evangelizo include autor + fuente entre el título y el cuerpo: `"{título}\n{autor}\n{fuente}\n\n{texto}"`. Quien recibe el mensaje sabe quién escribió la reflexión (cumple con la atribución del feed).
+- 🔌 **Integración con FavoritesCount**: cada save dispara `refreshCount()` para que el badge del header suba al instante (verificado: badge pasó de 7 → 8).
+- 🪶 **Eliminado el `FavoriteButton` import** en Readings.jsx (ya no se usa); reemplazado por imports directos de `Heart`, `Copy`, `ShareNetwork`, `DotsThreeVertical` + el toolkit `LongPressMenu`. Sin código muerto.
+- ✅ **Verificado E2E (Playwright)**:
+  - FR panel: 0 legacy fav buttons, 1 actions button. Click → menú con 3 items.
+  - "Guardar en favoritos" en FR → backend recibe POST con `metadata.tab:"FR"`, badge sube. Cleanup OK.
+  - Domingo 3-mayo (con comentario): card del Comentario muestra ⋮ button, menú con "Copiar texto" (label correcto, no "oración").
+  - Pre-commit **9/9 PASS**, ESLint 0 warnings.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.
