@@ -2,6 +2,7 @@ import React from "react";
 import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 import api from "@/lib/api";
 import BackToTopButton from "@/components/BackToTopButton";
 import {
@@ -23,6 +24,7 @@ const COLLAPSED_HEIGHT = 160;
 export default function Favorites() {
     const { t, lang } = useLang();
     const { user } = useAuth();
+    const { refresh: refreshCount } = useFavoritesCount();
     const [items, setItems] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [filter, setFilter] = React.useState("all");
@@ -49,6 +51,7 @@ export default function Favorites() {
         try {
             await api.delete(`/favorites/${id}`);
             setItems((arr) => arr.filter((i) => i.id !== id));
+            refreshCount();
         } catch (e) { toast.error(e.message); }
     };
 

@@ -264,6 +264,27 @@ Cambio mayor al flujo del Examen de Conciencia solicitado por el usuario:
   - Frontend: seeds via `fetch()` en ES y EN; al estar en Ajustes=ES solo aparecen los ES ("Todos (3)" + hint "1 en inglés"), al cambiar a EN solo aparecen EN ("All (1)"). Hint bidireccional.
 - Pre-commit **9/9 PASS**, ESLint 0 warnings.
 
+## Implemented (2026-05-03 · part 12) — Favorites counter badge on the header heart
+- ❤️‍🔥 **Nuevo contexto** `FavoritesCountProvider` (`/app/frontend/src/contexts/FavoritesCountContext.jsx`): hace `GET /api/favorites` una sola vez y cuenta items cuyo `lang` coincide con el idioma actual del usuario. Expone `{ count, refresh }`. Se reevalúa automáticamente cuando cambia `user` o `lang` (se refresca con el idioma del usuario al hacer login).
+- 🎯 **Badge en el header**: pequeña píldora redonda con el número de favoritos pegada al ícono del corazón (`-top-1.5 -right-1.5`, `bg-sangre text-sand-50`, ring-2 ring-sand-50 para contraste). Se oculta cuando count=0 o no hay usuario. Si hay más de 99, muestra "99+". `aria-label` del NavLink incluye el conteo para lectores de pantalla.
+- 🔄 **Refresh reactivo**: todos los call-sites que mutan favoritos llaman `refreshCount()` tras el POST/DELETE:
+  - `FavoriteButton.jsx` (guardar desde Lecturas, Noticias, Biblia, Catecismo, Liturgia, Oraciones).
+  - `Favorites.jsx` `onDelete` (borrar una tarjeta).
+  - `Bible.jsx` `toggleVerseFavorite` (tap en un versículo).
+  - `useVotdFavorite.js` `toggle` (Verse of the Day en Dashboard).
+- 🪶 **Diseño minimalista**: una sola query HTTP al cargar + una extra por toggle. No se añade endpoint backend — se aprovecha el `/api/favorites` existente.
+- ✅ **Verificado E2E Playwright**:
+  - Badge = 10 en ES con 10 favs ES.
+  - Switch a EN vía Ajustes → badge pasa automáticamente a 1 (los EN favs del usuario).
+  - DELETE del único fav EN + reload → badge desaparece (count=0 oculta el span).
+- Pre-commit **9/9 PASS**, ESLint 0 warnings.
+
+## Implemented (2026-05-03 · part 13) — Readings tabs UX polish (abbreviations, horizontal scroll, commentary order)
+- ✂️ **Etiquetas abreviadas**: "Primera Lectura" → **"1ra Lectura"**, "Segunda Lectura" → **"2da Lectura"** (ES); "First Reading" → **"1st Reading"**, "Second Reading" → **"2nd Reading"** (EN). Aplicado a `readings.first` y `readings.second` en `LangContext.jsx`. Tab pills más cortas → cabe todo el selector en una sola línea sin wrap.
+- ➡️ **Scroll horizontal** en la barra de selectores: reemplazado `flex flex-wrap gap-2` por `flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none snap-x snap-mandatory`. Cada botón es `shrink-0 snap-start` para que se alinee al borde izquierdo al hacer scroll. Añadida clase `.scrollbar-none` en `index.css` para ocultar la scrollbar en WebKit/Firefox/IE manteniendo el comportamiento. Por default aparece "1ra Lectura" activa a la izquierda; el usuario arrastra/swipea horizontal para llegar hasta "Comentario".
+- 🔀 **Orden del Comentario invertido**: en el tab "Comentario" ahora se renderiza PRIMERO el comentario RSS de Evangelizo (comment_t/comment_a/comment_s/comment) y DESPUÉS el iframe de evangeli.net. Los fieles ven primero la reflexión firmada y con autor antes de la reflexión embed externa. Verificado por Playwright (May 3 domingo): `[readings-evangelizo-commentary, iframe-container]`. En días sin comentario RSS (como May 4 lunes) solo muestra el iframe como fallback.
+- ✅ **Smoke test**: mobile 420px viewport → tabs se desplazan horizontalmente con "1ra Lectura" activa a la izquierda; el resto visible al scrollear. Pre-commit **9/9 PASS**, ESLint 0 warnings, ruff clean.
+
 ## Backlog (P0/P1/P2)
 ### P1 (active)
 - Custom-domain CORS rewrite on `soyapostol.org` (blocked — Cloudflare edge). Awaiting Emergent Support.

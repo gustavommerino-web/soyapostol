@@ -2,6 +2,7 @@ import React from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLang } from "@/contexts/LangContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 import {
     SignOut,
     SignIn,
@@ -51,6 +52,7 @@ const ALL_NAV = [DASHBOARD_NAV, ...PRIMARY_NAV, ...SECONDARY_NAV];
 export default function Layout() {
     const { user, logout } = useAuth();
     const { t } = useLang();
+    const { count: favCount } = useFavoritesCount();
     const navigate = useNavigate();
     const [moreOpen, setMoreOpen] = React.useState(false);
 
@@ -81,10 +83,12 @@ export default function Layout() {
                         <NavLink
                             to="/favorites"
                             data-testid="header-favorites-link"
-                            aria-label={t("nav.favorites")}
+                            aria-label={favCount > 0
+                                ? `${t("nav.favorites")} (${favCount})`
+                                : t("nav.favorites")}
                             title={t("nav.favorites")}
                             className={({ isActive }) =>
-                                `ui-sans text-sm flex items-center gap-2 px-2.5 sm:px-3 py-2 border rounded-md transition-colors ${
+                                `relative ui-sans text-sm flex items-center gap-2 px-2.5 sm:px-3 py-2 border rounded-md transition-colors ${
                                     isActive
                                         ? "border-sangre text-sangre bg-sangre/5"
                                         : "border-sand-300 hover:border-sangre text-stoneMuted hover:text-sangre"
@@ -92,6 +96,15 @@ export default function Layout() {
                             }
                         >
                             <Heart size={18} weight="duotone" />
+                            {user && favCount > 0 && (
+                                <span
+                                    data-testid="header-favorites-badge"
+                                    aria-hidden="true"
+                                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-sangre text-sand-50 text-[10px] leading-[18px] font-semibold text-center ring-2 ring-sand-50"
+                                >
+                                    {favCount > 99 ? "99+" : favCount}
+                                </span>
+                            )}
                         </NavLink>
 
                         {/* Settings */}

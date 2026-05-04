@@ -1,6 +1,7 @@
 import React from "react";
 import { useLang } from "@/contexts/LangContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -169,6 +170,7 @@ function highlightText(text, query) {
 export default function Bible() {
     const { t, lang } = useLang();
     const { user } = useAuth();
+    const { refresh: refreshCount } = useFavoritesCount();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -241,6 +243,7 @@ export default function Bible() {
             if (existingId) {
                 await api.delete(`/favorites/${existingId}`);
                 setSavedVerses((m) => { const n = new Map(m); n.delete(k); return n; });
+                refreshCount();
                 toast.success(t("common.remove"));
             } else {
                 const payload = {
@@ -261,12 +264,13 @@ export default function Bible() {
                 if (newId) {
                     setSavedVerses((m) => { const n = new Map(m); n.set(k, newId); return n; });
                 }
+                refreshCount();
                 toast.success(t("common.saved"));
             }
         } catch {
             toast.error(t("common.error"));
         }
-    }, [user, savedVerses, lang, navigate, t]);
+    }, [user, savedVerses, lang, navigate, t, refreshCount]);
 
     const books = React.useMemo(() => data?.books || [], [data]);
     const currentBook = books[bookIdx] || null;

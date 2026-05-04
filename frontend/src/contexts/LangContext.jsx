@@ -66,9 +66,9 @@ const STRINGS = {
             favorites_desc: "Tus textos guardados",
         },
         readings: {
-            first: "Primera Lectura",
+            first: "1ra Lectura",
             psalm: "Salmo",
-            second: "Segunda Lectura",
+            second: "2da Lectura",
             gospel: "Evangelio",
             gospel_acclamation: "Aclamación al Evangelio",
             commentary: "Comentario",
@@ -451,9 +451,9 @@ const STRINGS = {
             favorites_desc: "Your saved passages",
         },
         readings: {
-            first: "First Reading",
+            first: "1st Reading",
             psalm: "Psalm",
-            second: "Second Reading",
+            second: "2nd Reading",
             gospel: "Gospel",
             gospel_acclamation: "Gospel Acclamation",
             commentary: "Commentary",

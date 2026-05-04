@@ -225,7 +225,8 @@ export default function Readings() {
                 <div
                     role="tablist"
                     aria-label={t("nav.readings")}
-                    className="flex flex-wrap gap-2"
+                    className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-none snap-x snap-mandatory"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                     data-testid="readings-tabs"
                 >
                     {TAB_ORDER.map((key) => {
@@ -242,7 +243,7 @@ export default function Readings() {
                                 disabled={disabled}
                                 onClick={() => !disabled && setActive(key)}
                                 data-testid={`readings-tab-${key}`}
-                                className={`px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${
+                                className={`shrink-0 snap-start px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${
                                     isActive
                                         ? "bg-sangre text-sand-50 border-sangre"
                                         : disabled
@@ -365,9 +366,48 @@ function CommentaryPanel({ commentary, lang, t }) {
             data-testid="readings-panel-COMM"
             className="space-y-10"
         >
-            {/* Evangeli.net widget — the same iframe that used to live at
-                the bottom of the page, now nested inside the Commentary
-                tab so both reflections share one selector. */}
+            {/* Evangelizo's in-feed commentary (comment_t / comment_a /
+                comment_s / comment) — rendered FIRST because it is the
+                daily reflection that accompanies the day's readings. */}
+            {commentary && (commentary.text_html || commentary.title) && (
+                <div data-testid="readings-evangelizo-commentary">
+                    <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
+                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
+                        {commentary.title || t("readings.eod_title")}
+                    </h2>
+                    <article className="surface-card p-6 sm:p-7 reading-prose">
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                            <div className="min-w-0">
+                                {commentary.author && (
+                                    <p className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1">
+                                        {commentary.author}
+                                    </p>
+                                )}
+                                {commentary.source && (
+                                    <p className="text-sm text-stoneMuted italic m-0">
+                                        {commentary.source}
+                                    </p>
+                                )}
+                            </div>
+                            <FavoriteButton
+                                section="readings"
+                                title={commentary.title || t("readings.eod_title")}
+                                content={stripHtmlToText(commentary.text_html || "")}
+                                source_url="https://evangelizo.org/"
+                                testId="fav-readings-COMM"
+                            />
+                        </div>
+                        <div
+                            className="reading-prose mt-2"
+                            data-testid="readings-commentary-body"
+                            dangerouslySetInnerHTML={renderHtml(commentary.text_html)}
+                        />
+                    </article>
+                </div>
+            )}
+
+            {/* Evangeli.net widget — secondary reflection, rendered at the
+                bottom so the primary Evangelizo commentary shows first. */}
             <div>
                 <p className="label-eyebrow mb-3">{t("readings.reflection_eyebrow")}</p>
                 <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
@@ -405,45 +445,6 @@ function CommentaryPanel({ commentary, lang, t }) {
                     >evangeli.net</a>
                 </p>
             </div>
-
-            {/* Evangelizo's in-feed commentary (comment_t / comment_a /
-                comment_s / comment) — rendered below the iframe. */}
-            {commentary && (commentary.text_html || commentary.title) && (
-                <div data-testid="readings-evangelizo-commentary">
-                    <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
-                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
-                        {commentary.title || t("readings.eod_title")}
-                    </h2>
-                    <article className="surface-card p-6 sm:p-7 reading-prose">
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                            <div className="min-w-0">
-                                {commentary.author && (
-                                    <p className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1">
-                                        {commentary.author}
-                                    </p>
-                                )}
-                                {commentary.source && (
-                                    <p className="text-sm text-stoneMuted italic m-0">
-                                        {commentary.source}
-                                    </p>
-                                )}
-                            </div>
-                            <FavoriteButton
-                                section="readings"
-                                title={commentary.title || t("readings.eod_title")}
-                                content={stripHtmlToText(commentary.text_html || "")}
-                                source_url="https://evangelizo.org/"
-                                testId="fav-readings-COMM"
-                            />
-                        </div>
-                        <div
-                            className="reading-prose mt-2"
-                            data-testid="readings-commentary-body"
-                            dangerouslySetInnerHTML={renderHtml(commentary.text_html)}
-                        />
-                    </article>
-                </div>
-            )}
         </section>
     );
 }

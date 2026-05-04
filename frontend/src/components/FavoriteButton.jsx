@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLang } from "@/contexts/LangContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -13,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 export default function FavoriteButton({ section, title, content, source_url, metadata, testId }) {
     const { user } = useAuth();
     const { lang, t } = useLang();
+    const { refresh: refreshCount } = useFavoritesCount();
     const [saving, setSaving] = React.useState(false);
     const navigate = useNavigate();
 
@@ -23,6 +25,7 @@ export default function FavoriteButton({ section, title, content, source_url, me
         try {
             await api.post("/favorites", { section, title, content, source_url, metadata, lang });
             toast.success(t("common.saved"));
+            refreshCount();
         } catch (e) {
             toast.error(t("common.error"));
         } finally {

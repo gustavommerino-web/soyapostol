@@ -3,6 +3,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLang } from "@/contexts/LangContext";
+import { useFavoritesCount } from "@/contexts/FavoritesCountContext";
 
 /**
  * Owns the "is this verse saved as a favorite?" state and exposes a
@@ -19,6 +20,7 @@ import { useLang } from "@/contexts/LangContext";
 export function useVotdFavorite({ resolved }) {
     const { user } = useAuth();
     const { t, lang } = useLang();
+    const { refresh: refreshCount } = useFavoritesCount();
     const [savedId, setSavedId] = React.useState(null);
 
     // Look up existing favorite whenever the resolved verse changes.
@@ -58,6 +60,7 @@ export function useVotdFavorite({ resolved }) {
             if (savedId) {
                 await api.delete(`/favorites/${savedId}`);
                 setSavedId(null);
+                refreshCount();
                 toast.success(t("common.remove"));
             } else {
                 const r = await api.post("/favorites", {
@@ -74,13 +77,14 @@ export function useVotdFavorite({ resolved }) {
                     lang,
                 });
                 setSavedId(r.data?.id || null);
+                refreshCount();
                 toast.success(t("common.saved"));
             }
         } catch (e) {
             console.warn("[VerseOfTheDay] favorite toggle failed:", e?.message || e);
             toast.error(t("common.error"));
         }
-    }, [user, resolved, savedId, lang, t]);
+    }, [user, resolved, savedId, lang, t, refreshCount]);
 
     return { savedId, toggle };
 }
