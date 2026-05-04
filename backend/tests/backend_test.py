@@ -153,9 +153,57 @@ class TestAuth:
 
 
 # ---------- Readings ----------
-# NOTE: /api/readings was removed. Daily readings are now served entirely
-# client-side via external sources (Evangelizo JSON + evangeliodeldia.org
-# iframe) inside frontend/src/pages/Readings.jsx. Nothing to test here.
+# The /api/readings endpoint aggregates the Evangelizo RSS feed. It makes
+# 11 upstream calls per (date, lang) pair so tests are deliberately light:
+# we check the shape and a couple of invariants, not the exact content.
+
+class TestReadings:
+    def test_readings_es_shape(self):
+        r = requests.get(f"{API}/readings", params={"lang": "es", "date": "2026-05-03"},
+                         timeout=TIMEOUT)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        # Top-level fields the frontend relies on.
+        assert data.get("date") == "2026-05-03"
+        assert data.get("lang") == "es"
+        assert data.get("liturgic_title")
+        # May-3-2026 is the 5th Sunday of Easter → all four readings present.
+        for key in ("first_reading", "psalm", "second_reading", "gospel"):
+            section = data.get(key)
+            assert section is not None, f"missing {key}"
+            assert section.get("text_html"), f"empty body on {key}"
+        assert data.get("commentary") and data["commentary"].get("text_html")
+
+    def test_readings_en_shape(self):
+        r = requests.get(f"{API}/readings", params={"lang": "en", "date": "2026-05-03"},
+                         timeout=TIMEOUT)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data.get("liturgic_title")
+        assert data.get("gospel") and data["gospel"].get("text_html")
+
+    def test_readings_weekday_has_no_second_reading(self):
+        # 2026-05-04 is a weekday → SR must be null so the UI can disable tab.
+        r = requests.get(f"{API}/readings", params={"lang": "es", "date": "2026-05-04"},
+                         timeout=TIMEOUT)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data.get("second_reading") is None
+
+    def test_readings_strips_attribution_footer(self):
+        r = requests.get(f"{API}/readings", params={"lang": "es", "date": "2026-05-04"},
+                         timeout=TIMEOUT)
+        assert r.status_code == 200
+        body = (r.json().get("gospel") or {}).get("text_html", "")
+        # The upstream footer must not leak into the rendered body.
+        assert "Extraído de la Biblia" not in body
+        assert "evangeliodeldia.org" not in body
+        assert "<font" not in body.lower()
+
+    def test_readings_invalid_date(self):
+        r = requests.get(f"{API}/readings", params={"lang": "es", "date": "not-a-date"},
+                         timeout=TIMEOUT)
+        assert r.status_code == 400
 
 
 # ---------- Liturgy ----------

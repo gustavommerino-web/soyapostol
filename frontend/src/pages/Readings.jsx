@@ -1,16 +1,70 @@
 import React from "react";
+import DOMPurify from "dompurify";
 import { useLang } from "@/contexts/LangContext";
 import { localDateISO } from "@/lib/localDate";
+import api from "@/lib/api";
+import FavoriteButton from "@/components/FavoriteButton";
 import BackToTopButton from "@/components/BackToTopButton";
-import EvangelizoReadings from "@/components/EvangelizoReadings";
+import { ArrowSquareOut } from "@phosphor-icons/react";
+
+// ---------------------------------------------------------------------------
+// Daily readings — powered by the official Evangelizo RSS feed.
+//
+// The backend (/api/readings) consolidates 11 upstream calls into a single
+// cached JSON document and strips the upstream's attribution footer. Here
+// we render the four Mass readings plus the Evangelizo commentary under a
+// sticky tab selector (FR · PS · SR · GSP · Commentary). The evangeli.net
+// iframe is embedded inside the Commentary tab so users get both
+// reflections in one place.
+// ---------------------------------------------------------------------------
+
+const TAB_ORDER = ["FR", "PS", "SR", "GSP", "COMM"];
+
+const SECTION_MAP = {
+    FR:   { dataKey: "first_reading",  labelKey: "readings.first"      },
+    PS:   { dataKey: "psalm",          labelKey: "readings.psalm"      },
+    SR:   { dataKey: "second_reading", labelKey: "readings.second"     },
+    GSP:  { dataKey: "gospel",         labelKey: "readings.gospel"     },
+    COMM: { dataKey: "commentary",     labelKey: "readings.commentary" },
+};
+
+// DOMPurify config: the Evangelizo body uses <br/>, basic text, and
+// occasional <a> links in commentary. Nothing else is allowed through.
+const DOMPURIFY_CFG = {
+    ALLOWED_TAGS: ["br", "p", "em", "i", "b", "strong", "a", "span"],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+};
+
+function renderHtml(raw) {
+    if (!raw) return { __html: "" };
+    return { __html: DOMPurify.sanitize(raw, DOMPURIFY_CFG) };
+}
+
+// Convert the HTML string into a plain-text snapshot for favorites.
+// Preserves line breaks from <br/> and collapses remaining whitespace.
+function stripHtmlToText(html) {
+    if (!html) return "";
+    return html
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+}
 
 export default function Readings() {
     const { lang, t } = useLang();
     const [localDate, setLocalDate] = React.useState(() => localDateISO());
+    const [data, setData] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(false);
+    const [active, setActive] = React.useState("FR");
 
-    // Re-evaluate the user's local date once a minute. When the calendar
-    // ticks past local midnight the readings refresh through the language-
-    // specific source components (each owns its own fetch + cache).
+    // Refresh at local midnight so the page auto-rolls over.
     React.useEffect(() => {
         const tick = setInterval(() => {
             const next = localDateISO();
@@ -19,10 +73,23 @@ export default function Readings() {
         return () => clearInterval(tick);
     }, []);
 
-    // Format the local date as a localized long subtitle. Both source
-    // components also surface their own day descriptors ("Wednesday of the
-    // 4th week of Eastertide", "Miércoles de la 4ª semana de Pascua"), so
-    // we keep the page-level subtitle a clean human date.
+    React.useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        setError(false);
+        api.get("/readings", { params: { lang, date: localDate } })
+            .then((res) => { if (!cancelled) setData(res.data); })
+            .catch(() => { if (!cancelled) setError(true); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, [lang, localDate]);
+
+    // If the active tab is SR but the day has no second reading, jump back
+    // to the first reading so the user doesn't see an empty state.
+    React.useEffect(() => {
+        if (active === "SR" && data && !data.second_reading) setActive("FR");
+    }, [active, data]);
+
     const formattedDate = React.useMemo(() => {
         try {
             const d = new Date(`${localDate}T12:00:00`);
@@ -33,6 +100,8 @@ export default function Readings() {
         }
     }, [localDate, lang]);
 
+    const hasSR = !!(data && data.second_reading);
+
     return (
         <div className="max-w-3xl mx-auto" data-testid="readings-page">
             <p className="label-eyebrow mb-3">{t("nav.readings")}</p>
@@ -41,29 +110,176 @@ export default function Readings() {
                 {t("common.today")}
             </h1>
             {formattedDate && (
-                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-10"
+                <p className="reading-serif italic text-lg text-stoneMuted mt-2 mb-2"
                    data-testid="readings-date">{formattedDate}</p>
             )}
+            {data?.liturgic_title && (
+                <p className="ui-sans text-sm uppercase tracking-widest text-sangre mb-8"
+                   data-testid="readings-liturgic-title">
+                    {data.liturgic_title}
+                </p>
+            )}
 
-            {/* Daily Mass readings — Evangelizo JSON API for both languages.
-                Component owns its own fetch + localStorage cache + error fallback. */}
-            <EvangelizoReadings date={localDate} />
+            {/* Sticky tab selector — mirrors Favorites' pill styling but
+                sits below the app header so it stays visible as the user
+                scrolls through a long reading. The negative margins +
+                horizontal padding reproduce the main-content padding so
+                the background spans the full reading column width. */}
+            <div
+                className="sticky top-[57px] lg:top-[73px] z-20 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12 py-3 bg-sand-50/95 backdrop-blur-md border-b border-sand-300 mb-8"
+                data-testid="readings-tabs-sticky"
+            >
+                <div
+                    role="tablist"
+                    aria-label={t("nav.readings")}
+                    className="flex flex-wrap gap-2"
+                    data-testid="readings-tabs"
+                >
+                    {TAB_ORDER.map((key) => {
+                        const disabled = key === "SR" && !hasSR && !loading;
+                        const isActive = active === key;
+                        return (
+                            <button
+                                key={key}
+                                type="button"
+                                role="tab"
+                                aria-selected={isActive}
+                                aria-controls={`readings-panel-${key}`}
+                                aria-disabled={disabled || undefined}
+                                disabled={disabled}
+                                onClick={() => !disabled && setActive(key)}
+                                data-testid={`readings-tab-${key}`}
+                                className={`px-3 py-1.5 ui-sans text-xs uppercase tracking-widest rounded-md border transition-colors ${
+                                    isActive
+                                        ? "bg-sangre text-sand-50 border-sangre"
+                                        : disabled
+                                            ? "bg-sand-100 text-stoneFaint border-sand-200 cursor-not-allowed opacity-60"
+                                            : "bg-sand-100 text-stoneMuted border-sand-300 hover:border-sangre"
+                                }`}
+                            >
+                                {t(SECTION_MAP[key].labelKey)}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
 
-            {/* Evangeli.net daily commentary — appears after the Gospel.
-                Iframe is wrapped in a responsive card and lazy-loaded so it
-                never blocks the readings render. */}
-            <section className="mt-16 mb-12" data-testid="evangeli-net-section">
+            {loading && (
+                <p className="text-stoneMuted" data-testid="readings-loading">
+                    {t("common.loading")}
+                </p>
+            )}
+
+            {!loading && error && !data && (
+                <div className="surface-card p-5 sm:p-6 border-l-4 border-l-sangre"
+                     data-testid="readings-error">
+                    <p className="reading-serif text-stone900">
+                        {t("readings.universalis_unavailable")}
+                    </p>
+                </div>
+            )}
+
+            {!loading && data && active !== "COMM" && (
+                <ReadingPanel
+                    tab={active}
+                    item={data[SECTION_MAP[active].dataKey]}
+                    label={t(SECTION_MAP[active].labelKey)}
+                />
+            )}
+
+            {!loading && data && active === "COMM" && (
+                <CommentaryPanel
+                    commentary={data.commentary}
+                    lang={lang}
+                    t={t}
+                />
+            )}
+
+            {!loading && data && (
+                <p className="text-xs text-stoneMuted mt-12 italic"
+                   data-testid="readings-copyright">
+                    Copyright © Evangelizo · Used with permission.{" "}
+                    <a
+                        href={lang === "en" ? "https://dailygospel.org/AM/gospel" : "https://evangeliodeldia.org/"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:text-sangre inline-flex items-center gap-1"
+                    >
+                        {lang === "en" ? "dailygospel.org" : "evangeliodeldia.org"}
+                        <ArrowSquareOut size={11} className="inline" />
+                    </a>
+                </p>
+            )}
+
+            <BackToTopButton testId="readings-back-to-top" />
+        </div>
+    );
+}
+
+function ReadingPanel({ tab, item, label }) {
+    const { t } = useLang();
+
+    if (!item) {
+        return (
+            <div
+                id={`readings-panel-${tab}`}
+                role="tabpanel"
+                data-testid={`readings-panel-${tab}-empty`}
+                className="surface-card p-6 text-stoneMuted"
+            >
+                {t("readings.universalis_unavailable")}
+            </div>
+        );
+    }
+
+    return (
+        <article
+            id={`readings-panel-${tab}`}
+            role="tabpanel"
+            className="reading-prose"
+            data-testid={`readings-panel-${tab}`}
+        >
+            <div className="flex items-center justify-between mb-4 border-b border-sand-300 pb-2">
+                <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight m-0">{label}</h2>
+                <FavoriteButton
+                    section="readings"
+                    title={`${label} — ${item.title || ""}`.trim()}
+                    content={stripHtmlToText(item.text_html || "")}
+                    source_url="https://evangelizo.org/"
+                    testId={`fav-readings-${tab}`}
+                />
+            </div>
+            {item.title && (
+                <p className="reading-serif italic text-stoneMuted mb-4"
+                   data-testid={`readings-panel-${tab}-title`}>
+                    {item.title}
+                </p>
+            )}
+            <div
+                className="reading-prose"
+                data-testid={`readings-panel-${tab}-body`}
+                dangerouslySetInnerHTML={renderHtml(item.text_html)}
+            />
+        </article>
+    );
+}
+
+function CommentaryPanel({ commentary, lang, t }) {
+    return (
+        <section
+            id="readings-panel-COMM"
+            role="tabpanel"
+            data-testid="readings-panel-COMM"
+            className="space-y-10"
+        >
+            {/* Evangeli.net widget — the same iframe that used to live at
+                the bottom of the page, now nested inside the Commentary
+                tab so both reflections share one selector. */}
+            <div>
                 <p className="label-eyebrow mb-3">{t("readings.reflection_eyebrow")}</p>
                 <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
                     {t("readings.reflection_title")}
                 </h2>
-                {/* Evangeli.net widget renders with a small font by default.
-                    We scale the iframe content visually (1.2x) so the text
-                    size matches the rest of the reading prose. The iframe
-                    width is reduced inversely (100% / 1.2) so that, after
-                    scaling, it fills the container exactly. Container
-                    height is enlarged by the same factor to fit the
-                    scaled-up content without inner scrollbars. */}
                 <div
                     className="surface-card overflow-hidden p-0 relative w-full"
                     style={{ height: "660px" }}
@@ -95,9 +311,46 @@ export default function Readings() {
                         className="hover:text-sangre"
                     >evangeli.net</a>
                 </p>
-            </section>
+            </div>
 
-            <BackToTopButton testId="readings-back-to-top" />
-        </div>
+            {/* Evangelizo's in-feed commentary (comment_t / comment_a /
+                comment_s / comment) — rendered below the iframe. */}
+            {commentary && (commentary.text_html || commentary.title) && (
+                <div data-testid="readings-evangelizo-commentary">
+                    <p className="label-eyebrow mb-3">{t("readings.eod_eyebrow")}</p>
+                    <h2 className="heading-serif text-2xl sm:text-3xl tracking-tight mb-5">
+                        {commentary.title || t("readings.eod_title")}
+                    </h2>
+                    <article className="surface-card p-6 sm:p-7 reading-prose">
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                            <div className="min-w-0">
+                                {commentary.author && (
+                                    <p className="heading-serif text-lg sm:text-xl tracking-tight m-0 mb-1">
+                                        {commentary.author}
+                                    </p>
+                                )}
+                                {commentary.source && (
+                                    <p className="text-sm text-stoneMuted italic m-0">
+                                        {commentary.source}
+                                    </p>
+                                )}
+                            </div>
+                            <FavoriteButton
+                                section="readings"
+                                title={commentary.title || t("readings.eod_title")}
+                                content={stripHtmlToText(commentary.text_html || "")}
+                                source_url="https://evangelizo.org/"
+                                testId="fav-readings-COMM"
+                            />
+                        </div>
+                        <div
+                            className="reading-prose mt-2"
+                            data-testid="readings-commentary-body"
+                            dangerouslySetInnerHTML={renderHtml(commentary.text_html)}
+                        />
+                    </article>
+                </div>
+            )}
+        </section>
     );
 }

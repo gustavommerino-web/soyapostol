@@ -17,6 +17,7 @@ from prayers import router as prayers_router, seed_prayers_if_empty
 from news import router as news_router
 from catechism import router as catechism_router
 from favorites import router as favorites_router
+from readings import router as readings_router
 
 # MongoDB
 mongo_url = os.environ['MONGO_URL']
@@ -39,6 +40,7 @@ api_router.include_router(prayers_router)
 api_router.include_router(news_router)
 api_router.include_router(catechism_router)
 api_router.include_router(favorites_router)
+api_router.include_router(readings_router)
 
 app.include_router(api_router)
 

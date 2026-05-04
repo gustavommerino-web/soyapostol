@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 6: full review of new Evangelizo-RSS-backed /api/readings + sticky-tab Readings.jsx page. Backend pytest 28/28 PASS (TestReadings 5/5 incl. ES Sunday shape, EN shape, weekday SR=null, footer stripping, 400 on invalid date). Frontend Playwright covered all 11 review criteria — every check PASSED after a one-line a11y fix to add aria-disabled='true' on the SR tab when second_reading is null (the review explicitly required all three: disabled + aria-disabled + opacity-60). EN language toggle via /settings verified end-to-end.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "readings.py _FOOTER_RE — anchored with `.*$` and DOTALL, which is safe because we already ran _FORBIDDEN_RE first to strip <script>/<style>. Verified: 'Extraído de la Biblia' / 'evangeliodeldia.org' / '<font' all absent in body for 2026-05-04 weekday gospel.",
+    "readings.py _fetch_one swallows ALL httpx exceptions to ''. Combined with the 'all-empty → try stale cache → 502' fallback in get_readings this is a sensible degradation, but the per-request log is silent, so a partial outage (e.g. comment_a only) won't surface. Consider logger.warning per failed fetch for observability.",
+    "readings.py CACHE_TTL_SECONDS=7d means a content correction on Evangelizo's side won't show up for a week unless ?refresh=true is passed. Liturgical date content rarely changes post-publish, so acceptable.",
+    "Readings.jsx — auto-jump from SR back to FR when second_reading is null is a nice UX, but if a user is mid-scroll on the COMM tab and the SR data resolves to null, no harm done (only fires when active==='SR'). Verified.",
+    "Readings.jsx — DOMPURIFY_CFG allows <a target/rel/href> only; <img>/<style> not allowed. Defence-in-depth on top of backend _FORBIDDEN_RE. Good.",
+    "Readings.jsx — sticky offset top-[57px] lg:top-[73px] matches Layout.jsx header heights. Verified: y went from 338 → 73 on scrollY=800 at 1920×1080.",
+    "Readings.jsx — Commentary tab embeds evangeli.net iframe with transform:scale(1.2) inside an overflow:hidden card. Looks good; if evangeli.net ever updates their widget viewport, the manual scale will need re-tuning, but that's expected for third-party iframes."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Readings.jsx (added aria-disabled={disabled || undefined} on tab buttons so SR tab carries aria-disabled='true' when second_reading is null)"
+  ],
+  "success_rate": { "backend": "100% (28/28)", "frontend": "100% (11/11 review criteria)" },
+  "test_credentials": "admin@apostol.app / Apostol2026! (verified working). Throwaway users via /api/auth/register during test.",
+  "seed_data_creation": "None for readings (it's read-only). A few throwaway user accounts created for unrelated auth fixtures.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Readings page testids: readings-page, readings-title, readings-date, readings-liturgic-title, readings-tabs-sticky, readings-tabs, readings-tab-{FR|PS|SR|GSP|COMM}, readings-panel-{FR|PS|GSP|SR}, readings-panel-{TAB}-title, readings-panel-{TAB}-body, readings-panel-{TAB}-empty, readings-panel-COMM, evangeli-iframe, readings-evangelizo-commentary, readings-commentary-body, fav-readings-{FR|PS|SR|GSP|COMM}, readings-loading, readings-error, readings-copyright, readings-back-to-top. SR tab: when second_reading=null on weekdays, button has disabled + aria-disabled='true' + opacity-60 styling and onClick is a no-op. Sticky offset: top-[57px] on mobile, lg:top-[73px] on desktop — matches Layout header. EN test dates: 2026-05-03 returns 'Fifth Sunday of Easter' (lit title) + 'Holy Gospel of Jesus Christ according to Saint John ...' (gospel title). ES weekday 2026-05-04 returns second_reading:null. Backend cache key: '{YYYYMMDD}_{lang}' in db.readings_cache, 7-day TTL via fetched_at ISO timestamp, ?refresh=true bypasses. Stale cache served on upstream failure; 502 only if no cache exists.",
+  "rca of the issue": "N/A — implementation matches spec end-to-end. One minor a11y deviation (missing aria-disabled on SR tab) was fixed in-place by the testing agent (one-line addition in Readings.jsx)."
+}
